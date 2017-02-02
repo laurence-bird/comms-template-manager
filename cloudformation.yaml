@@ -1,0 +1,203 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Load balancer and task role for the ECS service
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [ UAT, PRD ]
+  ECSInstancesSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: The security group for the EC2 instances in the ECS cluster
+  VPC:
+    Type: AWS::EC2::VPC::Id
+  LoadBalancerSubnets:
+    Description: Choose all the public subnets in the VPC
+    Type: List<AWS::EC2::Subnet::Id>
+  LoadBalancerCertificateArn:
+    Description: ARN of the ACM cert to use for the load balancer
+    Type: String
+
+Resources:
+
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - 
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - 
+          PolicyName: read-write-dynamo-table
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - 'dynamodb:Put*'
+                - 'dynamodb:Update*'
+                - 'dynamodb:Query'
+                - 'dynamodb:Scan'
+                - 'dynamodb:Get*'
+                - 'dynamodb:List*'
+                - 'dynamodb:BatchGetItem'
+                - 'dynamodb:DescribeTable'
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TemplatesTable}*"
+        -
+          PolicyName: read-write-s3-buckets
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - 's3:Get*'
+                - 's3:List*'
+                - 's3:Put*'
+              Resource:
+                - 'arn:aws:s3:::ovo-comms-templates'
+                - 'arn:aws:s3:::ovo-comms-templates/*'
+                - 'arn:aws:s3:::ovo-comms-templates-raw'
+                - 'arn:aws:s3:::ovo-comms-templates-raw/*'
+                - 'arn:aws:s3:::ovo-comms-template-assets'
+                - 'arn:aws:s3:::ovo-comms-template-assets/*'
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: 'Open port 443 to OVO IP range'
+
+      # All the CIDR blocks for the various OVO offices and VPNs
+      # Based on https://ovotech.atlassian.net/wiki/pages/viewpage.action?pageId=40435724
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.132.176/28 # Bristol Rivergate
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.132.192/28 # Bristol Rivergate again
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.132.208/28 # NGD
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.132.224/28 # NGD again
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 109.232.58.80/28 # London
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 109.232.60.0/28 # London again
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.142.0/28 # Bristol Templeback
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.142.16/28 # Bristol Templeback again
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 84.246.176.192/27 # BCP site
+
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '32768'
+          ToPort: '61000'
+          DestinationSecurityGroupId:
+            Ref: ECSInstancesSecurityGroup
+      Tags:
+        - Key: Environment
+          Value:
+            Ref: Environment
+      VpcId:
+        Ref: VPC
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        - Key: access_logs.s3.enabled
+          Value: true
+        - Key: access_logs.s3.bucket
+          Value: ovo-comms-logs
+        - Key: access_logs.s3.prefix
+          Value: !Sub "template-manager/${Environment}/loadbalancer"
+      Name: !Sub "template-manager-${Environment}"
+      Scheme: internet-facing
+      SecurityGroups:
+        - Ref: LoadBalancerSecurityGroup
+      Subnets:
+        Ref: LoadBalancerSubnets
+      Tags:
+        - Key: Environment
+          Value:
+            Ref: Environment
+
+  ECSTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckPath: '/healthcheck'
+      HealthCheckProtocol: HTTP
+      Name: !Sub "template-manager-${Environment}"
+      Port: 80
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 30
+      Tags:
+        - Key: Environment
+          Value:
+            Ref: Environment
+      VpcId:
+        Ref: VPC
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'ECSTargetGroup'
+      LoadBalancerArn: !Ref 'LoadBalancer'
+      Port: '443'
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref 'LoadBalancerCertificateArn'
+
+  ECSALBListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'ECSTargetGroup'
+      Conditions:
+      - Field: path-pattern
+        Values: [/]
+      ListenerArn: !Ref 'ALBListener'
+      Priority: 1
+
+  TemplatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      # TODO schema design. One record for each comm, containing a list of versions? Or one record per (commName, version) pair, i.e. version is the range key?
+      - AttributeName: commName
+        AttributeType: S
+      KeySchema:
+      - AttributeName: commName
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
