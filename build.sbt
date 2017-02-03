@@ -26,7 +26,7 @@ lazy val ipAddress: String = {
 
 val testReportsDir = sys.env.getOrElse("CI_REPORTS", "target/reports")
 testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oF", "-u", testReportsDir, "-l", "DockerComposeTag")
-//test in Test := (test in Test).dependsOn(startDynamoDBLocal).value
+test in Test := (test in Test).dependsOn(startDynamoDBLocal).value
 testOptions in Test += dynamoDBLocalTestCleanup.value
 testTagsToExecute := "DockerComposeTag"
 dockerImageCreationTask := (publishLocal in Docker).value
@@ -34,9 +34,9 @@ credstashInputDir := file("conf")
 enablePlugins(PlayScala, DockerPlugin, DockerComposePlugin)
 variablesForSubstitution := Map("IP_ADDRESS" -> ipAddress)
 
-//val testWithDynamo = taskKey[Unit]("start dynamo, run the tests, shut down dynamo")
-//testWithDynamo := Def.sequential(
-//  startDynamoDBLocal,
-//  test in Test,
-//  stopDynamoDBLocal
-//).value
+val testWithDynamo = taskKey[Unit]("start dynamo, run the tests, shut down dynamo")
+testWithDynamo := Def.sequential(
+  startDynamoDBLocal,
+  test in Test,
+  stopDynamoDBLocal
+).value

@@ -8,3 +8,11 @@ GET     /healthcheck                controllers.MainController.healthcheck
 GET     /login                      controllers.AuthController.login
 GET     /oauth2callback             controllers.AuthController.oauth2Callback
 GET     /auth-error                 controllers.AuthController.authError
+
+GET    /templates/:commName/:version    controllers.MainController.getTemplateVersion(commName, version)
+GET    /templates/:commName             controllers.MainController.listVersions(commName)
+GET    /templates                   controllers.MainController.listTemplates
+
+POST   /templates/:commName/:version    controllers.MainController.publishTemplate(commName, version)
+
+

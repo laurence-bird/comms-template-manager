@@ -13,4 +13,12 @@ class MainController(val authConfig: GoogleAuthConfig, val wsClient: WSClient, v
     Ok(views.html.index())
   }
 
+  def getTemplateVersion(commName: String, version: String) = TODO
+
+  def listTemplates = TODO
+
+  def listVersions(commName: String) = TODO
+
+  def publishTemplate(commName: String, version: String) = TODO
+
 }
