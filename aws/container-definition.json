@@ -3,7 +3,7 @@
     "name": "template-manager",
     "image": "@@AWS_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com/template-manager:@@VERSION",
     "essential": true,
-    "memory": 512,
+    "memory": 380,
     "environment": [
       {
         "name": "ENV",
