@@ -188,16 +188,42 @@ Resources:
       ListenerArn: !Ref 'ALBListener'
       Priority: 1
 
-  TemplatesTable:
+  TemplateSummaryTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-      # TODO schema design. One record for each comm, containing a list of versions? Or one record per (commName, version) pair, i.e. version is the range key?
       - AttributeName: commName
+        AttributeType: S
+      - AttributeName: commType
+        AttributeType: S
+      - AttributeName: latestVersion
         AttributeType: S
       KeySchema:
       - AttributeName: commName
         KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  TemplateVersionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: commName
+        AttributeType: S
+      - AttributeName: version
+        AttributeType: S
+      - AttributeName: publishedAt
+        AttributeType: N
+      - AttributeName: publishedBy
+        AttributeType: S
+      - AttributeName: commType
+        AttributeType: S
+      KeySchema:
+      - AttributeName: commName
+        KeyType: HASH
+      - AttributeName: publishedAt
+        KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
