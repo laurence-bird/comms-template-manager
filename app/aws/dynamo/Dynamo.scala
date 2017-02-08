@@ -26,7 +26,7 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
     }
   }
 
-  def getTemplateVersion(commName: String, version: String) = {
+  def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
     val query = templateVersionTable.get('commName -> commName and 'version -> version)
     Scanamo.exec(db)(query).flatMap(result => logIfError(result).toOption)
   }

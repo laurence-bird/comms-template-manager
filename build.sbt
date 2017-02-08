@@ -12,10 +12,11 @@ libraryDependencies ++= Seq(
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
   "com.gu" %% "play-googleauth" % "0.6.0",
+  "com.ovoenergy" %% "comms-templates" % "0.1.1",
   "org.scalatest" %% "scalatest" % "2.2.6" %  Test,
   "com.github.alexarchambault"  %% "scalacheck-shapeless_1.13" % "1.1.4" %   Test,
-  "org.scalacheck" %% "scalacheck" % "1.13.4" % Test
-
+  "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
+  "com.squareup.okhttp3" % "okhttp" % "3.4.2" % Test
 )
 
 lazy val ipAddress: String = {

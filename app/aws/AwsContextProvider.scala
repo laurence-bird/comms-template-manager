@@ -7,9 +7,9 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.services.s3.AmazonS3Client
 import play.api.Logger
 
-object AwsClientProvider {
+object AwsContextProvider {
 
-  def genClients(isRunningInCompose: Boolean, region: Regions): (AmazonDynamoDBClient, AmazonS3Client) = {
+  def genContext(isRunningInCompose: Boolean, region: Regions): (AmazonDynamoDBClient, AmazonS3Client) = {
       if(isRunningInCompose){
         Logger.info("Running in compose")
         System.setProperty("com.amazonaws.sdk.disableCertChecking", "true")

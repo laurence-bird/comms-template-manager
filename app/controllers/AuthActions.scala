@@ -34,5 +34,5 @@ trait AuthActions extends Actions {
       AuthAction andThen LogRequest
     }
     else
-      DummyAuthAction
+      DummyAuthAction andThen LogRequest
 }

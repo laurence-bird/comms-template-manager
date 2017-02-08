@@ -3,15 +3,16 @@ package aws.s3
 import java.nio.charset.StandardCharsets
 
 import com.amazonaws.services.s3.AmazonS3Client
-import com.amazonaws.services.s3.model.AmazonS3Exception
+import com.amazonaws.services.s3.model.{AmazonS3Exception, ListObjectsV2Request}
 import com.amazonaws.util.IOUtils
+import scala.collection.JavaConverters._
 import play.api.Logger
 
-object AmazonS3ClientWrapper {
+class AmazonS3ClientWrapper(client: AmazonS3Client) {
 
   case class S3FileDetails(contents: String, key: String, bucket: String)
 
-  def uploadFile(client: AmazonS3Client)(fileDetails: S3FileDetails): Either[String, String] = {
+  def uploadFile(fileDetails: S3FileDetails): Either[String, String] = {
     try {
       client.putObject(fileDetails.bucket, fileDetails.key, fileDetails.contents)
       Right(client.getResourceUrl(fileDetails.bucket, fileDetails.key))
@@ -20,7 +21,7 @@ object AmazonS3ClientWrapper {
     }
   }
 
-  def downloadFile(client: AmazonS3Client)(bucket: String, key: String): Either[String, String] = {
+  def downloadFile(bucket: String, key: String): Either[String, String] = {
     try {
         val obj = client.getObject(bucket, key)
         val stream = obj.getObjectContent
@@ -36,6 +37,18 @@ object AmazonS3ClientWrapper {
         Logger.warn(s"Failed to download aws.s3://$bucket/$key", e)
         Left(s"Failed to download s3://$bucket/$key, with status code ${e.getStatusCode}")
 
+    }
+  }
+
+  // Returns keys of all the files in specified s3 bucket with the given prefix
+  def listFiles(bucket: String, prefix: String): Seq[String] = {
+    try {
+      val request = new ListObjectsV2Request().withBucketName(bucket).withPrefix(prefix)
+      client.listObjectsV2(request).getObjectSummaries.asScala.map(_.getKey)
+    } catch {
+      case e: AmazonS3Exception =>
+        Logger.warn(s"Failed to list objects under s3://$bucket/$prefix", e)
+        Nil
     }
   }
 }
