@@ -3,7 +3,7 @@ package logic
 import cats.free.Free
 import cats.free.Free._
 import com.ovoenergy.comms.model.CommManifest
-import models.{TemplateVersion, ZippedRawTemplate}
+import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
 
 object TemplateOp {
 
@@ -17,9 +17,14 @@ object TemplateOp {
   def retrieveTemplateInfo(commManifest: CommManifest): TemplateManager[TemplateVersion] =
     liftF(RetrieveTemplateVersionFromDynamo(commManifest))
 
+  def retrieveAllTemplateVersions(commName: String): TemplateManager[Seq[TemplateVersion]] =
+    liftF(RetrieveAllTemplateVersions(commName))
+
   def compressTemplatesToZipFile(templateFiles: TemplateFiles): TemplateManager[Array[Byte]] =
     liftF(CompressTemplates(templateFiles))
 
+  def listTemplateSummaries(): TemplateManager[Seq[TemplateSummary]] =
+    liftF(ListTemplateSummaries())
 
   def retrieveTemplate(commManifest: CommManifest): TemplateManager[ZippedRawTemplate] =
     for {

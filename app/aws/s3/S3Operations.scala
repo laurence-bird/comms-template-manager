@@ -13,20 +13,22 @@ import logic.TemplateOp._
 
 object S3Operations {
 
+
   def downloadTemplateFiles(s3ClientWrapper: AmazonS3ClientWrapper, commManifest: CommManifest, bucketName: String): Either[String, TemplateFiles] = {
-
     val prefix = buildPrefix(commManifest)
-    val keys = s3ClientWrapper.listFiles(bucketName,prefix).toList
-    val result = keys.traverseU{ absKey =>
-      val file = s3ClientWrapper.downloadFile(bucketName, absKey).right
+    val fileKeys = s3ClientWrapper.listFiles(bucketName, prefix).right
+    fileKeys.flatMap{ keys =>
+      val result = keys.toList.traverseU { absKey =>
+        val file = s3ClientWrapper.downloadFile(bucketName, absKey).right
 
-      val pair: Either[String, (String, Array[Byte])] = file map{ f =>
-        val strippedKey = absKey.stripPrefix(prefix).dropWhile(_ == "/")
-        (strippedKey, f.getBytes(StandardCharsets.UTF_8))
+        val pair: Either[String, (String, Array[Byte])] = file map { f =>
+          val strippedKey = absKey.stripPrefix(prefix).dropWhile(_ == "/")
+          (strippedKey, f.getBytes(StandardCharsets.UTF_8))
+        }
+        pair
       }
-      pair
+      result.right.map(_.toMap)
     }
-    result.right.map(_.toMap)
   }
 
   private def buildPrefix(commManifest: CommManifest) = {
@@ -35,21 +37,23 @@ object S3Operations {
 
   type ByteArray = Array[Byte]
 
-  def compressFiles(templateFiles: TemplateFiles): ErrorsOr[ByteArray]= {
+  def compressFiles(templateFiles: TemplateFiles): ErrorsOr[ByteArray] = {
     val baos = new ByteArrayOutputStream()
     val zip = new ZipOutputStream(baos)
-    try{
-      templateFiles.foreach{
+    try {
+      templateFiles.foreach {
         case (fileName, file) =>
           zip.putNextEntry(new ZipEntry(fileName))
           zip.write(file)
           zip.closeEntry()
       }
-      Right(baos.toByteArray)
-    } catch{
+      zip.close()
+      val result = baos.toByteArray
+      Right(result)
+    } catch {
       case e: Throwable => Left(s"Failed to compress template files files: ${e.getMessage}")
     }
-    finally{
+    finally {
       zip.close()
     }
   }

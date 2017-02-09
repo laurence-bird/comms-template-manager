@@ -1,17 +1,18 @@
 import aws.{AwsContextProvider, Interpreter}
 import aws.dynamo.Dynamo
 import aws.s3.AmazonS3ClientWrapper
-import controllers.{AuthController, MainController}
 import com.amazonaws.regions.Regions
 import com.gu.googleauth.GoogleAuthConfig
 import com.gu.scanamo.Table
+import controllers.{AuthController, MainController}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.ApplicationLoader.Context
-import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Logger}
+import play.api.BuiltInComponentsFromContext
 import play.api.libs.ws.ahc.AhcWSComponents
+import play.api.routing.Router
 import router.Routes
 import aws.dynamo.DynamoFormats._
+
 class AppComponents(context: Context)
     extends BuiltInComponentsFromContext(context)
     with AhcWSComponents {
@@ -43,6 +44,7 @@ class AppComponents(context: Context)
   val interpreter = Interpreter.build(awsContext)
 
   val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter)
+
   val authController = new AuthController(googleAuthConfig, wsClient, enableAuth)
 
   lazy val router: Router = new Routes(

@@ -1,18 +1,17 @@
 package views
 
-import java.time.format.DateTimeFormatter
-import java.time.{OffsetDateTime, ZoneOffset}
+import java.time.Instant
 
 object ViewHelper {
 
-  def formatDate(offsetDateTime: OffsetDateTime): String =
-    offsetDateTime.atZoneSameInstant(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + " GMT"
+  def formatDate(instant: Instant): String =
+    instant.toString
 
-  def formatOptDate(opt: Option[OffsetDateTime]): String =
+  def formatOptDate(opt: Option[Instant]): String =
     opt.map(formatDate).getOrElse("(unknown)")
 
-  def dateToLong(offsetDateTime: OffsetDateTime): Long = {
-    offsetDateTime.toInstant.toEpochMilli
+  def dateToLong(instant: Instant): Long = {
+    instant.toEpochMilli
   }
 
 }

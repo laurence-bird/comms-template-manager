@@ -19,7 +19,7 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
     }
   }
 
-  def listTemplates: List[TemplateSummary] = {
+  def listTemplateSummaries: List[TemplateSummary] = {
     val query = templateSummaryTable.scan()
     Scanamo.exec(db)(query).flatMap{ result =>
       logIfError(result).toOption

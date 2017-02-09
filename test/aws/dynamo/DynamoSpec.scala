@@ -63,7 +63,7 @@ class DynamoSpec extends FlatSpec
   }
 
   it should "list all template summaries in the database" in {
-    val result = dynamo.listTemplates
+    val result = dynamo.listTemplateSummaries
     result.length shouldBe 2
     result should contain allOf (
       TemplateSummary("comm1", Service, "version1"),

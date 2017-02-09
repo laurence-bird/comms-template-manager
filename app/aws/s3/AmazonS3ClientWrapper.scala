@@ -41,14 +41,15 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
   }
 
   // Returns keys of all the files in specified s3 bucket with the given prefix
-  def listFiles(bucket: String, prefix: String): Seq[String] = {
+  def listFiles(bucket: String, prefix: String): Either[String, Seq[String]]= {
     try {
       val request = new ListObjectsV2Request().withBucketName(bucket).withPrefix(prefix)
-      client.listObjectsV2(request).getObjectSummaries.asScala.map(_.getKey)
+      val result = client.listObjectsV2(request).getObjectSummaries.asScala.map(_.getKey)
+      Right(result)
     } catch {
       case e: AmazonS3Exception =>
         Logger.warn(s"Failed to list objects under s3://$bucket/$prefix", e)
-        Nil
+        Left(s"Failed to retrieve template files from s3://$bucket/$prefix")
     }
   }
 }

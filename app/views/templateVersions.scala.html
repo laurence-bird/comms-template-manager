@@ -1,0 +1,27 @@
+@(templateVersions: Seq[TemplateVersion], commName: String)(implicit user: com.gu.googleauth.UserIdentity)
+@main{
+    <div class="page-header">
+        <h1>Templates for: @commName</h1>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Published by</th>
+                <th>Published at</th>
+                <th>Download</th>
+            </tr>
+        </thead>
+        <tbody>
+        @for(templateVersion <- templateVersions) {
+            <tr>
+                <td>@templateVersion.version</td>
+                <td>@templateVersion.publishedBy</td>
+                <td>@templateVersion.publishedAt</td>
+                <td><a href="@routes.MainController.getTemplateVersion(templateVersion.commName, templateVersion.version)"><span class="glyphicon glyphicon-download"></span></a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
