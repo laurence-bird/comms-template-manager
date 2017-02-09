@@ -39,22 +39,22 @@ object S3Operations {
 
   def compressFiles(templateFiles: TemplateFiles): ErrorsOr[ByteArray] = {
     val baos = new ByteArrayOutputStream()
-    val zip = new ZipOutputStream(baos)
     try {
-      templateFiles.foreach {
-        case (fileName, file) =>
-          zip.putNextEntry(new ZipEntry(fileName))
-          zip.write(file)
-          zip.closeEntry()
+      val zip = new ZipOutputStream(baos)
+      try {
+        templateFiles.foreach {
+          case (fileName, file) =>
+            zip.putNextEntry(new ZipEntry(fileName))
+            zip.write(file)
+            zip.closeEntry()
+        }
+      } finally {
+        zip.close()
       }
-      zip.close()
       val result = baos.toByteArray
       Right(result)
     } catch {
-      case e: Throwable => Left(s"Failed to compress template files files: ${e.getMessage}")
-    }
-    finally {
-      zip.close()
+      case e: Throwable => Left(s"Failed to compress template files: ${e.getMessage}")
     }
   }
 }
