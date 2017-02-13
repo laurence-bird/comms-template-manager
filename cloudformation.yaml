@@ -49,7 +49,8 @@ Resources:
                 - 'dynamodb:BatchGetItem'
                 - 'dynamodb:DescribeTable'
               Resource:
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TemplatesTable}*"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TemplateSummaryTable}*"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TemplateVersionTable}*"
         -
           PolicyName: read-write-s3-buckets
           PolicyDocument:
@@ -194,10 +195,6 @@ Resources:
       AttributeDefinitions:
       - AttributeName: commName
         AttributeType: S
-      - AttributeName: commType
-        AttributeType: S
-      - AttributeName: latestVersion
-        AttributeType: S
       KeySchema:
       - AttributeName: commName
         KeyType: HASH
@@ -211,14 +208,8 @@ Resources:
       AttributeDefinitions:
       - AttributeName: commName
         AttributeType: S
-      - AttributeName: version
-        AttributeType: S
       - AttributeName: publishedAt
         AttributeType: N
-      - AttributeName: publishedBy
-        AttributeType: S
-      - AttributeName: commType
-        AttributeType: S
       KeySchema:
       - AttributeName: commName
         KeyType: HASH
