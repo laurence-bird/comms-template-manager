@@ -4,6 +4,7 @@ import aws.s3.S3Operations
 import cats.~>
 import com.ovoenergy.comms.model.CommManifest
 import logic._
+import templates.TemplateValidator
 
 object Interpreter {
 
@@ -27,6 +28,12 @@ object Interpreter {
           else
             Right(templateSummaries)
         }
+
+        case UploadTemplate(s3File) =>
+          context.s3ClientWrapper.uploadFile(s3File)
+
+        case ValidateTemplate(commManifest, templateFilePaths) =>
+          TemplateValidator.validateTemplateFileStructure(context.templatesS3ClientWrapper, commManifest, templateFilePaths)
 
         case RetrieveAllTemplateVersions(commName: String) => {
           val versions = context.dynamo.listVersions(commName)

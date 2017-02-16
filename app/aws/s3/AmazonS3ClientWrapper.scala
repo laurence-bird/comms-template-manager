@@ -1,23 +1,31 @@
 package aws.s3
 
+import java.io.{ByteArrayInputStream, InputStream}
 import java.nio.charset.StandardCharsets
 
+import aws.Interpreter.ErrorsOr
 import com.amazonaws.services.s3.AmazonS3Client
-import com.amazonaws.services.s3.model.{AmazonS3Exception, ListObjectsV2Request}
-import com.amazonaws.util.IOUtils
+import com.amazonaws.services.s3.model.{AmazonS3Exception, ListObjectsV2Request, ObjectMetadata}
+import org.apache.commons.compress.utils.IOUtils
+
 import scala.collection.JavaConverters._
 import play.api.Logger
 
+case class S3FileDetails(contents: Array[Byte], key: String, bucket: String)
+
 class AmazonS3ClientWrapper(client: AmazonS3Client) {
 
-  case class S3FileDetails(contents: String, key: String, bucket: String)
-
-  def uploadFile(fileDetails: S3FileDetails): Either[String, String] = {
+  def uploadFile(fileDetails: S3FileDetails): ErrorsOr[String] = {
+    val stream = new ByteArrayInputStream(fileDetails.contents)
     try {
-      client.putObject(fileDetails.bucket, fileDetails.key, fileDetails.contents)
+      val meta = new ObjectMetadata()
+      meta.setContentLength(fileDetails.contents.length)
+      client.putObject(fileDetails.bucket, fileDetails.key, stream, meta)
       Right(client.getResourceUrl(fileDetails.bucket, fileDetails.key))
     } catch {
       case e: AmazonS3Exception => Left(s"Failed to upload to aws.s3 with error: ${e.getMessage} for file: ${fileDetails.key} ")
+    } finally {
+      IOUtils.closeQuietly(stream)
     }
   }
 

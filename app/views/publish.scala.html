@@ -1,0 +1,57 @@
+@(resultClass: String, result: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@main{
+
+    <style>
+        label {
+            width:300px;
+            clear:left;
+            text-align:right;
+            padding-right:10px;
+        }
+
+        input, label {
+            float:left;
+        }
+
+        .ok {
+            color:green;
+            padding-top: 10px;
+        }
+
+        .error {
+            color:red;
+            padding-top: 10px;
+        }
+    </style>
+
+    <div class="page-header">
+        <h1>Publish New Template</h1>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                @helper.form(action = routes.MainController.publishTemplate(), 'enctype -> "multipart/form-data") {
+                    <label>Enter the name of your comm:</label>
+                    <input type="text" name="commName" placeholder="Comm name" required/><br><br>
+
+                    <label>Select the type of your comm:</label>
+                    <select name="commType" required>
+                        <option value="Service" selected>Service</option>
+                        <option value="Regulatory">Regulatory</option>
+                        <option value="Marketing">Marketing</option>
+                    </select><br><br>
+
+                    <label>Select the zip file containing your template:</label>
+                    <input type="file" name="templateFile" id="templateFile" accept=".zip" required><br><br>
+
+                    <label></label>
+                    <button type="submit" id="publish" class="btn btn-primary">Publish Template</button>
+                }
+            </div>
+            <div class="col-md-6 col-md-offset-3">
+                <div class=@resultClass>@Html(result)</div>
+            </div>
+        </div>
+    </div>
+}

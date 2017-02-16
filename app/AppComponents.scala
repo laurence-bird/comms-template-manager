@@ -12,6 +12,8 @@ import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.routing.Router
 import router.Routes
 import aws.dynamo.DynamoFormats._
+import play.api.i18n.{DefaultLangs, DefaultMessagesApi, MessagesApi}
+import com.ovoenergy.comms.templates.s3.{AmazonS3ClientWrapper => TemplatesLibS3ClientWrapper}
 
 class AppComponents(context: Context)
     extends BuiltInComponentsFromContext(context)
@@ -31,7 +33,7 @@ class AppComponents(context: Context)
     Table[TemplateSummary](mandatoryConfig("aws.dynamo.tables.templateSummaryTable"))
   )
 
-  val awsContext = aws.Context(new AmazonS3ClientWrapper(s3Client), dynamo, mandatoryConfig("aws.s3.buckets.rawTemplates"))
+  val awsContext = aws.Context(new TemplatesLibS3ClientWrapper(s3Client), new AmazonS3ClientWrapper(s3Client), dynamo, mandatoryConfig("aws.s3.buckets.rawTemplates"))
 
   val googleAuthConfig = GoogleAuthConfig(
     clientId = mandatoryConfig("google.clientId"),
@@ -42,8 +44,9 @@ class AppComponents(context: Context)
   val enableAuth = !isRunningInCompose // only disable auth if we are running the service tests
 
   val interpreter = Interpreter.build(awsContext)
+  val messagesApi: MessagesApi = new DefaultMessagesApi(environment, configuration, new DefaultLangs(configuration))
 
-  val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter)
+  val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter, messagesApi, mandatoryConfig("aws.s3.buckets.rawTemplates"))
 
   val authController = new AuthController(googleAuthConfig, wsClient, enableAuth)
 
