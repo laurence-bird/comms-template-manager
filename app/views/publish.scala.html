@@ -1,4 +1,4 @@
-@(resultClass: String, result: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@(resultClass: String, results: List[String], commName: String, commType: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
 
     <style>
@@ -33,13 +33,13 @@
             <div class="col-md-12">
                 @helper.form(action = routes.MainController.publishTemplate(), 'enctype -> "multipart/form-data") {
                     <label>Enter the name of your comm:</label>
-                    <input type="text" name="commName" placeholder="Comm name" required/><br><br>
+                    <input type="text" name="commName" value="@commName" placeholder="Comm name" required/><br><br>
 
                     <label>Select the type of your comm:</label>
                     <select name="commType" required>
-                        <option value="Service" selected>Service</option>
-                        <option value="Regulatory">Regulatory</option>
-                        <option value="Marketing">Marketing</option>
+                        <option value="Service" @{if(commType == "Service") {"selected"}}>Service</option>
+                        <option value="Regulatory" @{if(commType == "Regulatory") {"selected"}}>Regulatory</option>
+                        <option value="Marketing" @{if(commType == "Marketing") {"selected"}}>Marketing</option>
                     </select><br><br>
 
                     <label>Select the zip file containing your template:</label>
@@ -50,7 +50,7 @@
                 }
             </div>
             <div class="col-md-6 col-md-offset-3">
-                <div class=@resultClass>@Html(result)</div>
+                <ul class=@resultClass>@for(result <- results){<li>@result</li>}</ul>
             </div>
         </div>
     </div>

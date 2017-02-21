@@ -15,7 +15,7 @@ case class S3FileDetails(contents: Array[Byte], key: String, bucket: String)
 
 class AmazonS3ClientWrapper(client: AmazonS3Client) {
 
-  def uploadFile(fileDetails: S3FileDetails): ErrorsOr[String] = {
+  def uploadFile(fileDetails: S3FileDetails): Either[String, String] = {
     val stream = new ByteArrayInputStream(fileDetails.contents)
     try {
       val meta = new ObjectMetadata()

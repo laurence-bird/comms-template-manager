@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
 import aws.Interpreter.ErrorsOr
+import cats.data.NonEmptyList
 import cats.instances.either._
 import cats.instances.list._
 import cats.syntax.traverse._
@@ -54,7 +55,7 @@ object S3Operations {
       val result = baos.toByteArray
       Right(result)
     } catch {
-      case e: Throwable => Left(s"Failed to compress template files: ${e.getMessage}")
+      case e: Throwable => Left(NonEmptyList.of(s"Failed to compress template files: ${e.getMessage}"))
     }
   }
 }

@@ -18,7 +18,6 @@ case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq
 
 case class ListTemplateSummaries() extends TemplateOpA[Seq[TemplateSummary]]
 
-case class UploadTemplate(s3File: S3FileDetails) extends TemplateOpA[String]
+case class UploadTemplateFile(commManifest: CommManifest, uploadedFile: UploadedFile) extends TemplateOpA[String]
 
 case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]) extends TemplateOpA[Unit]
-

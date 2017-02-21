@@ -46,7 +46,7 @@ class AppComponents(context: Context)
   val interpreter = Interpreter.build(awsContext)
   val messagesApi: MessagesApi = new DefaultMessagesApi(environment, configuration, new DefaultLangs(configuration))
 
-  val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter, messagesApi, mandatoryConfig("aws.s3.buckets.rawTemplates"))
+  val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter, messagesApi)
 
   val authController = new AuthController(googleAuthConfig, wsClient, enableAuth)
 
