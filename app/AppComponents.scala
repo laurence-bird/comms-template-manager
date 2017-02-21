@@ -4,7 +4,7 @@ import aws.s3.AmazonS3ClientWrapper
 import com.amazonaws.regions.Regions
 import com.gu.googleauth.GoogleAuthConfig
 import com.gu.scanamo.Table
-import controllers.{AuthController, MainController}
+import controllers.{Assets, AssetsBuilder, AuthController, MainController}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponentsFromContext
@@ -53,6 +53,7 @@ class AppComponents(context: Context)
   lazy val router: Router = new Routes(
     httpErrorHandler,
     mainController,
+    new Assets(httpErrorHandler),
     authController
   )
 

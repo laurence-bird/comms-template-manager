@@ -3,6 +3,9 @@
 # ~~~~
 
 GET     /                           controllers.MainController.index
+
+GET     /public/*file               controllers.Assets.at(path="/public", file)
+
 GET     /healthcheck                controllers.MainController.healthcheck
 
 GET     /login                      controllers.AuthController.login
@@ -15,5 +18,3 @@ GET    /templates                       controllers.MainController.listTemplates
 
 GET    /templates-publish            controllers.MainController.publish
 POST   /templates-publish/publish    controllers.MainController.publishTemplate
-
-

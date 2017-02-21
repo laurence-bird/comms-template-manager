@@ -13,6 +13,7 @@ libraryDependencies ++= Seq(
   "me.moocar" % "logback-gelf" % "0.2",
   "com.gu" %% "play-googleauth" % "0.6.0",
   "com.ovoenergy" %% "comms-templates" % "0.1.1",
+  "org.webjars" % "bootstrap" % "3.3.4",
   "org.scalatest" %% "scalatest" % "2.2.6" %  Test,
   "com.github.alexarchambault"  %% "scalacheck-shapeless_1.13" % "1.1.4" %   Test,
   "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
@@ -41,3 +42,5 @@ testWithDynamo := Def.sequential(
   test in Test,
   stopDynamoDBLocal
 ).value
+
+includeFilter in (Assets, LessKeys.less) := "*.less"

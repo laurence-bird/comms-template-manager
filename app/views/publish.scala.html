@@ -1,28 +1,6 @@
 @(resultClass: String, results: List[String], commName: String, commType: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
-
-    <style>
-        label {
-            width:300px;
-            clear:left;
-            text-align:right;
-            padding-right:10px;
-        }
-
-        input, label {
-            float:left;
-        }
-
-        .ok {
-            color:green;
-            padding-top: 10px;
-        }
-
-        .error {
-            color:red;
-            padding-top: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="@routes.Assets.at("stylesheets/publish.css")">
 
     <div class="page-header">
         <h1>Publish New Template</h1>
