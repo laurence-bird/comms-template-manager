@@ -27,24 +27,33 @@ object TemplateOp {
   def listTemplateSummaries(): TemplateOp[Seq[TemplateSummary]] =
     liftF(ListTemplateSummaries())
 
-  def validateAndUploadTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
+  def validateAndUploadNewTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
     for {
+      _ <- validateTemplateDoesNotExist(commManifest)
       _ <- validateTemplate(commManifest, uploadedFiles)
-      uploadResults <- uploadTemplate(commManifest, uploadedFiles)
+      _ <- writeTemplateToDynamo(commManifest)
+      uploadResults <- uploadTemplateToS3(commManifest, uploadedFiles)
     } yield uploadResults
   }
 
-  def uploadTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
+  def uploadTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    uploadedFiles.traverseU(file => uploadTemplateFile(commManifest, file))
+    uploadedFiles.traverseU(file => uploadTemplateFileToS3Raw(commManifest, file))
   }
 
-  def uploadTemplateFile(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
-    liftF(UploadTemplateFile(commManifest, uploadedFile))
+  def writeTemplateToDynamo(commManifest: CommManifest) = {
+    liftF(UploadTemplateToDynamo(commManifest))
+  }
+
+  def uploadTemplateFileToS3Raw(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
+    liftF(UploadTemplateFileToS3Raw(commManifest, uploadedFile))
 
   def validateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[Unit] =
     liftF(ValidateTemplate(commManifest, uploadedFiles))
+
+  def validateTemplateDoesNotExist(commManifest: CommManifest): TemplateOp[Unit] =
+    liftF(ValidateTemplateDoesNotExist(commManifest))
 
   def retrieveTemplate(commManifest: CommManifest): TemplateOp[ZippedRawTemplate] =
     for {

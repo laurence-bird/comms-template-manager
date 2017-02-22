@@ -31,4 +31,26 @@ object TemplateSummary{
       commManifest.version
     )
   }
+
+  def versionCompare(l: String, r: String): Int = {
+    val leftVersionVals = l.split("\\.").map(_.toInt)
+    val rightVersionVals = r.split("\\.").map(_.toInt)
+
+    val positionOfDifference = leftVersionVals.foldLeft(0)((position, vals1Value) => {
+      if (position < rightVersionVals.length && vals1Value.equals(rightVersionVals(position))) position + 1
+      else position
+    })
+
+    // compare first non-equal ordinal number
+    if (positionOfDifference < leftVersionVals.length && positionOfDifference < rightVersionVals.length) {
+      val diff = leftVersionVals(positionOfDifference).compareTo(rightVersionVals(positionOfDifference))
+      Integer.signum(diff)
+    } else {
+      // the strings are equal or one string is a substring of the other
+      // e.g. "1.2.3" = "1.2.3" or "1.2.3" < "1.2.3.4"
+      Integer.signum(leftVersionVals.length - rightVersionVals.length)
+    }
+  }
 }
+
+

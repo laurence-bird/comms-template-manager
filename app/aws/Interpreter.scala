@@ -38,7 +38,7 @@ object Interpreter {
             Right(templateSummaries)
         }
 
-        case UploadTemplateFile(commManifest, uploadedFile) =>
+        case UploadTemplateFileToS3Raw(commManifest, uploadedFile) =>
           val key = s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
           val s3File = S3FileDetails(uploadedFile.contents, key, context.s3TemplatesBucket)
           context.s3ClientWrapper.uploadFile(s3File) match {
@@ -47,7 +47,14 @@ object Interpreter {
           }
 
         case ValidateTemplate(commManifest, uploadedFiles) =>
-          TemplateValidator.validateTemplateFileStructure(context.templatesS3ClientWrapper, commManifest, uploadedFiles)
+          TemplateValidator.validateTemplate(context.templatesS3ClientWrapper, commManifest, uploadedFiles)
+
+        case ValidateTemplateDoesNotExist(commManifest) =>
+          if (context.dynamo.listVersions(commManifest.name).isEmpty) {
+            Right(())
+          } else {
+            Left(NonEmptyList.of(s"A template called ${commManifest.name} already exists"))
+          }
 
         case RetrieveAllTemplateVersions(commName: String) => {
           val versions = context.dynamo.listVersions(commName)
@@ -56,6 +63,12 @@ object Interpreter {
           else
             Right(versions)
         }
+
+        case UploadTemplateToDynamo(commMannifest) =>
+          context.dynamo.writeNewVersion(commMannifest) match {
+            case Right(())   => Right(())
+            case Left(error) => Left(NonEmptyList.of(error))
+          }
       }
     }
   }

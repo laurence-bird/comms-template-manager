@@ -1,6 +1,5 @@
 package logic
 
-import aws.s3.S3FileDetails
 import com.ovoenergy.comms.model.CommManifest
 import logic.TemplateOp.TemplateFiles
 import models.{TemplateSummary, TemplateVersion}
@@ -18,6 +17,10 @@ case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq
 
 case class ListTemplateSummaries() extends TemplateOpA[Seq[TemplateSummary]]
 
-case class UploadTemplateFile(commManifest: CommManifest, uploadedFile: UploadedFile) extends TemplateOpA[String]
+case class UploadTemplateFileToS3Raw(commManifest: CommManifest, uploadedFile: UploadedFile) extends TemplateOpA[String]
 
 case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]) extends TemplateOpA[Unit]
+
+case class ValidateTemplateDoesNotExist(commManifest: CommManifest) extends TemplateOpA[Unit]
+
+case class UploadTemplateToDynamo(commManifest: CommManifest) extends TemplateOpA[Unit]

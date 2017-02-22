@@ -14,7 +14,7 @@ object TemplateValidator {
 
   private val assetTemplateReferenceRegex = "(?:'|\")(?: *)(assets/[^(\"')]+)(?: *)(?:'|\")".r
 
-  def validateTemplateFileStructure(s3Client: S3Client, commManifest: CommManifest, uploadedFiles: List[UploadedFile]): ErrorsOr[Unit] = {
+  def validateTemplate(s3Client: S3Client, commManifest: CommManifest, uploadedFiles: List[UploadedFile]): ErrorsOr[Unit] = {
     val expFileValidations = validateIfAllFilesAreExpected(uploadedFiles.map(_.path))
     val templateContentValidations = validateTemplateContents(s3Client, commManifest, uploadedFiles)
     val assetReferenceValidations = validateAllEmailAssetsExist(uploadedFiles)

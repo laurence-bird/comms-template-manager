@@ -74,7 +74,7 @@ class MainController(val authConfig: GoogleAuthConfig,
     val commType = multipartFormRequest.body.dataParts.get("commType").get.head
     multipartFormRequest.body.file("templateFile").map { templateFile =>
 
-      val commManifest = CommManifest(CommType.CommTypeFromValue(commType), commName, "snapshot")
+      val commManifest = CommManifest(CommType.CommTypeFromValue(commType), commName, "1.0")
       val zip = new ZipFile(templateFile.ref.file)
       val zipEntries: collection.Iterator[ZipEntry] = zip.entries
 
@@ -88,7 +88,7 @@ class MainController(val authConfig: GoogleAuthConfig,
           }
         })
 
-      TemplateOp.validateAndUploadTemplate(commManifest, uploadedFiles).foldMap(interpreter) match {
+      TemplateOp.validateAndUploadNewTemplate(commManifest, uploadedFiles).foldMap(interpreter) match {
         case Right(_)     => Ok(views.html.publish("ok", List("Template uploaded"), commName, commType))
         case Left(errors) => Ok(views.html.publish("error", errors.toList, commName, commType))
       }

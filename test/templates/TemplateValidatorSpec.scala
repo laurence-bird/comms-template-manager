@@ -32,7 +32,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
       generateUploadedFile("email/extra.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(NonEmptyList.of("email/extra.txt is not an expected template file"))
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(NonEmptyList.of("email/extra.txt is not an expected template file"))
   }
 
   it should "error if expected files not present" in {
@@ -41,7 +41,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile( "email/body.txt", "fsfdsfs"),
       generateUploadedFile("email/sender.txt", "Test <testing@test.com>")
     )
-    TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(NonEmptyList.of("No subject file has been provided in template"))
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(NonEmptyList.of("No subject file has been provided in template"))
   }
 
   it should "merge multiple errors" in {
@@ -49,7 +49,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "fsfdsfs"),
       generateUploadedFile("email/extra.txt", "fsdfsdf")
     )
-    val result = TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles).left.get.toList
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
     result should contain("email/extra.txt is not an expected template file")
     result should contain("No subject file has been provided in template")
   }
@@ -63,7 +63,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/image.png", "fsfdsfs"),
       generateUploadedFile("email/assets/something/image.png", "fsfdsfs")
     )
-    TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
   }
 
   it should "not error if minimal fileset present" in {
@@ -71,7 +71,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "fsfdsfs"),
       generateUploadedFile("email/subject.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
   }
 
   it should "not error if valid partial referenced" in {
@@ -79,7 +79,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "{{> aValidPartial}}"),
       generateUploadedFile("email/subject.txt", "{{something.else}}")
     )
-    TemplateValidator.validateTemplateFileStructure(S3ClientStubWithPartial, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStubWithPartial, commManifest, uploadedFiles) shouldBe Right(())
   }
 
   it should "error if problem with required template data" in {
@@ -87,7 +87,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "{{something}}"),
       generateUploadedFile("email/subject.txt", "{{something.else}}")
     )
-    val result = TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles).left.get.toList
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
     result should contain("something is referenced as both a mandatory object and a mandatory string}")
   }
 
@@ -96,7 +96,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "{{> anInvalidPartial}}"),
       generateUploadedFile("email/subject.txt", "{{something.else}}")
     )
-    val result = TemplateValidator.validateTemplateFileStructure(S3ClientStubWithPartial, commManifest, uploadedFiles).left.get.toList
+    val result = TemplateValidator.validateTemplate(S3ClientStubWithPartial, commManifest, uploadedFiles).left.get.toList
     result should contain("Could not find shared partial: anInvalidPartial")
   }
 
@@ -107,7 +107,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/image.gif", "fsfdsfs"),
       generateUploadedFile("email/assets/something/image.png", "fsfdsfs")
     )
-    val result = TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles).left.get.toList
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
     result should contain("The email HtmlBody file contains the reference 'assets/smiley.gif' to a non-existent asset file")
 
   }
@@ -119,6 +119,6 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/smiley.gif", "fsfdsfs"),
       generateUploadedFile("email/assets/something/another.gif", "fsfdsfs")
     )
-    TemplateValidator.validateTemplateFileStructure(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
   }
 }
