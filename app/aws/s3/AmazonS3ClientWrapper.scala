@@ -21,6 +21,7 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
       val meta = new ObjectMetadata()
       meta.setContentLength(fileDetails.contents.length)
       client.putObject(fileDetails.bucket, fileDetails.key, stream, meta)
+      Logger.info(s"Uploaded file to S3: ${fileDetails.bucket} - ${fileDetails.key}")
       Right(client.getResourceUrl(fileDetails.bucket, fileDetails.key))
     } catch {
       case e: AmazonS3Exception => Left(s"Failed to upload to aws.s3 with error: ${e.getMessage} for file: ${fileDetails.key} ")

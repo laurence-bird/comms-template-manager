@@ -6,7 +6,7 @@ import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
-import com.ovoenergy.comms.model.CommManifest
+import com.ovoenergy.comms.model.{CommManifest, CommType}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
@@ -39,7 +39,7 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
 
       Right(())
     } else {
-      Left(s"There is a newer version (${latestVersion(commManifest)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
+      Left(s"There is a newer version (${latestVersion(commManifest.name, commManifest.commType)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
     }
   }
 
@@ -48,6 +48,12 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
     Scanamo.exec(db)(query).flatMap{ result =>
       logIfError(result).toOption
     }
+  }
+
+  def latestVersion(commName: String, commType: CommType): Option[String] = {
+    listTemplateSummaries
+      .find(templateSummary => templateSummary.commName == commName && templateSummary.commType == commType)
+      .map(_.latestVersion)
   }
 
   def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
@@ -62,15 +68,14 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
     }
   }
 
-  private def latestVersion(commManifest: CommManifest): Option[String] = {
-    listTemplateSummaries
-      .find(templateSummary => templateSummary.commName == commManifest.name)
-      .map(_.latestVersion)
-  }
-
   private def isNewestVersion(commManifest: CommManifest): Boolean = {
-    latestVersion(commManifest)
+    latestVersion(commManifest.name, commManifest.commType)
       .map(latestVersion => TemplateSummary.versionCompare(commManifest.version.trim, latestVersion.trim))
-      .forall(comparison => if (comparison > 0) true else false)
+      .forall{
+        case Right(comparison) => if (comparison > 0) true else false
+        case Left(error)       =>
+          Logger.warn("Unable to check if template is latest version: $error")
+          false
+      }
   }
 }

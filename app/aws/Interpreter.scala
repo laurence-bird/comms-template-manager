@@ -3,8 +3,9 @@ package aws
 import aws.s3.{S3FileDetails, S3Operations}
 import cats.data.NonEmptyList
 import cats.~>
-import com.ovoenergy.comms.model.CommManifest
+import com.ovoenergy.comms.model.{CommManifest, CommType}
 import logic._
+import models.{TemplateSummary, TemplateVersion}
 import templates.{AssetProcessing, TemplateValidator}
 
 import scala.util.Right
@@ -88,6 +89,14 @@ object Interpreter {
             case Right(())   => Right(())
             case Left(error) => Left(NonEmptyList.of(error))
           }
+
+        case GetNextTemplateVersion(commName, commType) =>
+          val latestVersion: ErrorsOr[String] = context.dynamo.latestVersion(commName, CommType.CommTypeFromValue(commType)).toRight(NonEmptyList.of("No template found"))
+          for {
+            tVersion    <- latestVersion.right
+            nextVersion <- TemplateSummary.nextVersion(tVersion).right
+          } yield nextVersion
+
       }
     }
   }

@@ -1,0 +1,29 @@
+@(resultClass: String, results: List[String], commName: String, commType: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@main{
+    <link rel="stylesheet" href="@routes.Assets.at("stylesheets/publish.css")">
+
+    <div class="page-header">
+        <h1>Publish New Version</h1>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                @helper.form(action = routes.MainController.publishExistingTemplatePost(commName, commType), 'enctype -> "multipart/form-data") {
+                    <label>The name of your comm:</label><div>@commName</div><br><br>
+
+                    <label>The type of your comm:</label><div>@commType</div><br><br>
+
+                    <label>Select the zip file containing your template:</label>
+                    <input type="file" name="templateFile" id="templateFile" accept=".zip" required><br><br>
+
+                    <label></label>
+                    <button type="submit" id="publish" class="btn btn-primary">Publish Template</button>
+                }
+            </div>
+            <div class="col-md-6 col-md-offset-3">
+                <ul class=@resultClass>@for(result <- results){<li>@result</li>}</ul>
+            </div>
+        </div>
+    </div>
+}

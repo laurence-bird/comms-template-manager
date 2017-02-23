@@ -2,7 +2,7 @@ package logic
 
 import cats.free.Free
 import cats.free.Free._
-import com.ovoenergy.comms.model.CommManifest
+import com.ovoenergy.comms.model.{CommManifest, CommType}
 import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
 import templates.AssetProcessing.ProcessedFiles
 import templates.UploadedFile
@@ -27,6 +27,17 @@ object TemplateOp {
 
   def listTemplateSummaries(): TemplateOp[Seq[TemplateSummary]] =
     liftF(ListTemplateSummaries())
+
+  def validateAndUploadExistingTemplate(commName: String, commType: String, uploadedFiles: List[UploadedFile]): TemplateOp[String] = {
+    for {
+      nextVersion  <- getNextTemplateVersion(commName, commType)
+      commManifest  = CommManifest(CommType.CommTypeFromValue(commType), commName, nextVersion)
+      _            <- validateTemplate(commManifest, uploadedFiles)
+      _            <- writeTemplateToDynamo(commManifest)
+      _            <- uploadProcessedTemplateToS3(commManifest, uploadedFiles)
+      _            <- uploadRawTemplateToS3(commManifest, uploadedFiles)
+    } yield nextVersion
+  }
 
   def validateAndUploadNewTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
     for {
@@ -56,6 +67,10 @@ object TemplateOp {
 
   def processTemplateFiles(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[ProcessedFiles] = {
     liftF(ProcessTemplateAssets(commManifest, uploadedFiles))
+  }
+
+  def getNextTemplateVersion(commName: String, commType: String): TemplateOp[String] = {
+    liftF(GetNextTemplateVersion(commName, commType))
   }
 
   def writeTemplateToDynamo(commManifest: CommManifest) = {

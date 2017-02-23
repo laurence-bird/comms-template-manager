@@ -31,3 +31,5 @@ case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[Uplo
 case class ValidateTemplateDoesNotExist(commManifest: CommManifest) extends TemplateOpA[Unit]
 
 case class UploadTemplateToDynamo(commManifest: CommManifest) extends TemplateOpA[Unit]
+
+case class GetNextTemplateVersion(commName: String, commType: String) extends TemplateOpA[String]

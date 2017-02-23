@@ -16,5 +16,8 @@ GET    /templates/:commName/:version    controllers.MainController.getTemplateVe
 GET    /templates/:commName             controllers.MainController.listVersions(commName)
 GET    /templates                       controllers.MainController.listTemplates
 
-GET    /templates-publish            controllers.MainController.publish
-POST   /templates-publish/publish    controllers.MainController.publishTemplate
+GET    /publish/template           controllers.MainController.publishNewTemplateGet
+POST   /publish/template           controllers.MainController.publishNewTemplatePost
+
+GET    /publish/template/:commName/:commType     controllers.MainController.publishExistingTemplateGet(commName, commType)
+POST   /publish/template/:commName/:commType     controllers.MainController.publishExistingTemplatePost(commName, commType)
