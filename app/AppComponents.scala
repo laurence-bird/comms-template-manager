@@ -33,7 +33,15 @@ class AppComponents(context: Context)
     Table[TemplateSummary](mandatoryConfig("aws.dynamo.tables.templateSummaryTable"))
   )
 
-  val awsContext = aws.Context(new TemplatesLibS3ClientWrapper(s3Client), new AmazonS3ClientWrapper(s3Client), dynamo, mandatoryConfig("aws.s3.buckets.rawTemplates"))
+  val awsContext = aws.Context(
+    templatesS3ClientWrapper = new TemplatesLibS3ClientWrapper(s3Client),
+    s3ClientWrapper = new AmazonS3ClientWrapper(s3Client),
+    dynamo = dynamo,
+    s3RawTemplatesBucket = mandatoryConfig("aws.s3.buckets.rawTemplates"),
+    s3TemplateFilesBucket = mandatoryConfig("aws.s3.buckets.templates"),
+    s3TemplateAssetsBucket = mandatoryConfig("aws.s3.buckets.assets"),
+    region = region
+  )
 
   val googleAuthConfig = GoogleAuthConfig(
     clientId = mandatoryConfig("google.clientId"),

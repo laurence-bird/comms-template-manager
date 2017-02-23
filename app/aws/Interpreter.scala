@@ -5,7 +5,7 @@ import cats.data.NonEmptyList
 import cats.~>
 import com.ovoenergy.comms.model.CommManifest
 import logic._
-import templates.TemplateValidator
+import templates.{AssetProcessing, TemplateValidator}
 
 import scala.util.Right
 
@@ -17,7 +17,7 @@ object Interpreter {
   new (TemplateOpA ~> ErrorsOr){
     override def apply[A](fa: TemplateOpA[A]): ErrorsOr[A] = {
       fa match {
-        case RetrieveTemplateFromS3(commManifest: CommManifest) => S3Operations.downloadTemplateFiles(context.s3ClientWrapper, commManifest, context.s3TemplatesBucket) match {
+        case RetrieveTemplateFromS3(commManifest: CommManifest) => S3Operations.downloadTemplateFiles(context.s3ClientWrapper, commManifest, context.s3RawTemplatesBucket) match {
           case Left(error)    => Left(NonEmptyList.of(error))
           case Right(success) => Right(success)
         }
@@ -38,13 +38,32 @@ object Interpreter {
             Right(templateSummaries)
         }
 
-        case UploadTemplateFileToS3Raw(commManifest, uploadedFile) =>
+        case UploadRawTemplateFileToS3(commManifest, uploadedFile) =>
           val key = s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
-          val s3File = S3FileDetails(uploadedFile.contents, key, context.s3TemplatesBucket)
+          val s3File = S3FileDetails(uploadedFile.contents, key, context.s3RawTemplatesBucket)
           context.s3ClientWrapper.uploadFile(s3File) match {
-            case Left(error) => Left(NonEmptyList.of(error))
+            case Left(error)    => Left(NonEmptyList.of(error))
             case Right(success) => Right(success)
           }
+
+        case UploadTemplateAssetFileToS3(commManifest, uploadedFile) =>
+          val key = s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
+          val s3File = S3FileDetails(uploadedFile.contents, key, context.s3TemplateAssetsBucket)
+          context.s3ClientWrapper.uploadFile(s3File) match {
+            case Left(error)    => Left(NonEmptyList.of(error))
+            case Right(success) => Right(success)
+          }
+
+        case UploadProcessedTemplateFileToS3(commManifest, uploadedFile) =>
+          val key = s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
+          val s3File = S3FileDetails(uploadedFile.contents, key, context.s3TemplateFilesBucket)
+          context.s3ClientWrapper.uploadFile(s3File) match {
+            case Left(error)    => Left(NonEmptyList.of(error))
+            case Right(success) => Right(success)
+          }
+
+        case ProcessTemplateAssets(commManifest, uploadedFiles) =>
+          AssetProcessing.processAssets(context.region, context.s3TemplateAssetsBucket, commManifest, uploadedFiles)
 
         case ValidateTemplate(commManifest, uploadedFiles) =>
           TemplateValidator.validateTemplate(context.templatesS3ClientWrapper, commManifest, uploadedFiles)

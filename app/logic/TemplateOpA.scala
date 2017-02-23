@@ -3,6 +3,7 @@ package logic
 import com.ovoenergy.comms.model.CommManifest
 import logic.TemplateOp.TemplateFiles
 import models.{TemplateSummary, TemplateVersion}
+import templates.AssetProcessing.ProcessedFiles
 import templates.UploadedFile
 
 sealed trait TemplateOpA[T]
@@ -17,7 +18,13 @@ case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq
 
 case class ListTemplateSummaries() extends TemplateOpA[Seq[TemplateSummary]]
 
-case class UploadTemplateFileToS3Raw(commManifest: CommManifest, uploadedFile: UploadedFile) extends TemplateOpA[String]
+case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedFile]) extends TemplateOpA[ProcessedFiles]
+
+case class UploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile) extends TemplateOpA[String]
+
+case class UploadProcessedTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile) extends TemplateOpA[String]
+
+case class UploadTemplateAssetFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile) extends TemplateOpA[String]
 
 case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]) extends TemplateOpA[Unit]
 

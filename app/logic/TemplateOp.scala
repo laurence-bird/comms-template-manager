@@ -4,6 +4,7 @@ import cats.free.Free
 import cats.free.Free._
 import com.ovoenergy.comms.model.CommManifest
 import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
+import templates.AssetProcessing.ProcessedFiles
 import templates.UploadedFile
 
 object TemplateOp {
@@ -29,25 +30,46 @@ object TemplateOp {
 
   def validateAndUploadNewTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
     for {
-      _ <- validateTemplateDoesNotExist(commManifest)
-      _ <- validateTemplate(commManifest, uploadedFiles)
-      _ <- writeTemplateToDynamo(commManifest)
-      uploadResults <- uploadTemplateToS3(commManifest, uploadedFiles)
-    } yield uploadResults
+      _                      <- validateTemplateDoesNotExist(commManifest)
+      _                      <- validateTemplate(commManifest, uploadedFiles)
+      _                      <- writeTemplateToDynamo(commManifest)
+      processedUploadResults <- uploadProcessedTemplateToS3(commManifest, uploadedFiles)
+      rawUploadResults       <- uploadRawTemplateToS3(commManifest, uploadedFiles)
+    } yield rawUploadResults ++ processedUploadResults
   }
 
-  def uploadTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
+  def uploadProcessedTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    uploadedFiles.traverseU(file => uploadTemplateFileToS3Raw(commManifest, file))
+    for {
+      processedFiles             <- processTemplateFiles(commManifest, uploadedFiles)
+      assetsUploadResults        <- processedFiles.assetFiles.traverseU(file => uploadTemplateAssetFileToS3(commManifest, file))
+      templateFilesUploadResults <- processedFiles.templateFiles.traverseU(file => uploadProcessedTemplateFileToS3(commManifest, file))
+    } yield assetsUploadResults ++ templateFilesUploadResults
+  }
+
+  def uploadRawTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
+    import cats.syntax.traverse._
+    import cats.instances.list._
+    uploadedFiles.traverseU(file => uploadRawTemplateFileToS3(commManifest, file))
+  }
+
+  def processTemplateFiles(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[ProcessedFiles] = {
+    liftF(ProcessTemplateAssets(commManifest, uploadedFiles))
   }
 
   def writeTemplateToDynamo(commManifest: CommManifest) = {
     liftF(UploadTemplateToDynamo(commManifest))
   }
 
-  def uploadTemplateFileToS3Raw(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
-    liftF(UploadTemplateFileToS3Raw(commManifest, uploadedFile))
+  def uploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
+    liftF(UploadRawTemplateFileToS3(commManifest, uploadedFile))
+
+  def uploadProcessedTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
+    liftF(UploadProcessedTemplateFileToS3(commManifest, uploadedFile))
+
+  def uploadTemplateAssetFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
+    liftF(UploadTemplateAssetFileToS3(commManifest, uploadedFile))
 
   def validateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[Unit] =
     liftF(ValidateTemplate(commManifest, uploadedFiles))

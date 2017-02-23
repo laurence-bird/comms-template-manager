@@ -108,7 +108,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/something/image.png", "fsfdsfs")
     )
     val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
-    result should contain("The email HtmlBody file contains the reference 'assets/smiley.gif' to a non-existent asset file")
+    result should contain("The file email/body.html contains the reference 'assets/smiley.gif' to a non-existent asset file")
 
   }
 

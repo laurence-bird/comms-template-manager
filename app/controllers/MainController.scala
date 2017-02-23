@@ -89,7 +89,7 @@ class MainController(val authConfig: GoogleAuthConfig,
         })
 
       TemplateOp.validateAndUploadNewTemplate(commManifest, uploadedFiles).foldMap(interpreter) match {
-        case Right(_)     => Ok(views.html.publish("ok", List("Template uploaded"), commName, commType))
+        case Right(_)     => Ok(views.html.publish("ok", List(s"Template published: $commManifest"), commName, commType))
         case Left(errors) => Ok(views.html.publish("error", errors.toList, commName, commType))
       }
     }.getOrElse {

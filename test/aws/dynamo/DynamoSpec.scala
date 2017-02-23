@@ -92,6 +92,10 @@ class DynamoSpec extends FlatSpec
     dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "1.5")).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
   }
 
+  it should "error when writing a new version that already exists" in {
+    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "2.0")).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
+  }
+
   it should "write new version" in {
     dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "2.5")) shouldBe Right(())
     val summaries = dynamo.listTemplateSummaries

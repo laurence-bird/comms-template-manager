@@ -15,7 +15,7 @@ object TemplateValidator {
   private val assetTemplateReferenceRegex = "(?:'|\")(?: *)(assets/[^(\"')]+)(?: *)(?:'|\")".r
 
   def validateTemplate(s3Client: S3Client, commManifest: CommManifest, uploadedFiles: List[UploadedFile]): ErrorsOr[Unit] = {
-    val expFileValidations = validateIfAllFilesAreExpected(uploadedFiles.map(_.path))
+    val expFileValidations = validateIfAllFilesAreExpected(uploadedFiles)
     val templateContentValidations = validateTemplateContents(s3Client, commManifest, uploadedFiles)
     val assetReferenceValidations = validateAllEmailAssetsExist(uploadedFiles)
     Apply[TemplateErrors].map3(expFileValidations, templateContentValidations, assetReferenceValidations) {
@@ -23,19 +23,16 @@ object TemplateValidator {
     }.toEither
   }
 
-  private def validateIfAllFilesAreExpected(uploadedFiles: List[String]): TemplateErrors[Unit] = {
-    val errors = uploadedFiles.foldLeft(List[String]())((e, templateFilePath) => {
-      if (TemplateFileRegexes.Email.allRegexes.exists(_.findFirstMatchIn(templateFilePath).isDefined)) {
-        e
-      } else {
-        s"$templateFilePath is not an expected template file" :: e
-      }
-    })
+  private def validateIfAllFilesAreExpected(uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
+    val emailFiles = UploadedFile.extractAllEmailFiles(uploadedFiles)
+    val errors = uploadedFiles.filterNot(emailFiles.toSet).map(file => s"${file.path} is not an expected template file")
     NonEmptyList.fromList(errors).map(Invalid(_)).getOrElse(Valid(()))
   }
 
   private def validateTemplateContents(s3Client: S3Client, commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
-    val uploadedTemplateFiles = extractNonAssetEmailTemplateFiles(uploadedFiles)
+    val uploadedTemplateFiles = UploadedFile.extractNonAssetEmailFiles(uploadedFiles)
+      .flatMap(EmailTemplateFile.fromUploadedFile)
+
     val templateContext = TemplatesContext(
       emailTemplateRetriever = new EmailTemplateBuilder(uploadedTemplateFiles),
       parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client))
@@ -53,32 +50,22 @@ object TemplateValidator {
   }
 
   private def validateAllEmailAssetsExist(uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
-    val assetFilePathsRegex = TemplateFileRegexes.Email.assets.regex
-    val uploadedAssetFilePaths = uploadedFiles
-        .filter(uploadedFile => assetFilePathsRegex.findFirstIn(uploadedFile.path).isDefined)
-        .map(uploadedFile => uploadedFile.path.replaceFirst("^email/", ""))
+    val uploadedAssetFilePaths = UploadedFile.extractAssetEmailFiles(uploadedFiles)
+        .map(_.path.replaceFirst("^email/", ""))
 
-    val errors = extractNonAssetEmailTemplateFiles(uploadedFiles).foldLeft(List[String]())((errors, emailTemplateFile) => {
-      val emailTemplateFileContents = new String(emailTemplateFile.contents)
-      val emailTemplateFileAssetReferences = assetTemplateReferenceRegex.findAllMatchIn(emailTemplateFileContents)
-      val uploadedFileErrors = emailTemplateFileAssetReferences
-        .toList
-        .map(_.group(1))
-        .flatMap(assetReference =>
-          if (!uploadedAssetFilePaths.contains(assetReference)) Some(s"The email ${emailTemplateFile.fileType} file contains the reference '$assetReference' to a non-existent asset file")
-          else None
-        )
-      uploadedFileErrors ++ errors
+    val errors = UploadedFile.extractNonAssetEmailFiles(uploadedFiles)
+      .foldLeft(List[String]())((errors, uploadedFile) => {
+        val emailTemplateFileContents = new String(uploadedFile.contents)
+        val emailTemplateFileAssetReferences = assetTemplateReferenceRegex.findAllMatchIn(emailTemplateFileContents)
+        val uploadedFileErrors = emailTemplateFileAssetReferences
+          .toList
+          .map(_.group(1))
+          .flatMap(assetReference =>
+            if (!uploadedAssetFilePaths.contains(assetReference)) Some(s"The file ${uploadedFile.path} contains the reference '$assetReference' to a non-existent asset file")
+            else None
+          )
+        uploadedFileErrors ++ errors
     })
     NonEmptyList.fromList(errors).map(Invalid(_)).getOrElse(Valid(()))
-  }
-
-  private def extractNonAssetEmailTemplateFiles(uploadedFiles: List[UploadedFile]): List[EmailTemplateFile] = {
-    TemplateFileRegexes.Email.nonAssetFiles
-      .flatMap{ templateFileRegex =>
-        uploadedFiles
-          .find(uploadedFile => templateFileRegex.regex.findFirstMatchIn(uploadedFile.path).isDefined)
-          .map(uploadedFile => EmailTemplateFile(templateFileRegex.fileType, uploadedFile.contents))
-      }
   }
 }
