@@ -84,8 +84,8 @@ object Interpreter {
             Right(versions)
         }
 
-        case UploadTemplateToDynamo(commMannifest) =>
-          context.dynamo.writeNewVersion(commMannifest) match {
+        case UploadTemplateToDynamo(commMannifest, publishedBy) =>
+          context.dynamo.writeNewVersion(commMannifest, publishedBy) match {
             case Right(())   => Right(())
             case Left(error) => Left(NonEmptyList.of(error))
           }

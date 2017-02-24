@@ -28,22 +28,22 @@ object TemplateOp {
   def listTemplateSummaries(): TemplateOp[Seq[TemplateSummary]] =
     liftF(ListTemplateSummaries())
 
-  def validateAndUploadExistingTemplate(commName: String, commType: String, uploadedFiles: List[UploadedFile]): TemplateOp[String] = {
+  def validateAndUploadExistingTemplate(commName: String, commType: String, uploadedFiles: List[UploadedFile], publishedBy: String): TemplateOp[String] = {
     for {
       nextVersion  <- getNextTemplateVersion(commName, commType)
       commManifest  = CommManifest(CommType.CommTypeFromValue(commType), commName, nextVersion)
       _            <- validateTemplate(commManifest, uploadedFiles)
-      _            <- writeTemplateToDynamo(commManifest)
+      _            <- writeTemplateToDynamo(commManifest, publishedBy)
       _            <- uploadProcessedTemplateToS3(commManifest, uploadedFiles)
       _            <- uploadRawTemplateToS3(commManifest, uploadedFiles)
     } yield nextVersion
   }
 
-  def validateAndUploadNewTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
+  def validateAndUploadNewTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile], publishedBy: String): TemplateOp[List[String]] = {
     for {
       _                      <- validateTemplateDoesNotExist(commManifest)
       _                      <- validateTemplate(commManifest, uploadedFiles)
-      _                      <- writeTemplateToDynamo(commManifest)
+      _                      <- writeTemplateToDynamo(commManifest, publishedBy)
       processedUploadResults <- uploadProcessedTemplateToS3(commManifest, uploadedFiles)
       rawUploadResults       <- uploadRawTemplateToS3(commManifest, uploadedFiles)
     } yield rawUploadResults ++ processedUploadResults
@@ -73,8 +73,8 @@ object TemplateOp {
     liftF(GetNextTemplateVersion(commName, commType))
   }
 
-  def writeTemplateToDynamo(commManifest: CommManifest) = {
-    liftF(UploadTemplateToDynamo(commManifest))
+  def writeTemplateToDynamo(commManifest: CommManifest, publishedBy: String) = {
+    liftF(UploadTemplateToDynamo(commManifest, publishedBy))
   }
 
   def uploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =

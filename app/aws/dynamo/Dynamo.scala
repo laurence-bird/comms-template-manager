@@ -21,12 +21,12 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
   }
 
   //TODO - Not a conditional write as desired
-  def writeNewVersion(commManifest: CommManifest): Either[String, Unit] = {
+  def writeNewVersion(commManifest: CommManifest, publishedBy: String): Either[String, Unit] = {
 
     if (isNewestVersion(commManifest)) {
       val templateVersion = TemplateVersion(
         commManifest = commManifest,
-        publishedBy = "CommsTemplateManager"
+        publishedBy = publishedBy
       )
       Scanamo.exec(db)(templateVersionTable.put(templateVersion))
       Logger.info(s"Written template version to persistence $templateVersion")

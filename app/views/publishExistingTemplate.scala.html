@@ -10,9 +10,9 @@
         <div class="row">
             <div class="col-md-12">
                 @helper.form(action = routes.MainController.publishExistingTemplatePost(commName, commType), 'enctype -> "multipart/form-data") {
-                    <label>The name of your comm:</label><div>@commName</div><br><br>
+                    <label>The name of your comm:</label><div>@commName</div><br>
 
-                    <label>The type of your comm:</label><div>@commType</div><br><br>
+                    <label>The type of your comm:</label><div>@commType</div><br>
 
                     <label>Select the zip file containing your template:</label>
                     <input type="file" name="templateFile" id="templateFile" accept=".zip" required><br><br>

@@ -83,7 +83,7 @@ class MainController(val authConfig: GoogleAuthConfig,
     multipartFormRequest.body.file("templateFile").map { templateFile =>
       val commManifest = CommManifest(CommType.CommTypeFromValue(commType), commName, "1.0")
       val uploadedFiles = extractUploadedFiles(templateFile)
-      TemplateOp.validateAndUploadNewTemplate(commManifest, uploadedFiles).foldMap(interpreter) match {
+      TemplateOp.validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username).foldMap(interpreter) match {
         case Right(_)     => Ok(views.html.publishNewTemplate("ok", List(s"Template published: $commManifest"), commName, commType))
         case Left(errors) => Ok(views.html.publishNewTemplate("error", errors.toList, commName, commType))
       }
@@ -97,7 +97,7 @@ class MainController(val authConfig: GoogleAuthConfig,
 
     multipartFormRequest.body.file("templateFile").map { templateFile =>
       val uploadedFiles = extractUploadedFiles(templateFile)
-      TemplateOp.validateAndUploadExistingTemplate(commName, commType, uploadedFiles).foldMap(interpreter) match {
+      TemplateOp.validateAndUploadExistingTemplate(commName, commType, uploadedFiles, user.username).foldMap(interpreter) match {
         case Right(newVersion)  => Ok(views.html.publishExistingTemplate("ok", List(s"Template published, version $newVersion"), commName, commType))
         case Left(errors)       => Ok(views.html.publishExistingTemplate("error", errors.toList, commName, commType))
       }

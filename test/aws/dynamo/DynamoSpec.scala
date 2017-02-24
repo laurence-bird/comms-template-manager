@@ -18,6 +18,7 @@ class DynamoSpec extends FlatSpec
   val client = LocalDynamoDB.client()
   val templateVersionsTable = "template-version"
   val templateSummaryTable = "template-summary"
+  val publishedBy = "joe.bloggs"
 
   val dynamo = new Dynamo(
     client,
@@ -89,15 +90,15 @@ class DynamoSpec extends FlatSpec
   }
 
   it should "error when writing a new version that is not the newest" in {
-    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "1.5")).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
+    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "1.5"), publishedBy).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
   }
 
   it should "error when writing a new version that already exists" in {
-    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "2.0")).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
+    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "2.0"), publishedBy).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
   }
 
   it should "write new version" in {
-    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "2.5")) shouldBe Right(())
+    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "2.5"), publishedBy) shouldBe Right(())
     val summaries = dynamo.listTemplateSummaries
     summaries should contain(TemplateSummary("comm2", Service, "2.5"))
 
@@ -105,6 +106,6 @@ class DynamoSpec extends FlatSpec
     versions.length shouldBe 3
     versions.head.commName shouldBe "comm2"
     versions.map(_.version) should contain allOf ("1.0", "2.0", "2.5")
-    versions.map(_.publishedBy) should contain allOf ("chris", "laurence", "CommsTemplateManager")
+    versions.map(_.publishedBy) should contain allOf ("chris", "laurence", publishedBy)
   }
 }
