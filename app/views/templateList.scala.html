@@ -10,6 +10,7 @@
             <th>Comm Name</th>
             <th>Comm Type</th>
             <th>Latest template version</th>
+            <th></th>
         </tr>
         </thead>
         <tbody>
@@ -18,6 +19,7 @@
             <td><a href="@routes.MainController.listVersions(template.commName)">@template.commName</a></td>
             <td>@template.commType</td>
             <td>@template.latestVersion</td>
+            <td><a href="@routes.MainController.publishExistingTemplateGet(template.commName, template.commType.toString)" class="btn btn-primary">Publish new version</a></td>
         </tr>
         }
         </tbody>

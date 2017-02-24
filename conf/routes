@@ -3,6 +3,9 @@
 # ~~~~
 
 GET     /                           controllers.MainController.index
+
+GET     /public/*file               controllers.Assets.at(path="/public", file)
+
 GET     /healthcheck                controllers.MainController.healthcheck
 
 GET     /login                      controllers.AuthController.login
@@ -13,6 +16,8 @@ GET    /templates/:commName/:version    controllers.MainController.getTemplateVe
 GET    /templates/:commName             controllers.MainController.listVersions(commName)
 GET    /templates                       controllers.MainController.listTemplates
 
-POST   /templates/:commName/:version    controllers.MainController.publishTemplate(commName, version)
+GET    /publish/template           controllers.MainController.publishNewTemplateGet
+POST   /publish/template           controllers.MainController.publishNewTemplatePost
 
-
+GET    /publish/template/:commName/:commType     controllers.MainController.publishExistingTemplateGet(commName, commType)
+POST   /publish/template/:commName/:commType     controllers.MainController.publishExistingTemplatePost(commName, commType)
