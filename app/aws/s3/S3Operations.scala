@@ -1,7 +1,6 @@
 package aws.s3
 
 import java.io._
-import java.nio.charset.StandardCharsets
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
 import aws.Interpreter.ErrorsOr
@@ -24,7 +23,7 @@ object S3Operations {
 
         val pair: Either[String, (String, Array[Byte])] = file map { f =>
           val strippedKey = absKey.stripPrefix(prefix).dropWhile(_ == "/")
-          (strippedKey, f.getBytes(StandardCharsets.UTF_8))
+          (strippedKey, f)
         }
         pair
       }

@@ -18,6 +18,8 @@ class TemplateSummarySpec extends FlatSpec with Matchers {
     TemplateSummary.versionCompare("1.0", "1.0.1") shouldBe Right(-1)
     TemplateSummary.versionCompare("1.0", "1.0") shouldBe Right(0)
     TemplateSummary.versionCompare("1.0.1", "1.0.1") shouldBe Right(0)
+    TemplateSummary.versionCompare("1.0", "0.2") shouldBe Right(1)
+    TemplateSummary.versionCompare("1.0.0", "1.1") shouldBe Right(-1)
   }
 
   it should "handle invalid version when comparing" in {
