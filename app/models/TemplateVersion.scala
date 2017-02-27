@@ -54,10 +54,15 @@ object TemplateSummary{
       val leftVersionVals = l.split("\\.").map(_.toInt)
       val rightVersionVals = r.split("\\.").map(_.toInt)
 
-      val positionOfDifference = leftVersionVals.foldLeft(0)((position, vals1Value) => {
-        if (position < rightVersionVals.length && vals1Value.equals(rightVersionVals(position))) position + 1
-        else position
-      })
+      //A pragmatic use of return?
+      def findDifferencePosition(): Int = {
+        leftVersionVals.foldLeft(0)((position, vals1Value) => {
+            if (position < rightVersionVals.length && vals1Value.equals(rightVersionVals(position))) position + 1
+            else return position
+          })
+      }
+
+      val positionOfDifference = findDifferencePosition()
 
       // compare first non-equal ordinal number
       if (positionOfDifference < leftVersionVals.length && positionOfDifference < rightVersionVals.length) {
