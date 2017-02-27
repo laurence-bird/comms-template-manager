@@ -24,7 +24,7 @@ object S3Operations {
 
         val pair: Either[String, (String, Array[Byte])] = file map { f =>
           val strippedKey = absKey.stripPrefix(prefix).dropWhile(_ == "/")
-          (strippedKey, f.getBytes(StandardCharsets.UTF_8))
+          (strippedKey, f)
         }
         pair
       }

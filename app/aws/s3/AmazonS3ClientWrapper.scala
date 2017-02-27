@@ -1,7 +1,9 @@
 package aws.s3
 
-import java.io.{ByteArrayInputStream, InputStream}
+import java.io.{ByteArrayInputStream, File, FileOutputStream, InputStream}
 import java.nio.charset.StandardCharsets
+import java.time.Instant
+import java.util.UUID
 
 import aws.Interpreter.ErrorsOr
 import com.amazonaws.services.s3.AmazonS3Client
@@ -30,12 +32,12 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
     }
   }
 
-  def downloadFile(bucket: String, key: String): Either[String, String] = {
+  def downloadFile(bucket: String, key: String): Either[String, Array[Byte]] = {
     try {
         val obj = client.getObject(bucket, key)
         val stream = obj.getObjectContent
         try {
-          Right(new String(IOUtils.toByteArray(stream), StandardCharsets.UTF_8))
+          Right(IOUtils.toByteArray(stream))
         } finally {
           stream.close()
         }
