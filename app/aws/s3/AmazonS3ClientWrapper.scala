@@ -1,11 +1,6 @@
 package aws.s3
 
-import java.io.{ByteArrayInputStream, File, FileOutputStream, InputStream}
-import java.nio.charset.StandardCharsets
-import java.time.Instant
-import java.util.UUID
-
-import aws.Interpreter.ErrorsOr
+import java.io.ByteArrayInputStream
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.{AmazonS3Exception, ListObjectsV2Request, ObjectMetadata}
 import org.apache.commons.compress.utils.IOUtils

@@ -1,7 +1,6 @@
 package aws.s3
 
 import java.io._
-import java.nio.charset.StandardCharsets
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
 import aws.Interpreter.ErrorsOr
