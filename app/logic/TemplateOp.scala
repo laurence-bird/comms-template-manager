@@ -28,10 +28,10 @@ object TemplateOp {
   def listTemplateSummaries(): TemplateOp[Seq[TemplateSummary]] =
     liftF(ListTemplateSummaries())
 
-  def validateAndUploadExistingTemplate(commName: String, commType: String, uploadedFiles: List[UploadedFile], publishedBy: String): TemplateOp[String] = {
+  def validateAndUploadExistingTemplate(commName: String, uploadedFiles: List[UploadedFile], publishedBy: String): TemplateOp[TemplateSummary] = {
     for {
-      nextVersion  <- getNextTemplateVersion(commName, commType)
-      commManifest  = CommManifest(CommType.CommTypeFromValue(commType), commName, nextVersion)
+      nextVersion  <- getNextTemplateSummary(commName)
+      commManifest  = CommManifest(nextVersion.commType, commName, nextVersion.latestVersion)
       _            <- validateTemplate(commManifest, uploadedFiles)
       _            <- writeTemplateToDynamo(commManifest, publishedBy)
       _            <- uploadProcessedTemplateToS3(commManifest, uploadedFiles)
@@ -69,8 +69,8 @@ object TemplateOp {
     liftF(ProcessTemplateAssets(commManifest, uploadedFiles))
   }
 
-  def getNextTemplateVersion(commName: String, commType: String): TemplateOp[String] = {
-    liftF(GetNextTemplateVersion(commName, commType))
+  def getNextTemplateSummary(commName: String): TemplateOp[TemplateSummary] = {
+    liftF(GetNextTemplateSummary(commName))
   }
 
   def writeTemplateToDynamo(commManifest: CommManifest, publishedBy: String) = {
