@@ -66,12 +66,12 @@ class MainController(val authConfig: GoogleAuthConfig,
 
   def publishNewTemplateGet = Authenticated { request =>
     implicit val user = request.user
-    Ok(views.html.publishNewTemplate("ok", List[String](), "", ""))
+    Ok(views.html.publishNewTemplate("inprogress", List[String](), "", ""))
   }
 
-  def publishExistingTemplateGet(commName: String, commType: String) = Authenticated { request =>
+  def publishExistingTemplateGet(commName: String) = Authenticated { request =>
     implicit val user = request.user
-    Ok(views.html.publishExistingTemplate("ok", List[String](), commName, commType))
+    Ok(views.html.publishExistingTemplate("inprogress", List[String](), commName))
   }
 
   def publishNewTemplatePost = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
@@ -92,17 +92,17 @@ class MainController(val authConfig: GoogleAuthConfig,
     }
   }
 
-  def publishExistingTemplatePost(commName: String, commType: String) = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
+  def publishExistingTemplatePost(commName: String) = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
     implicit val user = multipartFormRequest.user
 
     multipartFormRequest.body.file("templateFile").map { templateFile =>
       val uploadedFiles = extractUploadedFiles(templateFile)
-      TemplateOp.validateAndUploadExistingTemplate(commName, commType, uploadedFiles, user.username).foldMap(interpreter) match {
-        case Right(newVersion)  => Ok(views.html.publishExistingTemplate("ok", List(s"Template published, version $newVersion"), commName, commType))
-        case Left(errors)       => Ok(views.html.publishExistingTemplate("error", errors.toList, commName, commType))
+      TemplateOp.validateAndUploadExistingTemplate(commName, uploadedFiles, user.username).foldMap(interpreter) match {
+        case Right(newVersion)  => Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
+        case Left(errors)       => Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
       }
     }.getOrElse {
-      Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName, commType))
+      Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
     }
   }
 

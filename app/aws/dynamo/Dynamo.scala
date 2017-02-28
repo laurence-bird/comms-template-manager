@@ -39,7 +39,7 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
 
       Right(())
     } else {
-      Left(s"There is a newer version (${latestVersion(commManifest.name, commManifest.commType)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
+      Left(s"There is a newer version (${getTemplateSummary(commManifest.name).map(_.latestVersion)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
     }
   }
 
@@ -50,10 +50,9 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
     }
   }
 
-  def latestVersion(commName: String, commType: CommType): Option[String] = {
+  def getTemplateSummary(commName: String): Option[TemplateSummary] = {
     listTemplateSummaries
-      .find(templateSummary => templateSummary.commName == commName && templateSummary.commType == commType)
-      .map(_.latestVersion)
+      .find(templateSummary => templateSummary.commName == commName)
   }
 
   def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
@@ -69,8 +68,8 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
   }
 
   private def isNewestVersion(commManifest: CommManifest): Boolean = {
-    latestVersion(commManifest.name, commManifest.commType)
-      .map(latestVersion => TemplateSummary.versionCompare(commManifest.version.trim, latestVersion.trim))
+    getTemplateSummary(commManifest.name)
+      .map(summary => TemplateSummary.versionCompare(commManifest.version.trim, summary.latestVersion.trim))
       .forall{
         case Right(comparison) => if (comparison > 0) true else false
         case Left(error)       =>

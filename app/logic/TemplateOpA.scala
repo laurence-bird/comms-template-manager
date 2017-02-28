@@ -32,4 +32,4 @@ case class ValidateTemplateDoesNotExist(commManifest: CommManifest) extends Temp
 
 case class UploadTemplateToDynamo(commManifest: CommManifest, publishedBy: String) extends TemplateOpA[Unit]
 
-case class GetNextTemplateVersion(commName: String, commType: String) extends TemplateOpA[String]
+case class GetNextTemplateSummary(commName: String) extends TemplateOpA[TemplateSummary]

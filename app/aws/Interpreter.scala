@@ -90,12 +90,12 @@ object Interpreter {
             case Left(error) => Left(NonEmptyList.of(error))
           }
 
-        case GetNextTemplateVersion(commName, commType) =>
-          val latestVersion: ErrorsOr[String] = context.dynamo.latestVersion(commName, CommType.CommTypeFromValue(commType)).toRight(NonEmptyList.of("No template found"))
+        case GetNextTemplateSummary(commName) =>
+          val latestVersion: ErrorsOr[TemplateSummary] = context.dynamo.getTemplateSummary(commName).toRight(NonEmptyList.of("No template found"))
           for {
-            tVersion    <- latestVersion.right
-            nextVersion <- TemplateSummary.nextVersion(tVersion).right
-          } yield nextVersion
+            latestTemplate <- latestVersion.right
+            nextVersion    <- TemplateSummary.nextVersion(latestTemplate.latestVersion).right
+          } yield latestTemplate.copy(latestVersion = nextVersion)
 
       }
     }
