@@ -77,8 +77,8 @@ class MainController(val authConfig: GoogleAuthConfig,
   def publishNewTemplatePost = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
     implicit val user = multipartFormRequest.user
 
-    val commName = multipartFormRequest.body.dataParts.get("commName").get.head
-    val commType = multipartFormRequest.body.dataParts.get("commType").get.head
+    val commName = multipartFormRequest.body.dataParts("commName").head
+    val commType = multipartFormRequest.body.dataParts("commType").head
 
     multipartFormRequest.body.file("templateFile").map { templateFile =>
       val commManifest = CommManifest(CommType.CommTypeFromValue(commType), commName, "1.0")
@@ -114,7 +114,8 @@ class MainController(val authConfig: GoogleAuthConfig,
       .foldLeft(List[UploadedFile]())((list, zipEntry) => {
         val inputStream = zip.getInputStream(zipEntry)
         try {
-          UploadedFile(zipEntry.getName, IOUtils.toByteArray(inputStream)) :: list
+          val path = zipEntry.getName.replaceFirst("^/", "")
+          UploadedFile(path, IOUtils.toByteArray(inputStream)) :: list
         } finally {
           IOUtils.closeQuietly(inputStream)
         }
