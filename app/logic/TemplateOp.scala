@@ -34,8 +34,8 @@ object TemplateOp {
       commManifest  = CommManifest(nextVersion.commType, commName, nextVersion.latestVersion)
       _            <- validateTemplate(commManifest, uploadedFiles)
       _            <- writeTemplateToDynamo(commManifest, publishedBy)
-      _            <- uploadProcessedTemplateToS3(commManifest, uploadedFiles)
-      _            <- uploadRawTemplateToS3(commManifest, uploadedFiles)
+      _            <- uploadProcessedTemplateToS3(commManifest, uploadedFiles, publishedBy)
+      _            <- uploadRawTemplateToS3(commManifest, uploadedFiles, publishedBy)
     } yield nextVersion
   }
 
@@ -44,25 +44,25 @@ object TemplateOp {
       _                      <- validateTemplateDoesNotExist(commManifest)
       _                      <- validateTemplate(commManifest, uploadedFiles)
       _                      <- writeTemplateToDynamo(commManifest, publishedBy)
-      processedUploadResults <- uploadProcessedTemplateToS3(commManifest, uploadedFiles)
-      rawUploadResults       <- uploadRawTemplateToS3(commManifest, uploadedFiles)
+      processedUploadResults <- uploadProcessedTemplateToS3(commManifest, uploadedFiles, publishedBy)
+      rawUploadResults       <- uploadRawTemplateToS3(commManifest, uploadedFiles, publishedBy)
     } yield rawUploadResults ++ processedUploadResults
   }
 
-  def uploadProcessedTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
+  def uploadProcessedTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile], publishedBy: String): TemplateOp[List[String]] = {
     import cats.syntax.traverse._
     import cats.instances.list._
     for {
       processedFiles             <- processTemplateFiles(commManifest, uploadedFiles)
-      assetsUploadResults        <- processedFiles.assetFiles.traverseU(file => uploadTemplateAssetFileToS3(commManifest, file))
-      templateFilesUploadResults <- processedFiles.templateFiles.traverseU(file => uploadProcessedTemplateFileToS3(commManifest, file))
+      assetsUploadResults        <- processedFiles.assetFiles.traverseU(file => uploadTemplateAssetFileToS3(commManifest, file, publishedBy))
+      templateFilesUploadResults <- processedFiles.templateFiles.traverseU(file => uploadProcessedTemplateFileToS3(commManifest, file, publishedBy))
     } yield assetsUploadResults ++ templateFilesUploadResults
   }
 
-  def uploadRawTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[List[String]] = {
+  def uploadRawTemplateToS3(commManifest: CommManifest, uploadedFiles: List[UploadedFile], publishedBy: String): TemplateOp[List[String]] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    uploadedFiles.traverseU(file => uploadRawTemplateFileToS3(commManifest, file))
+    uploadedFiles.traverseU(file => uploadRawTemplateFileToS3(commManifest, file, publishedBy))
   }
 
   def processTemplateFiles(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[ProcessedFiles] = {
@@ -77,14 +77,14 @@ object TemplateOp {
     liftF(UploadTemplateToDynamo(commManifest, publishedBy))
   }
 
-  def uploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
-    liftF(UploadRawTemplateFileToS3(commManifest, uploadedFile))
+  def uploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String): TemplateOp[String] =
+    liftF(UploadRawTemplateFileToS3(commManifest, uploadedFile, publishedBy))
 
-  def uploadProcessedTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
-    liftF(UploadProcessedTemplateFileToS3(commManifest, uploadedFile))
+  def uploadProcessedTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String): TemplateOp[String] =
+    liftF(UploadProcessedTemplateFileToS3(commManifest, uploadedFile, publishedBy))
 
-  def uploadTemplateAssetFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile): TemplateOp[String] =
-    liftF(UploadTemplateAssetFileToS3(commManifest, uploadedFile))
+  def uploadTemplateAssetFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String): TemplateOp[String] =
+    liftF(UploadTemplateAssetFileToS3(commManifest, uploadedFile, publishedBy))
 
   def validateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]): TemplateOp[Unit] =
     liftF(ValidateTemplate(commManifest, uploadedFiles))

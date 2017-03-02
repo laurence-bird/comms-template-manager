@@ -14,6 +14,7 @@ import router.Routes
 import aws.dynamo.DynamoFormats._
 import play.api.i18n.{DefaultLangs, DefaultMessagesApi, MessagesApi}
 import com.ovoenergy.comms.templates.s3.{AmazonS3ClientWrapper => TemplatesLibS3ClientWrapper}
+import pagerduty.PagerDutyAlerter
 
 class AppComponents(context: Context)
     extends BuiltInComponentsFromContext(context)
@@ -51,7 +52,12 @@ class AppComponents(context: Context)
   )
   val enableAuth = !isRunningInCompose // only disable auth if we are running the service tests
 
-  val interpreter = Interpreter.build(awsContext)
+  val pagerdutyCtxt = PagerDutyAlerter.Context(
+    url = mandatoryConfig("pagerduty.url"),
+    serviceKey = mandatoryConfig("pagerduty.apiKey"),
+    enableAlerts = configuration.getBoolean("pagerduty.alertsEnabled").getOrElse(true)
+  )
+  val interpreter = Interpreter.build(awsContext, pagerdutyCtxt)
   val messagesApi: MessagesApi = new DefaultMessagesApi(environment, configuration, new DefaultLangs(configuration))
 
   val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter, messagesApi)
