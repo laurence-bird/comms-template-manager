@@ -26,11 +26,11 @@ package object templates {
   case class TemplateFileRegex(fileType: EmailTemplateFileType, regex: Regex)
   object TemplateFileRegexes {
     object Email {
-      val subject = TemplateFileRegex(Subject, "email/subject.txt".r)
-      val htmlBody = TemplateFileRegex(HtmlBody, "email/body.html".r)
-      val textBody = TemplateFileRegex(TextBody, "email/body.txt".r)
-      val sender = TemplateFileRegex(Sender, "email/sender.txt".r)
-      val assets = TemplateFileRegex(Assets, "email/assets/.*".r)
+      val subject = TemplateFileRegex(Subject, "^email/subject.txt".r)
+      val htmlBody = TemplateFileRegex(HtmlBody, "^email/body.html".r)
+      val textBody = TemplateFileRegex(TextBody, "^email/body.txt".r)
+      val sender = TemplateFileRegex(Sender, "^email/sender.txt".r)
+      val assets = TemplateFileRegex(Assets, "^email/assets/.*".r)
 
       def allRegexes = List(subject.regex, htmlBody.regex, textBody.regex, sender.regex, assets.regex)
       def nonAssetFiles = List(subject, htmlBody, textBody, sender)

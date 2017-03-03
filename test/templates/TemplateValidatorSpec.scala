@@ -37,11 +37,21 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
 
   it should "error if expected files not present" in {
     val uploadedFiles = List(
-      generateUploadedFile( "email/body.html", "fsfdsfs"),
-      generateUploadedFile( "email/body.txt", "fsfdsfs"),
+      generateUploadedFile("email/body.html", "fsfdsfs"),
+      generateUploadedFile("email/body.txt", "fsfdsfs"),
       generateUploadedFile("email/sender.txt", "Test <testing@test.com>")
     )
     TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(NonEmptyList.of("No subject file has been provided in template"))
+  }
+
+  it should "not error if zip contains extra root folder" in {
+    val uploadedFiles = List(
+      generateUploadedFile("template/email/body.html", "fsfdsfs"),
+      generateUploadedFile("template/email/subject.txt", "fsfdsfs")
+    )
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
+    result should contain("No html body file has been provided in template")
+    result should contain("No subject file has been provided in template")
   }
 
   it should "merge multiple errors" in {
