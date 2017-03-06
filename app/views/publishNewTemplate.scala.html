@@ -1,4 +1,4 @@
-@(resultClass: String, results: List[String], commName: String, commType: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@(resultClass: String, results: List[String], commName: Option[String], commType: Option[String])(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
     <link rel="stylesheet" href="@routes.Assets.at("stylesheets/publish.css")">
 
@@ -39,9 +39,9 @@ It is a good idea to give it a meaningful name."></a>&nbsp;Enter the name of you
 *Not yet in use"></a>&nbsp;Select the type of your comm:</label>
                         <div class="col-lg-8">
                             <select id="commType" name="commType" class="form-control" required>
-                                <option value="Service" @{if(commType == "Service") {"selected"}}>Service</option>
-                                <option value="Regulatory" @{if(commType == "Regulatory") {"selected"}}>Regulatory</option>
-                                <option value="Marketing" @{if(commType == "Marketing") {"selected"}}>Marketing</option>
+                                <option value="Service" @{if(commType.contains("Service")) {"selected"}}>Service</option>
+                                <option value="Regulatory" @{if(commType.contains("Regulatory")) {"selected"}}>Regulatory</option>
+                                <option value="Marketing" @{if(commType.contains("Marketing")) {"selected"}}>Marketing</option>
                             </select>
                         </div>
                     </div>

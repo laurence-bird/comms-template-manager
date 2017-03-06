@@ -13,6 +13,7 @@ services:
       - fakes3ssl:dev-ovo-comms-templates.s3-eu-west-1.amazonaws.com
       - fakes3ssl:dev-ovo-comms-templates-raw.s3-eu-west-1.amazonaws.com
       - fakes3ssl:dev-ovo-comms-template-assets.s3-eu-west-1.amazonaws.com
+      - fakes3ssl:ovo-comms-templates.s3-eu-west-1.amazonaws.com
     ports:
       - "9000:9000"
 

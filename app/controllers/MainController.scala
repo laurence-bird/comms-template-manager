@@ -6,7 +6,6 @@ import java.util.zip.{ZipEntry, ZipFile}
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import aws.Interpreter.ErrorsOr
-import cats.data._
 import cats.instances.either._
 import cats.~>
 import com.gu.googleauth.GoogleAuthConfig
@@ -15,11 +14,11 @@ import logic.{TemplateOp, TemplateOpA}
 import models.ZippedRawTemplate
 import org.apache.commons.compress.utils.IOUtils
 import org.slf4j.LoggerFactory
-import play.api.libs.ws.WSClient
-import play.api.mvc._
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.Files.TemporaryFile
+import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.FilePart
+import play.api.mvc._
 import templates.UploadedFile
 
 import scala.collection.JavaConversions._
@@ -66,7 +65,7 @@ class MainController(val authConfig: GoogleAuthConfig,
 
   def publishNewTemplateGet = Authenticated { request =>
     implicit val user = request.user
-    Ok(views.html.publishNewTemplate("inprogress", List[String](), "", ""))
+    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None))
   }
 
   def publishExistingTemplateGet(commName: String) = Authenticated { request =>
@@ -77,18 +76,22 @@ class MainController(val authConfig: GoogleAuthConfig,
   def publishNewTemplatePost = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
     implicit val user = multipartFormRequest.user
 
-    val commName = multipartFormRequest.body.dataParts("commName").head
-    val commType = multipartFormRequest.body.dataParts("commType").head
+    val result = for {
+      commName <- multipartFormRequest.body.dataParts.get("commName")
+      commType <- multipartFormRequest.body.dataParts.get("commType")
+      templateFile <- multipartFormRequest.body.file("templateFile")
+    } yield {
+      val commManifest = CommManifest(CommType.CommTypeFromValue(commType.head), commName.head, "1.0")
 
-    multipartFormRequest.body.file("templateFile").map { templateFile =>
-      val commManifest = CommManifest(CommType.CommTypeFromValue(commType), commName, "1.0")
+
       val uploadedFiles = extractUploadedFiles(templateFile)
       TemplateOp.validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username).foldMap(interpreter) match {
-        case Right(_)     => Ok(views.html.publishNewTemplate("ok", List(s"Template published: $commManifest"), commName, commType))
-        case Left(errors) => Ok(views.html.publishNewTemplate("error", errors.toList, commName, commType))
+        case Right(_)     => Ok(views.html.publishNewTemplate("ok", List(s"Template published: $commManifest"), Some(commName.head), Some(commType.head)))
+        case Left(errors) => Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
       }
-    }.getOrElse {
-      Ok(views.html.publishNewTemplate("error", List("Unknown issue accessing zip file"), commName, commType))
+    }
+      result.getOrElse {
+      Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
     }
   }
 
