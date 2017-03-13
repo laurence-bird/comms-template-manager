@@ -27,7 +27,8 @@ class MainController(val authConfig: GoogleAuthConfig,
                      val wsClient: WSClient,
                      val enableAuth: Boolean,
                      interpreter: ~>[TemplateOpA, ErrorsOr],
-                     val messagesApi: MessagesApi) extends AuthActions with Controller with I18nSupport {
+                     val messagesApi: MessagesApi,
+                     commPerformanceUrl: String) extends AuthActions with Controller with I18nSupport {
 
   val log = LoggerFactory.getLogger("MainController")
 
@@ -51,7 +52,7 @@ class MainController(val authConfig: GoogleAuthConfig,
     implicit val user = request.user
     TemplateOp.listTemplateSummaries().foldMap(interpreter) match {
       case Left(err)  => NotFound(s"Failed to retrieve templates: $err")
-      case Right(res) => Ok(views.html.templateList(res))
+      case Right(res) => Ok(views.html.templateList(res, commPerformanceUrl))
     }
   }
 

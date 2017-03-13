@@ -1,4 +1,5 @@
-@(templates: Seq[TemplateSummary])(implicit user: com.gu.googleauth.UserIdentity)
+@(templates: Seq[TemplateSummary], commPerformanceUrl: String)(implicit user: com.gu.googleauth.UserIdentity)
+@import views.ViewHelper._
 @main{
     <div class="page-header">
         <h1>Templates</h1>
@@ -7,21 +8,24 @@
     <table class="table table-striped">
         <thead>
         <tr>
-            <th>Comm Name</th>
-            <th>Comm Type</th>
-            <th>Latest template version</th>
-            <th></th>
+            <th class="text-center">Comm Name</th>
+            <th class="text-center">Comm Type</th>
+            <th class="text-center">See Comm performance</th>
+            <th class="text-center">Latest template version</th>
         </tr>
         </thead>
         <tbody>
         @for(template <- templates) {
         <tr>
-            <td><a href="@routes.MainController.listVersions(template.commName)">@template.commName</a></td>
-            <td>@template.commType</td>
-            <td>@template.latestVersion</td>
-            <td><a href="@routes.MainController.publishExistingTemplateGet(template.commName)" class="btn btn-primary">Publish new version</a></td>
+            <td class="text-center"><a href="@routes.MainController.listVersions(template.commName)">@template.commName</a></td>
+            <td class="text-center">@template.commType</td>
+            <td class="text-center"><a href="@commPerformanceLink(template.commName, commPerformanceUrl)" class="btn btn-primary"><span class="glyphicon glyphicon-tasks"></span></a></td>
+            <td class="text-center"><a href="@routes.MainController.publishExistingTemplateGet(template.commName)" class="btn btn-primary">
+                Publish new version
+            </a></td>
         </tr>
         }
         </tbody>
     </table>
+
 }

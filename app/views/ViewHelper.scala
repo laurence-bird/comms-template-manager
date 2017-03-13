@@ -1,6 +1,6 @@
 package views
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 
 object ViewHelper {
 
@@ -12,6 +12,11 @@ object ViewHelper {
 
   def dateToLong(instant: Instant): Long = {
     instant.toEpochMilli
+  }
+
+  def commPerformanceLink(commName: String, commPerformanceUrl: String): String = {
+    val start = LocalDate.now().minusDays(1).toString
+    s"$commPerformanceUrl?commName=$commName&timePeriod=Day&start=$start"
   }
 
 }

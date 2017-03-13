@@ -60,7 +60,9 @@ class AppComponents(context: Context)
   val interpreter = Interpreter.build(awsContext, pagerdutyCtxt)
   val messagesApi: MessagesApi = new DefaultMessagesApi(environment, configuration, new DefaultLangs(configuration))
 
-  val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter, messagesApi)
+  val commPerformanceUrl = mandatoryConfig("auditLog.commPerformanceUrl")
+
+  val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter, messagesApi, commPerformanceUrl)
 
   val authController = new AuthController(googleAuthConfig, wsClient, enableAuth)
 
