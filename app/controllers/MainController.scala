@@ -109,6 +109,16 @@ class MainController(val authConfig: GoogleAuthConfig,
     }
   }
 
+  def testTemplate = Authenticated { implicit request =>
+    implicit val user = request.user
+    Ok(views.html.test(None))
+  }
+
+  def processTemplate = Authenticated { implicit request =>
+    implicit val user = request.user
+    Ok(views.html.test(Some(request.body.asJson.toString)))
+  }
+
   private def extractUploadedFiles(templateFile: FilePart[TemporaryFile]): List[UploadedFile] = {
     val zip = new ZipFile(templateFile.ref.file)
     val zipEntries: collection.Iterator[ZipEntry] = zip.entries

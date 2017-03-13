@@ -21,7 +21,7 @@ object AwsContextProvider {
       }else{
         val awsCreds = new AWSCredentialsProviderChain(
           new ContainerCredentialsProvider(),
-          new ProfileCredentialsProvider("comms")
+          new ProfileCredentialsProvider()
         )
         (new AmazonDynamoDBClient(awsCreds).withRegion(region),
           new AmazonS3Client(awsCreds).withRegion(region))
