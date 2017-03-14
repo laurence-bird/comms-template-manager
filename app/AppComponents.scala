@@ -50,7 +50,8 @@ class AppComponents(context: Context)
     redirectUrl = mandatoryConfig("google.redirectUrl"),
     domain = "ovoenergy.com"
   )
-  val enableAuth = !isRunningInCompose // only disable auth if we are running the service tests
+  //TODO - Reenable
+  val enableAuth = false//!isRunningInCompose // only disable auth if we are running the service tests
 
   val pagerdutyCtxt = PagerDutyAlerter.Context(
     url = mandatoryConfig("pagerduty.url"),

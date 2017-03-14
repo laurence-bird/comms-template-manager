@@ -10,6 +10,8 @@ import cats.instances.either._
 import cats.~>
 import com.gu.googleauth.GoogleAuthConfig
 import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.templates.model.RequiredTemplateData
+import com.ovoenergy.comms.templates.model.RequiredTemplateData._
 import logic.{TemplateOp, TemplateOpA}
 import models.ZippedRawTemplate
 import org.apache.commons.compress.utils.IOUtils
@@ -19,9 +21,11 @@ import play.api.libs.Files.TemporaryFile
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc._
+import play.twirl.api.Html
 import templates.UploadedFile
 
 import scala.collection.JavaConversions._
+import scala.collection.immutable.SortedMap
 
 class MainController(val authConfig: GoogleAuthConfig,
                      val wsClient: WSClient,
@@ -111,12 +115,57 @@ class MainController(val authConfig: GoogleAuthConfig,
 
   def testTemplate = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.test(None))
+
+    val requiredData = RequiredTemplateData.obj(SortedMap(
+      "aString"          -> string,
+      "anOptionalString" -> optString,
+      "aListOfStrings"   -> strings,
+      "anObject"         -> obj(SortedMap(
+        "aString"          -> string,
+        "anOptionalString" -> optString,
+        "aListOfStrings"   -> strings,
+        "anOptionalObject" -> optObj(SortedMap(
+          "aString"          -> string,
+          "anOptionalString" -> optString,
+          "aListOfStrings"   -> strings
+        ))
+      )),
+      "aListOfObjects"  -> objs(SortedMap(
+        "aString"          -> string,
+        "anOptionalString" -> optString,
+        "aListOfStrings"   -> strings
+      ))
+    ))
+
+    Ok(views.html.test(requiredData))
   }
 
   def processTemplate = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.test(Some(request.body.asJson.toString)))
+
+    val requiredData = RequiredTemplateData.obj(SortedMap(
+      "aString"          -> string,
+      "anOptionalString" -> optString,
+      "aListOfStrings"   -> strings,
+      "anObject"         -> obj(SortedMap(
+        "aString"          -> string,
+        "anOptionalString" -> optString,
+        "aListOfStrings"   -> strings,
+        "anOptionalObject" -> optObj(SortedMap(
+          "aString"          -> string,
+          "anOptionalString" -> optString,
+          "aListOfStrings"   -> strings
+        ))
+      )),
+      "aListOfObjects"  -> objs(SortedMap(
+        "aString"          -> string,
+        "anOptionalString" -> optString,
+        "aListOfStrings"   -> strings
+      ))
+    ))
+
+
+    Ok(views.html.test(requiredData))
   }
 
   private def extractUploadedFiles(templateFile: FilePart[TemporaryFile]): List[UploadedFile] = {

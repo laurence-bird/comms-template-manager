@@ -1,4 +1,6 @@
-@(result: Option[String])(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@import com.ovoenergy.comms.templates.model.RequiredTemplateData
+@import views.ViewHelper._
+@(templateData: RequiredTemplateData.obj)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
     <link rel="stylesheet" href="@routes.Assets.at("stylesheets/test.css")">
 
@@ -10,21 +12,25 @@
         const idCounterRegex = /\[([0-9]+)\]$/g;
 
         function manageOptionalField(checkboxId, optionalId) {
+           var escapedOptionalId = optionalId
+                   .replace(/\./g, "\\.")
+                   .replace(/\]/g, "\\]")
+                   .replace(/\[/g, "\\[");
            if (document.getElementById(checkboxId).checked === false) {
-               $("input[id^=" + optionalId + "\\.]").each(function () {
+               $("input[id^=" + escapedOptionalId + "\\.]").each(function () {
                     $(this).prop('disabled', true);
                     $(this).prop('required', false);
                });
-               $("input[id=" + optionalId + "]").each(function () {
+               $("input[id=" + escapedOptionalId + "]").each(function () {
                    $(this).prop('disabled', true);
                    $(this).prop('required', false);
                });
             } else {
-               $("input[id^=" + optionalId + "\\.]").each(function () {
+               $("input[id^=" + escapedOptionalId + "\\.]").each(function () {
                    $(this).prop('disabled', false);
                    $(this).prop('required', true);
                });
-               $("input[id=" + optionalId + "]").each(function () {
+               $("input[id=" + escapedOptionalId + "]").each(function () {
                    $(this).prop('disabled', false);
                    $(this).prop('required', true);
                });
@@ -55,10 +61,12 @@
                     switch (e.tagName.toLowerCase()) {
                         case 'input':
                             if (e.hasAttribute("id")) e.id = getNewAttributeValue(e.id);
+                            if (e.hasAttribute("name")) e.name = getNewAttributeValue(e.name);
                             break;
                         default:
                             if (e.hasAttribute("id")) e.id = getNewAttributeValue(e.id);
                             if (e.hasAttribute("for")) e.setAttribute("for", getNewAttributeValue(e.getAttribute("for")));
+                            if (e.hasAttribute("name")) e.name = getNewAttributeValue(e.name);
                             replaceIds(e, oldParentId, newParentId);
                     }
                 }
@@ -80,7 +88,24 @@
             newNode.value = "";
             newNode.id = newId;
 
-            document.getElementById(parentId).appendChild(newNode);
+            parentElement.appendChild(newNode);
+
+            (function($) {
+                $.fn.goTo = function() {
+                    $('html, body').animate({
+                        scrollTop: $(this).offset().top - 100
+                    }, 'fast');
+                    return this; // for chaining...
+                }
+            })(jQuery);
+            $('*[id=' + buttonId).goTo();
+        }
+
+        function removeElement(parentId, buttonId) {
+            var parentElement = document.getElementById(parentId);
+            var children = parentElement.children;
+            var lastChild = children[children.length-1];
+            parentElement.removeChild(lastChild);
 
             (function($) {
                 $.fn.goTo = function() {
@@ -92,144 +117,29 @@
             })(jQuery);
             $('*[id=' + buttonId).goTo();
 
+
         }
 
     </script>
 
     @helper.form(action = routes.MainController.processTemplate()) {
 
+        <div>
+            <legend class="template-legend">FYI Passed in obj</legend>
+            <span>@templateData</span>
+            <br><br>
+        </div>
 
         <form class="form-horizontal">
             <fieldset>
                 <legend class="template-legend">Enter Details</legend>
 
-                <!-- strings -->
-                <div class="form-group container">
-                    <div>
-                        <label for="addressLines" class="col-md-12 control-label">Address Lines</label>
-                    </div>
-                    <div class="form-group col-md-2" id="addressLines">
-                        <input class="form-control input-sm" type="text" id="addressLines[0]" required/>
-                        <input class="form-control input-sm" type="text" id="addressLines[1]" required/>
-                        <input class="form-control input-sm" type="text" id="addressLines[2]" required/>
-                    </div>
-                </div>
-                <div class="form-group col-md-12">
-                    <button type="button" id="addAddressLines" class="btn btn-toolbar" onclick="addElement('addressLines', 'addAddressLines')">Add Address Line</button>
-                </div>
-
-                <!-- optString -->
-                <div class="form-group container">
-                    <div class="form-group col-md-3">
-                        <label for="personalGreeting" class="control-label">Personal Greeting</label>
-                        <div class="input-group">
-                            <input class="form-control input-sm" type="text" id="personalGreeting" required/>
-                            <span class="input-group-addon"> <input type="checkbox" id="personalGreetingController" onchange="manageOptionalField('personalGreetingController', 'personalGreeting')" checked/>&nbsp;optional</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- optObj -->
-                <div class="form-group container">
-                    <div>
-                        <label for="secondaryContact" class="col-md-12 control-label">Secondary Contact</label>
-                        <span class="input-group-addon"> <input type="checkbox" id="secondaryContactGreetingController" onchange="manageOptionalField('secondaryContactGreetingController', 'secondaryContact')" checked/>&nbsp;optional</span>
-                    </div>
-                    <div class="bordered-form-group col-md-12" id="customer">
-                        <div class="form-group col-md-2">
-                            <label for="secondaryContact.firstName" class="control-label">firstName</label>
-                            <input class="form-control input-sm" type="text" id="secondaryContact.firstName" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="secondaryContact.surname" class="control-label">surname</label>
-                            <input class="form-control input-sm" type="text" id="secondaryContact.surname" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="secondaryContact.emailAddress" class="control-label">emailAddress</label>
-                            <input class="form-control input-sm" type="text" id="secondaryContact.emailAddress" required/>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- obj -->
-                <div class="form-group container">
-                    <div>
-                        <label for="customer" class="col-md-12 control-label">Customer</label>
-                    </div>
-                    <div class="bordered-form-group col-md-12" id="customer">
-                        <div class="form-group col-md-2">
-                            <label for="customer.firstName" class="control-label">firstName</label>
-                            <input class="form-control input-sm" type="text" id="customer.firstName" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="customer.surname" class="control-label">surname</label>
-                            <input class="form-control input-sm" type="text" id="customer.surname" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="customer.emailAddress" class="control-label">emailAddress</label>
-                            <input class="form-control input-sm" type="text" id="customer.emailAddress" required/>
-                        </div>
-                    </div>
-                </div>
-
-
-
-                <!-- objs -->
-                <div class="form-group container" id="meters">
-                    <div>
-                        <label for="meters" class="col-md-12 control-label">Meters</label>
-                    </div>
-
-                    <div class="bordered-form-group col-md-12" id="meters[0]">
-                        <div class="form-group col-md-2">
-                            <label for="meters[0].fuelType" class="control-label">fuelType</label>
-                            <input class="form-control input-sm" type="text" id="meters[0].fuelType" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="meters[0].serialNumber" class="control-label">serialNumber</label>
-                            <input class="form-control input-sm" type="text" id="meters[0].serialNumber" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="meters[0].openingReading" class="control-label">openingReading</label>
-                            <input class="form-control input-sm" type="text" id="meters[0].openingReading" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="meters[0].date" class="control-label">date</label>
-                            <input class="form-control input-sm" type="text" id="meters[0].date" required/>
-                        </div>
-                    </div>
-
-                    <div class="bordered-form-group col-md-12" id="meters[1]">
-                        <div class="form-group col-md-2">
-                            <label for="meters[1].fuelType" class="control-label">fuelType</label>
-                            <input class="form-control input-sm" type="text" id="meters[1].fuelType" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="meters[1].serialNumber" class="control-label">serialNumber</label>
-                            <input class="form-control input-sm" type="text" id="meters[1].serialNumber" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="meters[1].openingReading" class="control-label">openingReading</label>
-                            <input class="form-control input-sm" type="text" id="meters[1].openingReading" required/>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="meters[1].date" class="control-label">date</label>
-                            <input class="form-control input-sm" type="text" id="meters[1].date" required/>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group col-md-12">
-                    <button type="button" id="addMeters" class="btn btn-toolbar" onclick="addElement('meters', 'addMeters')">Add meter</button>
-                </div>
+                @Html(recurseRequiredTemplateData(None, templateData.fields))
 
                 <div class="form-group  col-md-12">
                     <div class="col-lg-8">
                         <button type="submit" id="publish" class="btn btn-primary">Publish Template</button>
                     </div>
-                </div>
-
-                <div>
-                    @result.getOrElse("")
                 </div>
 
             </fieldset>
