@@ -6,10 +6,12 @@ import java.util.zip.{ZipEntry, ZipFile}
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import aws.Interpreter.ErrorsOr
+import cats.data.Validated.{Invalid, Valid}
 import cats.instances.either._
 import cats.~>
 import com.gu.googleauth.GoogleAuthConfig
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model.TemplateData.TD
+import com.ovoenergy.comms.model.{CommManifest, CommType, TemplateData}
 import com.ovoenergy.comms.templates.model.RequiredTemplateData
 import com.ovoenergy.comms.templates.model.RequiredTemplateData._
 import logic.{TemplateOp, TemplateOpA}
@@ -22,7 +24,8 @@ import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc._
 import play.twirl.api.Html
-import templates.UploadedFile
+import shapeless.Coproduct
+import templates.{TemplateRetriever, UploadedFile}
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable.SortedMap
@@ -113,59 +116,135 @@ class MainController(val authConfig: GoogleAuthConfig,
     }
   }
 
-  def testTemplate = Authenticated { implicit request =>
+  def testComplexTemplate = Authenticated { implicit request =>
     implicit val user = request.user
-
-    val requiredData = RequiredTemplateData.obj(SortedMap(
-      "aString"          -> string,
-      "anOptionalString" -> optString,
-      "aListOfStrings"   -> strings,
-      "anObject"         -> obj(SortedMap(
-        "aString"          -> string,
-        "anOptionalString" -> optString,
-        "aListOfStrings"   -> strings,
-        "anOptionalObject" -> optObj(SortedMap(
-          "aString"          -> string,
-          "anOptionalString" -> optString,
-          "aListOfStrings"   -> strings
-        ))
-      )),
-      "aListOfObjects"  -> objs(SortedMap(
-        "aString"          -> string,
-        "anOptionalString" -> optString,
-        "aListOfStrings"   -> strings
-      ))
-    ))
-
-    Ok(views.html.test(requiredData))
+    Ok(views.html.test("complex", "2.0", complexRequiredTemplateData))
   }
 
-  def processTemplate = Authenticated { implicit request =>
+  def testSimpleTemplate = Authenticated { implicit request =>
+    implicit val user = request.user
+    Ok(views.html.test("simple", "2.0", simpleRequiredTemplateData))
+  }
+
+  def testTemplate(commName: String, commVersion: String) = Authenticated { implicit request =>
     implicit val user = request.user
 
-    val requiredData = RequiredTemplateData.obj(SortedMap(
-      "aString"          -> string,
-      "anOptionalString" -> optString,
-      "aListOfStrings"   -> strings,
-      "anObject"         -> obj(SortedMap(
-        "aString"          -> string,
-        "anOptionalString" -> optString,
-        "aListOfStrings"   -> strings,
-        "anOptionalObject" -> optObj(SortedMap(
-          "aString"          -> string,
-          "anOptionalString" -> optString,
-          "aListOfStrings"   -> strings
-        ))
-      )),
-      "aListOfObjects"  -> objs(SortedMap(
-        "aString"          -> string,
-        "anOptionalString" -> optString,
-        "aListOfStrings"   -> strings
-      ))
-    ))
+    val manifest = CommManifest(CommType.Service, commName, commVersion)
+    TemplateRetriever.getTemplateRequiredData(manifest) match {
+      case Valid(data)  => Ok(views.html.test(commName, commVersion, data))
+      case Invalid(err) => NotFound(s"Failed to retrieve template data: $err")
+    }
+  }
 
+  def processTemplate(commName: String, commVersion: String) = Authenticated { implicit request =>
+    implicit val user = request.user
 
-    Ok(views.html.test(requiredData))
+    def processData(requiredTemplateData: RequiredTemplateData.obj) = {
+      val userData = request.body.asFormUrlEncoded.get.map { case (key, values) =>
+        (key, values.head)
+      }
+
+      def determineKeyRegexForString(previousRegex: Option[String], key: String) = {
+        if (previousRegex.isDefined) s"${previousRegex.get}\\.$key" + "$"
+        else s"^$key" + "$"
+      }
+
+      def determineKeyRegexForStringSeq(previousRegex: Option[String], key: String) = {
+        if (previousRegex.isDefined) s"${previousRegex.get}\\.$key\\[[0-9]+\\]" + "$"
+        else s"^$key\\[[0-9]+\\]" + "$"
+      }
+
+      def determineKeyRegexForObj(previousRegex: Option[String], key: String) = {
+        if (previousRegex.isDefined) s"${previousRegex.get}\\.$key"
+        else s"^$key"
+      }
+
+      def determineKeyRegexForObjSeq(previousRegex: Option[String], key: String) = {
+        if (previousRegex.isDefined) s"(${previousRegex.get}\\.$key\\[[0-9]+\\]).*"
+        else s"(^$key\\[[0-9]+\\]).*"
+      }
+
+     def processFields(userData: Map[String, String], previousRegex: Option[String], fields: RequiredTemplateData.Fields): Map[String, TemplateData] = {
+        fields.flatMap{ case(key, data) =>
+
+          data match {
+            case RequiredTemplateData.string =>
+              val userDataKeyRegex = determineKeyRegexForString(previousRegex, key)
+              userData
+                .filterKeys(_ matches userDataKeyRegex)
+                .values
+                .headOption
+                .map(value => (key, TemplateData(Coproduct[TemplateData.TD](value))))
+
+            case RequiredTemplateData.optString =>
+              val userDataKeyRegex = determineKeyRegexForString(previousRegex, key)
+              userData
+                .filterKeys(_ matches userDataKeyRegex)
+                .values
+                .headOption
+                .map(value => (key, TemplateData(Coproduct[TemplateData.TD](value))))
+
+            case RequiredTemplateData.strings =>
+              val userDataKeyRegex = determineKeyRegexForStringSeq(previousRegex, key)
+              val values = userData
+                .filterKeys(_ matches userDataKeyRegex)
+                .map(value => TemplateData(Coproduct[TemplateData.TD](value._2)))
+                .toSeq
+              Some((key, TemplateData(Coproduct[TemplateData.TD](values))))
+
+            case RequiredTemplateData.obj(f)    =>
+              val userDataKeyRegex = determineKeyRegexForObj(previousRegex, key)
+              val objTemplateData = processFields(userData, Some(userDataKeyRegex), f)
+              Some((key, TemplateData(Coproduct[TemplateData.TD](objTemplateData))))
+
+            case RequiredTemplateData.optObj(f) =>
+              val userDataKeyRegex = determineKeyRegexForObj(previousRegex, key)
+              val objTemplateData = processFields(userData, Some(userDataKeyRegex), f)
+              Some((key, TemplateData(Coproduct[TemplateData.TD](objTemplateData))))
+
+            case RequiredTemplateData.objs(f)   =>
+              val userDataKeyRegexString = determineKeyRegexForObjSeq(previousRegex, key)
+              val userDataRegex = userDataKeyRegexString r
+              val relevantUserDataKeys = userData
+                  .keys
+                  .flatMap{ relevantUserDataKey =>
+                    userDataRegex.findAllIn(relevantUserDataKey).matchData.map(m => m.group(1))
+                  }
+                  .toSet
+
+              val objTemplateData: Seq[TemplateData] = relevantUserDataKeys
+                .flatMap { relevantKey =>
+                  val templateDataSeq: Map[String, TemplateData] = userData
+                    .filterKeys(_.startsWith(relevantKey))
+                    .map{ case(k, v) =>
+                      val thisKey = k.substring(k.lastIndexOf(".") + 1).trim
+                      (thisKey, TemplateData(Coproduct[TemplateData.TD](v)))
+                    }
+
+                  Some(TemplateData(Coproduct[TemplateData.TD](templateDataSeq)))
+                }
+                .toList
+
+              Some((key, TemplateData(Coproduct[TemplateData.TD](objTemplateData))))
+          }
+        }
+      }
+
+      val templateData = processFields(userData, None, requiredTemplateData.fields)
+
+      Ok(s"Required = $requiredTemplateData xxxxxxxxxxxxxxxxxx Provided = $userData xxxxxxxxxxxxxx TemplateData = $templateData")
+    }
+
+    commName match {
+      case "complex" => processData(complexRequiredTemplateData)
+      case "simple"  => processData(simpleRequiredTemplateData)
+      case _ =>
+        val manifest = CommManifest(CommType.Service, commName, commVersion)
+        TemplateRetriever.getTemplateRequiredData(manifest) match {
+            case Valid(data) => processData(data)
+            case Invalid(err) => NotFound(s"Failed to retrieve template data: $err")
+          }
+        }
   }
 
   private def extractUploadedFiles(templateFile: FilePart[TemporaryFile]): List[UploadedFile] = {
@@ -182,5 +261,42 @@ class MainController(val authConfig: GoogleAuthConfig,
           IOUtils.closeQuietly(inputStream)
         }
       })
+  }
+
+  private val complexRequiredTemplateData = {
+    RequiredTemplateData.obj(SortedMap(
+      "aString"          -> string,
+      "anOptionalString" -> optString,
+      "aListOfStrings"   -> strings,
+      "anObject"         -> obj(SortedMap(
+        "aString"          -> string,
+        "anOptionalString" -> optString,
+        "aListOfStrings"   -> strings,
+        "anOptionalObject" -> optObj(SortedMap(
+          "aString"          -> string,
+          "anOptionalString" -> optString,
+          "aListOfStrings"   -> strings
+        ))
+      )),
+      "aListOfObjects"  -> objs(SortedMap(
+        "aString"          -> string,
+        "anOptionalString" -> optString,
+        "aListOfStrings"   -> strings
+      ))
+    ))
+  }
+
+  private val simpleRequiredTemplateData = {
+    RequiredTemplateData.obj(SortedMap(
+      "aString" -> string,
+      "anOptionalString" -> optString,
+      "aListOfStrings" -> strings,
+      "anObject"         -> obj(SortedMap(
+        "aString"          -> string
+      )),
+      "anOptionalObject"         -> optObj(SortedMap(
+        "aString"          -> string
+      ))
+    ))
   }
 }

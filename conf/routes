@@ -23,5 +23,7 @@ GET    /publish/template/:commName     controllers.MainController.publishExistin
 POST   /publish/template/:commName     controllers.MainController.publishExistingTemplatePost(commName)
 
 
-GET   /template/test  controllers.MainController.testTemplate
-POST   /template/test  controllers.MainController.processTemplate
+GET   /template/test/complex        controllers.MainController.testComplexTemplate
+GET   /template/test/simple        controllers.MainController.testSimpleTemplate
+GET   /template/test/:commName/:version      controllers.MainController.testTemplate(commName, version)
+POST  /template/test/:commName/:version               controllers.MainController.processTemplate(commName, version)

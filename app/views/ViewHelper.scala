@@ -4,8 +4,6 @@ import java.time.Instant
 
 import com.ovoenergy.comms.templates.model.RequiredTemplateData
 
-import scala.xml.Node
-
 object ViewHelper {
 
   def formatDate(instant: Instant): String =

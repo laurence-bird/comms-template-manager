@@ -1,6 +1,6 @@
 @import com.ovoenergy.comms.templates.model.RequiredTemplateData
 @import views.ViewHelper._
-@(templateData: RequiredTemplateData.obj)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@(commName: String, commVersion: String, templateData: RequiredTemplateData.obj)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
     <link rel="stylesheet" href="@routes.Assets.at("stylesheets/test.css")">
 
@@ -122,7 +122,7 @@
 
     </script>
 
-    @helper.form(action = routes.MainController.processTemplate()) {
+    @helper.form(action = routes.MainController.processTemplate(commName, commVersion)) {
 
         <div>
             <legend class="template-legend">FYI Passed in obj</legend>
