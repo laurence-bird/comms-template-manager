@@ -1,4 +1,4 @@
-@(templates: Seq[TemplateSummary], commPerformanceUrl: String)(implicit user: com.gu.googleauth.UserIdentity)
+@(templates: Seq[TemplateSummary], commPerformanceUrl: String, commSearchUrl: String)(implicit user: com.gu.googleauth.UserIdentity)
 @import views.ViewHelper._
 @main{
     <div class="page-header">
@@ -8,10 +8,11 @@
     <table class="table table-striped">
         <thead>
         <tr>
-            <th class="text-center">Comm Name</th>
-            <th class="text-center">Comm Type</th>
+            <th class="text-center">Comm name</th>
+            <th class="text-center">Comm type</th>
             <th class="text-center">Latest template version</th>
-            <th class="text-center">See Comm performance</th>
+            <th class="text-center">See comm performance</th>
+            <th class="text-center">View recent comms</th>
             <th></th>
         </tr>
         </thead>
@@ -22,6 +23,7 @@
             <td class="text-center">@template.commType</td>
             <td class="text-center">@template.latestVersion</td>
             <td class="text-center"><a href="@commPerformanceLink(template.commName, commPerformanceUrl)" class="btn btn-primary"><span class="glyphicon glyphicon-tasks"></span></a></td>
+            <td class="text-center"><a href="@commSearchLink(template.commName, commSearchUrl)" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></a></td>
             <td class="text-center"><a href="@routes.MainController.publishExistingTemplateGet(template.commName)" class="btn btn-primary">
                 Publish new version
             </a></td>

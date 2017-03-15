@@ -61,8 +61,15 @@ class AppComponents(context: Context)
   val messagesApi: MessagesApi = new DefaultMessagesApi(environment, configuration, new DefaultLangs(configuration))
 
   val commPerformanceUrl = mandatoryConfig("auditLog.commPerformanceUrl")
+  val commSearchUrl = mandatoryConfig("auditLog.commSearchUrl")
 
-  val mainController = new MainController(googleAuthConfig, wsClient, enableAuth, interpreter, messagesApi, commPerformanceUrl)
+  val mainController = new MainController(googleAuthConfig,
+    wsClient,
+    enableAuth,
+    interpreter,
+    messagesApi,
+    commPerformanceUrl,
+    commSearchUrl)
 
   val authController = new AuthController(googleAuthConfig, wsClient, enableAuth)
 
