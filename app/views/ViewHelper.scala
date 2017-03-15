@@ -19,4 +19,7 @@ object ViewHelper {
     s"$commPerformanceUrl?commName=$commName&timePeriod=Day&start=$start"
   }
 
+  def commSearchLink(commName: String, commSearchUrl: String): String =
+    s"$commSearchUrl?commName=$commName"
+
 }
