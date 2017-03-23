@@ -218,3 +218,39 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+
+  TemplateManagerErrorResponseAlarm:
+      Type: "AWS::CloudWatch::Alarm"
+      Properties:
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        Namespace: "AWS/ApplicationELB"
+        Dimensions:
+          - Name: LoadBalancer
+            Value: !GetAtt 'LoadBalancer.LoadBalancerFullName'
+        MetricName: HTTPCode_Target_5XX_Count
+        AlarmActions:
+          - !ImportValue "CloudwatchPagerDutyTopic"
+        OKActions:
+          - !ImportValue "CloudwatchPagerDutyTopic"
+        Period: 60
+        EvaluationPeriods: 1
+        Statistic: Sum
+        Threshold: 1
+
+  TemplateManagerELBErrorResponseAlarm:
+      Type: "AWS::CloudWatch::Alarm"
+      Properties:
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        Namespace: "AWS/ApplicationELB"
+        Dimensions:
+          - Name: LoadBalancer
+            Value: !GetAtt 'LoadBalancer.LoadBalancerFullName'
+        MetricName: HTTPCode_ELB_5XX_Count
+        AlarmActions:
+          - !ImportValue "CloudwatchPagerDutyTopic"
+        OKActions:
+          - !ImportValue "CloudwatchPagerDutyTopic"
+        Period: 60
+        EvaluationPeriods: 1
+        Statistic: Sum
+        Threshold: 1
