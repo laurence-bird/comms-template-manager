@@ -4,7 +4,9 @@ import com.gu.googleauth.GoogleAuthConfig
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 
-class AuthController(val authConfig: GoogleAuthConfig, val wsClient: WSClient, val enableAuth: Boolean) extends AuthActions with Controller {
+class AuthController(val authConfig: GoogleAuthConfig, val wsClient: WSClient, val enableAuth: Boolean)
+    extends AuthActions
+    with Controller {
 
   def login = Action.async { implicit request =>
     startGoogleLogin()

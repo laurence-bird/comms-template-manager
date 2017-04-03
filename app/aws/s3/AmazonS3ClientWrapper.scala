@@ -21,7 +21,8 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
       Logger.info(s"Uploaded file to S3: ${fileDetails.bucket} - ${fileDetails.key}")
       Right(client.getResourceUrl(fileDetails.bucket, fileDetails.key))
     } catch {
-      case e: AmazonS3Exception => Left(s"Failed to upload to aws.s3 with error: ${e.getMessage} for file: ${fileDetails.key} ")
+      case e: AmazonS3Exception =>
+        Left(s"Failed to upload to aws.s3 with error: ${e.getMessage} for file: ${fileDetails.key} ")
     } finally {
       IOUtils.closeQuietly(stream)
     }
@@ -29,15 +30,14 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
 
   def downloadFile(bucket: String, key: String): Either[String, Array[Byte]] = {
     try {
-        val obj = client.getObject(bucket, key)
-        val stream = obj.getObjectContent
-        try {
-          Right(IOUtils.toByteArray(stream))
-        } finally {
-          stream.close()
-        }
+      val obj    = client.getObject(bucket, key)
+      val stream = obj.getObjectContent
+      try {
+        Right(IOUtils.toByteArray(stream))
+      } finally {
+        stream.close()
       }
-    catch {
+    } catch {
       case e: AmazonS3Exception =>
         // either the object does not exist or something went really wrong
         Logger.warn(s"Failed to download aws.s3://$bucket/$key", e)
@@ -47,10 +47,10 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
   }
 
   // Returns keys of all the files in specified s3 bucket with the given prefix
-  def listFiles(bucket: String, prefix: String): Either[String, Seq[String]]= {
+  def listFiles(bucket: String, prefix: String): Either[String, Seq[String]] = {
     try {
       val request = new ListObjectsV2Request().withBucketName(bucket).withPrefix(prefix)
-      val result = client.listObjectsV2(request).getObjectSummaries.asScala.map(_.getKey)
+      val result  = client.listObjectsV2(request).getObjectSummaries.asScala.map(_.getKey)
       Right(result)
     } catch {
       case e: AmazonS3Exception =>

@@ -11,7 +11,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
 
   object S3ClientStub extends S3Client {
     override def getUTF8TextFileContent(key: String): Option[String] = fail("Not expected to be invoked")
-    override def listFiles(prefix: String): Seq[String] = fail("Not expected to be invoked")
+    override def listFiles(prefix: String): Seq[String]              = fail("Not expected to be invoked")
   }
 
   object S3ClientStubWithPartial extends S3Client {
@@ -32,7 +32,8 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
       generateUploadedFile("email/extra.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(NonEmptyList.of("email/extra.txt is not an expected template file"))
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(
+      NonEmptyList.of("email/extra.txt is not an expected template file"))
   }
 
   it should "error if expected files not present" in {
@@ -41,7 +42,8 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.txt", "fsfdsfs"),
       generateUploadedFile("email/sender.txt", "Test <testing@test.com>")
     )
-    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(NonEmptyList.of("No subject file has been provided in template"))
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(
+      NonEmptyList.of("No subject file has been provided in template"))
   }
 
   it should "not error if zip contains extra root folder" in {
@@ -106,25 +108,31 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "{{> anInvalidPartial}}"),
       generateUploadedFile("email/subject.txt", "{{something.else}}")
     )
-    val result = TemplateValidator.validateTemplate(S3ClientStubWithPartial, commManifest, uploadedFiles).left.get.toList
+    val result =
+      TemplateValidator.validateTemplate(S3ClientStubWithPartial, commManifest, uploadedFiles).left.get.toList
     result should contain("Could not find shared partial: anInvalidPartial")
   }
 
   it should "error if non-existent assets are referenced" in {
     val uploadedFiles = List(
-      generateUploadedFile("email/body.html", "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"),
+      generateUploadedFile("email/body.html",
+                           "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"),
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
       generateUploadedFile("email/assets/image.gif", "fsfdsfs"),
       generateUploadedFile("email/assets/something/image.png", "fsfdsfs")
     )
     val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
-    result should contain("The file email/body.html contains the reference 'assets/smiley.gif' to a non-existent asset file")
+    result should contain(
+      "The file email/body.html contains the reference 'assets/smiley.gif' to a non-existent asset file")
 
   }
 
   it should "not error if valid assets are referenced" in {
     val uploadedFiles = List(
-      generateUploadedFile("email/body.html", "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"assets/something/another.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"),
+      generateUploadedFile(
+        "email/body.html",
+        "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"assets/something/another.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"
+      ),
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
       generateUploadedFile("email/assets/smiley.gif", "fsfdsfs"),
       generateUploadedFile("email/assets/something/another.gif", "fsfdsfs")

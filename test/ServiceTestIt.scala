@@ -27,14 +27,14 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
   val config =
     ConfigFactory.load(ConfigParseOptions.defaults(), ConfigResolveOptions.defaults().setAllowUnresolved(true))
 
-  val s3Endpoint = "http://localhost:4569"
-  val rawTemplatesBucket  = config.getString("aws.s3.buckets.rawTemplates")
-  val templatesBucket     = config.getString("aws.s3.buckets.templates")
-  val assetsBucket        = config.getString("aws.s3.buckets.assets")
-  val dynamoUrl = "http://localhost:8000"
-  val dynamoClient = LocalDynamoDB.client(dynamoUrl)
+  val s3Endpoint                = "http://localhost:4569"
+  val rawTemplatesBucket        = config.getString("aws.s3.buckets.rawTemplates")
+  val templatesBucket           = config.getString("aws.s3.buckets.templates")
+  val assetsBucket              = config.getString("aws.s3.buckets.assets")
+  val dynamoUrl                 = "http://localhost:8000"
+  val dynamoClient              = LocalDynamoDB.client(dynamoUrl)
   val templateVersionsTableName = config.getString("aws.dynamo.tables.templateVersionTable")
-  val templateSummaryTableName = config.getString("aws.dynamo.tables.templateSummaryTable")
+  val templateSummaryTableName  = config.getString("aws.dynamo.tables.templateSummaryTable")
 
   val s3: AmazonS3Client = new AmazonS3Client(new BasicAWSCredentials("key", "secret"))
     .withRegion(Regions.fromName("eu-west-1"))
@@ -47,14 +47,14 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     createDynamoTables()
   }
 
-  override def afterAll() ={
+  override def afterAll() = {
     dynamoClient.deleteTable(templateVersionsTableName)
     dynamoClient.deleteTable(templateSummaryTableName)
   }
 
   private def createDynamoTables() = {
     LocalDynamoDB.createTable(dynamoClient)(templateVersionsTableName)('commName -> S, 'publishedAt -> N)
-    LocalDynamoDB.createTable(dynamoClient)(templateSummaryTableName)('commName -> S)
+    LocalDynamoDB.createTable(dynamoClient)(templateSummaryTableName)('commName  -> S)
     waitUntilTableMade(50)
 
     def waitUntilTableMade(noAttemptsLeft: Int): (String, String) = {
@@ -84,20 +84,16 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     s3.createBucket(templatesBucket)
 
     s3.putObject(rawTemplatesBucket,
-      "service/template-manager-service-test/0.1/email/subject.txt",
-      "SUBJECT {{profile.firstName}}")
+                 "service/template-manager-service-test/0.1/email/subject.txt",
+                 "SUBJECT {{profile.firstName}}")
     s3.putObject(rawTemplatesBucket,
-      "service/template-manager-service-test/0.1/email/body.html",
-      "{{> header}} HTML BODY {{amount}}")
+                 "service/template-manager-service-test/0.1/email/body.html",
+                 "{{> header}} HTML BODY {{amount}}")
     s3.putObject(rawTemplatesBucket,
-      "service/template-manager-service-test/0.1/email/body.txt",
-      "{{> header}} TEXT BODY {{amount}}")
-    s3.putObject("ovo-comms-templates",
-      "service/fragments/email/html/header.html",
-      "HTML HEADER")
-    s3.putObject("ovo-comms-templates",
-      "service/fragments/email/html/footer.html",
-      "HTML FOOTER")
+                 "service/template-manager-service-test/0.1/email/body.txt",
+                 "{{> header}} TEXT BODY {{amount}}")
+    s3.putObject("ovo-comms-templates", "service/fragments/email/html/header.html", "HTML HEADER")
+    s3.putObject("ovo-comms-templates", "service/fragments/email/html/footer.html", "HTML FOOTER")
 
     Thread.sleep(2000)
   }
@@ -128,21 +124,18 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
 
     val fileNames = getFileNames(zipFileStream, Nil)
 
-    fileNames should contain allOf("/email/body.html", "/email/body.txt", "/email/subject.txt")
+    fileNames should contain allOf ("/email/body.html", "/email/body.txt", "/email/subject.txt")
   }
-
 
   it should "Publish a new valid template, storing the assets and processed template files in the correct bucket" taggedAs DockerComposeTag in {
     val mediaType = MediaType.parse("application/zip")
-    val path = getClass.getResource("/templates/valid-template.zip").getPath
+    val path      = getClass.getResource("/templates/valid-template.zip").getPath
     val requestBody = new MultipartBody.Builder()
       .setType(MultipartBody.FORM)
       .addFormDataPart("commName", "TEST-COMM")
       .addFormDataPart("commType", "Service")
-      .addFormDataPart("templateFile", "valid-template.zip",
-        RequestBody.create(mediaType, new File(path)))
+      .addFormDataPart("templateFile", "valid-template.zip", RequestBody.create(mediaType, new File(path)))
       .build()
-
 
     val request = new Request.Builder()
       .url("http://localhost:9000/publish/template")
@@ -150,9 +143,8 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
       .build()
     val result = makeRequest(request)
 
-
-    val assetsInBucket = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
-    val templatesInBucket = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
 
     assetsInBucket should contain("service/TEST-COMM/1.0/email/assets/canary.png")
@@ -167,29 +159,25 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     templateVersionResult.publishedBy shouldBe "dummy.email"
     templateVersionResult.commType shouldBe CommType.Service
 
-
     val templateSummaryResult = templateSummaries.find(_.commName == "TEST-COMM").get
     templateSummaries.length shouldBe 1
     templateSummaryResult.latestVersion shouldBe "1.0"
     templateSummaryResult.commType shouldBe CommType.Service
 
-
-    result.body.string() should include ("<ul><li>Template published: CommManifest(Service,TEST-COMM,1.0)</li></ul>")
+    result.body.string() should include("<ul><li>Template published: CommManifest(Service,TEST-COMM,1.0)</li></ul>")
   }
 
   it should "Allow publication of a valid new version of an existing template" taggedAs DockerComposeTag in {
-    val commName = "TEST-COMM-2"
+    val commName  = "TEST-COMM-2"
     val mediaType = MediaType.parse("application/zip")
-    val path = getClass.getResource("/templates/valid-template.zip").getPath
+    val path      = getClass.getResource("/templates/valid-template.zip").getPath
 
     val requestBody = new MultipartBody.Builder()
       .setType(MultipartBody.FORM)
       .addFormDataPart("commName", commName)
       .addFormDataPart("commType", "Service")
-      .addFormDataPart("templateFile", "valid-template.zip",
-        RequestBody.create(mediaType, new File(path)))
+      .addFormDataPart("templateFile", "valid-template.zip", RequestBody.create(mediaType, new File(path)))
       .build()
-
 
     val request1 = new Request.Builder()
       .url("http://localhost:9000/publish/template")
@@ -207,8 +195,8 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
 
     val result = makeRequest(request2)
 
-    val assetsInBucket = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
-    val templatesInBucket = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
 
     assetsInBucket should contain(s"service/$commName/2.0/email/assets/canary.png")
@@ -230,55 +218,53 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     templateSummaryResult.latestVersion shouldBe "2.0"
     templateSummaryResult.commType shouldBe CommType.Service
 
-    result.body.string() should include ("<ul><li>Template published: TemplateSummary(TEST-COMM-2,Service,2.0)</li></ul>")
+    result.body.string() should include(
+      "<ul><li>Template published: TemplateSummary(TEST-COMM-2,Service,2.0)</li></ul>")
   }
 
   it should "reject new publication of invalid templates with missing assets" taggedAs DockerComposeTag in {
     val mediaType = MediaType.parse("application/zip")
-    val path = getClass.getResource("/templates/invalid-template.zip").getPath
+    val path      = getClass.getResource("/templates/invalid-template.zip").getPath
     val requestBody = new MultipartBody.Builder()
       .setType(MultipartBody.FORM)
       .addFormDataPart("commName", "INVALID-TEST-COMM")
       .addFormDataPart("commType", "Service")
-      .addFormDataPart("templateFile", "invalid-template.zip",
-        RequestBody.create(mediaType, new File(path)))
+      .addFormDataPart("templateFile", "invalid-template.zip", RequestBody.create(mediaType, new File(path)))
       .build()
-
 
     val request = new Request.Builder()
       .url("http://localhost:9000/publish/template")
       .post(requestBody)
       .build()
 
-    val result = makeRequest(request)
+    val result            = makeRequest(request)
     val templateSummaries = scan(templateSummaryTable)
     val templateVersions  = scan(templateVersionTable)
 
     templateVersions.find(_.commName == "INVALID-TEST-COMM") shouldBe None
     templateSummaries.find(_.commName == "INVALID-TEST-COMM") shouldBe None
 
-    result.body().string() should include("<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
+    result.body().string() should include(
+      "<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
   }
 
   it should "reject publication of a new version of a template for one which doesn't exist" taggedAs DockerComposeTag in {
     val mediaType = MediaType.parse("application/zip")
-    val path = getClass.getResource("/templates/valid-template.zip").getPath
-    val commName = "INVALID-TEST-COMM"
+    val path      = getClass.getResource("/templates/valid-template.zip").getPath
+    val commName  = "INVALID-TEST-COMM"
     val requestBody = new MultipartBody.Builder()
       .setType(MultipartBody.FORM)
       .addFormDataPart("commName", "INVALID-TEST-COMM")
       .addFormDataPart("commType", "Service")
-      .addFormDataPart("templateFile", "valid-template.zip",
-        RequestBody.create(mediaType, new File(path)))
+      .addFormDataPart("templateFile", "valid-template.zip", RequestBody.create(mediaType, new File(path)))
       .build()
-
 
     val request = new Request.Builder()
       .url(s"http://localhost:9000/publish/template/$commName")
       .post(requestBody)
       .build()
 
-    val result = makeRequest(request)
+    val result            = makeRequest(request)
     val templateSummaries = scan(templateSummaryTable)
     val templateVersions  = scan(templateVersionTable)
 
@@ -290,16 +276,14 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "reject publication of an invalid new version of a template" taggedAs DockerComposeTag in {
     val mediaType = MediaType.parse("application/zip")
-    val path = getClass.getResource("/templates/invalid-template.zip").getPath
-    val commName = "TEST-COMM"
+    val path      = getClass.getResource("/templates/invalid-template.zip").getPath
+    val commName  = "TEST-COMM"
     val requestBody = new MultipartBody.Builder()
       .setType(MultipartBody.FORM)
       .addFormDataPart("commName", "TEST-COMM")
       .addFormDataPart("commType", "Service")
-      .addFormDataPart("templateFile", "invalid-template.zip",
-        RequestBody.create(mediaType, new File(path)))
+      .addFormDataPart("templateFile", "invalid-template.zip", RequestBody.create(mediaType, new File(path)))
       .build()
-
 
     val request = new Request.Builder()
       .url(s"http://localhost:9000/publish/template/$commName")
@@ -314,10 +298,11 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     templateVersions.find(_.commName == "INVALID-TEST-COMM") shouldBe None
     templateSummaries.find(_.commName == "INVALID-TEST-COMM") shouldBe None
 
-    result.body().string() should include("<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
+    result.body().string() should include(
+      "<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
   }
 
-  private def scan[A](table: Table[A]): List[A] ={
+  private def scan[A](table: Table[A]): List[A] = {
     val query = table.scan()
     Scanamo.exec(dynamoClient)(query).flatMap(_.toOption)
   }

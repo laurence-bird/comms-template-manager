@@ -7,7 +7,7 @@ import play.api.mvc.Security.{AuthenticatedBuilder, AuthenticatedRequest}
 import Auth.AuthRequest
 
 trait AuthActions extends Actions {
-  override val loginTarget = routes.AuthController.login()
+  override val loginTarget           = routes.AuthController.login()
   override val defaultRedirectTarget = routes.MainController.index()
   override val failureRedirectTarget = routes.AuthController.authError()
 
@@ -18,21 +18,21 @@ trait AuthActions extends Actions {
     */
   def enableAuth: Boolean
 
-  object DummyAuthAction extends AuthenticatedBuilder[UserIdentity](userinfo = _ => {
-    Logger.info("Skipping authentication because auth is disabled")
-    Some(UserIdentity(
-      sub = "dummy.user",
-      email = "dummy.email",
-      firstName = "Dummy",
-      lastName = "User",
-      exp = Long.MaxValue,
-      avatarUrl = None))
-  })
+  object DummyAuthAction
+      extends AuthenticatedBuilder[UserIdentity](userinfo = _ => {
+        Logger.info("Skipping authentication because auth is disabled")
+        Some(
+          UserIdentity(sub = "dummy.user",
+                       email = "dummy.email",
+                       firstName = "Dummy",
+                       lastName = "User",
+                       exp = Long.MaxValue,
+                       avatarUrl = None))
+      })
 
   def Authenticated: ActionBuilder[AuthRequest] =
     if (enableAuth) {
       AuthAction andThen LogRequest
-    }
-    else
+    } else
       DummyAuthAction andThen LogRequest
 }

@@ -49,3 +49,12 @@ testWithDynamo := Def.sequential(
 ).value
 
 includeFilter in (Assets, LessKeys.less) := "*.less"
+
+val scalafmtAll = taskKey[Unit]("Run scalafmt in non-interactive mode with no arguments")
+scalafmtAll := {
+  import org.scalafmt.bootstrap.ScalafmtBootstrap
+  streams.value.log.info("Running scalafmt ...")
+  ScalafmtBootstrap.main(Seq("--non-interactive"))
+  streams.value.log.info("Done")
+}
+(compile in Compile) := (compile in Compile).dependsOn(scalafmtAll).value

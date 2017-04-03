@@ -10,6 +10,5 @@ package object aws {
                      s3RawTemplatesBucket: String,
                      s3TemplateFilesBucket: String,
                      s3TemplateAssetsBucket: String,
-                     region: Regions
-                    )
+                     region: Regions)
 }
