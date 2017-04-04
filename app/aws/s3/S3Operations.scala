@@ -13,11 +13,12 @@ import logic.TemplateOp._
 
 object S3Operations {
 
-
-  def downloadTemplateFiles(s3ClientWrapper: AmazonS3ClientWrapper, commManifest: CommManifest, bucketName: String): Either[String, TemplateFiles] = {
-    val prefix = buildPrefix(commManifest)
+  def downloadTemplateFiles(s3ClientWrapper: AmazonS3ClientWrapper,
+                            commManifest: CommManifest,
+                            bucketName: String): Either[String, TemplateFiles] = {
+    val prefix   = buildPrefix(commManifest)
     val fileKeys = s3ClientWrapper.listFiles(bucketName, prefix).right
-    fileKeys.flatMap{ keys =>
+    fileKeys.flatMap { keys =>
       val result = keys.toList.traverseU { absKey =>
         val file = s3ClientWrapper.downloadFile(bucketName, absKey).right
 

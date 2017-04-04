@@ -29,7 +29,10 @@ class MainController(val authConfig: GoogleAuthConfig,
                      interpreter: ~>[TemplateOpA, ErrorsOr],
                      val messagesApi: MessagesApi,
                      commPerformanceUrl: String,
-                     commSearchUrl: String) extends AuthActions with Controller with I18nSupport {
+                     commSearchUrl: String)
+    extends AuthActions
+    with Controller
+    with I18nSupport {
 
   val log = LoggerFactory.getLogger("MainController")
 
@@ -40,12 +43,15 @@ class MainController(val authConfig: GoogleAuthConfig,
     Ok(views.html.index())
   }
 
-  def getTemplateVersion(commName: String, version: String) = Authenticated{ request =>
+  def getTemplateVersion(commName: String, version: String) = Authenticated { request =>
     TemplateOp.retrieveTemplate(CommManifest(CommType.Service, commName, version)).foldMap(interpreter) match {
       case Left(err) => NotFound(s"Failed to retrieve template: $err")
       case Right(res: ZippedRawTemplate) =>
-        val dataContent: Source[ByteString, _] = StreamConverters.fromInputStream(() => new ByteArrayInputStream(res.templateFiles))
-        Ok.chunked(dataContent).withHeaders(("Content-Disposition", s"attachment; filename=$commName-$version.zip")).as("application/zip")
+        val dataContent: Source[ByteString, _] =
+          StreamConverters.fromInputStream(() => new ByteArrayInputStream(res.templateFiles))
+        Ok.chunked(dataContent)
+          .withHeaders(("Content-Disposition", s"attachment; filename=$commName-$version.zip"))
+          .as("application/zip")
     }
   }
 
@@ -79,43 +85,56 @@ class MainController(val authConfig: GoogleAuthConfig,
     implicit val user = multipartFormRequest.user
 
     val result = for {
-      commName <- multipartFormRequest.body.dataParts.get("commName")
-      commType <- multipartFormRequest.body.dataParts.get("commType")
+      commName     <- multipartFormRequest.body.dataParts.get("commName")
+      commType     <- multipartFormRequest.body.dataParts.get("commType")
       templateFile <- multipartFormRequest.body.file("templateFile")
     } yield {
       val commManifest = CommManifest(CommType.CommTypeFromValue(commType.head), commName.head, "1.0")
 
-
       val uploadedFiles = extractUploadedFiles(templateFile)
       TemplateOp.validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username).foldMap(interpreter) match {
-        case Right(_)     => Ok(views.html.publishNewTemplate("ok", List(s"Template published: $commManifest"), Some(commName.head), Some(commType.head)))
-        case Left(errors) => Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
+        case Right(_) =>
+          Ok(
+            views.html.publishNewTemplate("ok",
+                                          List(s"Template published: $commManifest"),
+                                          Some(commName.head),
+                                          Some(commType.head)))
+        case Left(errors) =>
+          Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
       }
     }
-      result.getOrElse {
+    result.getOrElse {
       Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
     }
   }
 
-  def publishExistingTemplatePost(commName: String) = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
-    implicit val user = multipartFormRequest.user
+  def publishExistingTemplatePost(commName: String) = Authenticated(parse.multipartFormData) {
+    implicit multipartFormRequest =>
+      implicit val user = multipartFormRequest.user
 
-    multipartFormRequest.body.file("templateFile").map { templateFile =>
-      val uploadedFiles = extractUploadedFiles(templateFile)
-      TemplateOp.validateAndUploadExistingTemplate(commName, uploadedFiles, user.username).foldMap(interpreter) match {
-        case Right(newVersion)  => Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
-        case Left(errors)       => Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
-      }
-    }.getOrElse {
-      Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
-    }
+      multipartFormRequest.body
+        .file("templateFile")
+        .map { templateFile =>
+          val uploadedFiles = extractUploadedFiles(templateFile)
+          TemplateOp
+            .validateAndUploadExistingTemplate(commName, uploadedFiles, user.username)
+            .foldMap(interpreter) match {
+            case Right(newVersion) =>
+              Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
+            case Left(errors) => Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
+          }
+        }
+        .getOrElse {
+          Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
+        }
   }
 
   private def extractUploadedFiles(templateFile: FilePart[TemporaryFile]): List[UploadedFile] = {
-    val zip = new ZipFile(templateFile.ref.file)
+    val zip                                       = new ZipFile(templateFile.ref.file)
     val zipEntries: collection.Iterator[ZipEntry] = zip.entries
 
-    zipEntries.filter(!_.isDirectory)
+    zipEntries
+      .filter(!_.isDirectory)
       .foldLeft(List[UploadedFile]())((list, zipEntry) => {
         val inputStream = zip.getInputStream(zipEntry)
         try {

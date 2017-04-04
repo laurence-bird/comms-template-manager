@@ -11,8 +11,8 @@ class TemplateOpSpec extends FlatSpec with Matchers {
 
   val templateFiles = Map(
     "emailBody" -> "My email body".getBytes,
-    "header" -> "My header".getBytes,
-    "textBody" -> "My text body".getBytes
+    "header"    -> "My header".getBytes,
+    "textBody"  -> "My text body".getBytes
   )
 
   val publishedAt = Instant.now()
@@ -29,10 +29,10 @@ class TemplateOpSpec extends FlatSpec with Matchers {
   val templateFileStream = "testing-is-fun".getBytes()
 
   val testInterpreter: TemplateOpA ~> Id = new (TemplateOpA ~> Id) {
-    override def apply[A](fa: TemplateOpA[A]): Id[A] = fa match{
-      case RetrieveTemplateFromS3(commManifest)             => templateFiles
-      case RetrieveTemplateVersionFromDynamo(commManifest)  => genTemplateVersion(commManifest)
-      case CompressTemplates(templatesFiles)                => templateFileStream
+    override def apply[A](fa: TemplateOpA[A]): Id[A] = fa match {
+      case RetrieveTemplateFromS3(commManifest)            => templateFiles
+      case RetrieveTemplateVersionFromDynamo(commManifest) => genTemplateVersion(commManifest)
+      case CompressTemplates(templatesFiles)               => templateFileStream
     }
   }
 

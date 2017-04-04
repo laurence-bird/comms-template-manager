@@ -7,11 +7,11 @@ package object templates {
   type TemplateErrors[A] = ValidatedNel[String, A]
 
   sealed trait EmailTemplateFileType
-  case object Subject extends EmailTemplateFileType
+  case object Subject  extends EmailTemplateFileType
   case object HtmlBody extends EmailTemplateFileType
   case object TextBody extends EmailTemplateFileType
-  case object Sender extends EmailTemplateFileType
-  case object Assets extends EmailTemplateFileType
+  case object Sender   extends EmailTemplateFileType
+  case object Assets   extends EmailTemplateFileType
 
   object EmailTemplateFile {
     def fromUploadedFile(uploadedFile: UploadedFile): Option[EmailTemplateFile] = {
@@ -26,27 +26,28 @@ package object templates {
   case class TemplateFileRegex(fileType: EmailTemplateFileType, regex: Regex)
   object TemplateFileRegexes {
     object Email {
-      val subject = TemplateFileRegex(Subject, "^email/subject.txt".r)
+      val subject  = TemplateFileRegex(Subject, "^email/subject.txt".r)
       val htmlBody = TemplateFileRegex(HtmlBody, "^email/body.html".r)
       val textBody = TemplateFileRegex(TextBody, "^email/body.txt".r)
-      val sender = TemplateFileRegex(Sender, "^email/sender.txt".r)
-      val assets = TemplateFileRegex(Assets, "^email/assets/.*".r)
+      val sender   = TemplateFileRegex(Sender, "^email/sender.txt".r)
+      val assets   = TemplateFileRegex(Assets, "^email/assets/.*".r)
 
-      def allRegexes = List(subject.regex, htmlBody.regex, textBody.regex, sender.regex, assets.regex)
+      def allRegexes    = List(subject.regex, htmlBody.regex, textBody.regex, sender.regex, assets.regex)
       def nonAssetFiles = List(subject, htmlBody, textBody, sender)
-      def allFiles = List(subject, htmlBody, textBody, sender, assets)
+      def allFiles      = List(subject, htmlBody, textBody, sender, assets)
     }
   }
 
   object UploadedFile {
     def extractAllEmailFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] = {
       uploadedFiles
-        .filter(uploadedFile => TemplateFileRegexes.Email.allRegexes.exists(_.findFirstMatchIn(uploadedFile.path).isDefined))
+        .filter(uploadedFile =>
+          TemplateFileRegexes.Email.allRegexes.exists(_.findFirstMatchIn(uploadedFile.path).isDefined))
     }
 
     def extractNonAssetEmailFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] = {
       TemplateFileRegexes.Email.nonAssetFiles
-        .flatMap{ templateFileRegex =>
+        .flatMap { templateFileRegex =>
           uploadedFiles
             .find(uploadedFile => templateFileRegex.regex.findFirstMatchIn(uploadedFile.path).isDefined)
         }

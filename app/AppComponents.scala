@@ -16,16 +16,15 @@ import play.api.i18n.{DefaultLangs, DefaultMessagesApi, MessagesApi}
 import com.ovoenergy.comms.templates.s3.{AmazonS3ClientWrapper => TemplatesLibS3ClientWrapper}
 import pagerduty.PagerDutyAlerter
 
-class AppComponents(context: Context)
-    extends BuiltInComponentsFromContext(context)
-    with AhcWSComponents {
+class AppComponents(context: Context) extends BuiltInComponentsFromContext(context) with AhcWSComponents {
 
   implicit val actorSys = actorSystem
 
-  def mandatoryConfig(key: String): String = configuration.getString(key).getOrElse(sys.error(s"Missing config key: $key"))
+  def mandatoryConfig(key: String): String =
+    configuration.getString(key).getOrElse(sys.error(s"Missing config key: $key"))
 
-  val region = configuration.getString("aws.region").map(Regions.fromName).getOrElse(Regions.EU_WEST_1)
-  val isRunningInCompose = sys.env.get("DOCKER_COMPOSE").contains("true")
+  val region                   = configuration.getString("aws.region").map(Regions.fromName).getOrElse(Regions.EU_WEST_1)
+  val isRunningInCompose       = sys.env.get("DOCKER_COMPOSE").contains("true")
   val (dynamoClient, s3Client) = AwsContextProvider.genContext(isRunningInCompose, region)
 
   val dynamo = new Dynamo(
@@ -57,19 +56,19 @@ class AppComponents(context: Context)
     serviceKey = mandatoryConfig("pagerduty.apiKey"),
     enableAlerts = configuration.getBoolean("pagerduty.alertsEnabled").getOrElse(true)
   )
-  val interpreter = Interpreter.build(awsContext, pagerdutyCtxt)
+  val interpreter              = Interpreter.build(awsContext, pagerdutyCtxt)
   val messagesApi: MessagesApi = new DefaultMessagesApi(environment, configuration, new DefaultLangs(configuration))
 
   val commPerformanceUrl = mandatoryConfig("auditLog.commPerformanceUrl")
-  val commSearchUrl = mandatoryConfig("auditLog.commSearchUrl")
+  val commSearchUrl      = mandatoryConfig("auditLog.commSearchUrl")
 
   val mainController = new MainController(googleAuthConfig,
-    wsClient,
-    enableAuth,
-    interpreter,
-    messagesApi,
-    commPerformanceUrl,
-    commSearchUrl)
+                                          wsClient,
+                                          enableAuth,
+                                          interpreter,
+                                          messagesApi,
+                                          commPerformanceUrl,
+                                          commSearchUrl)
 
   val authController = new AuthController(googleAuthConfig, wsClient, enableAuth)
 

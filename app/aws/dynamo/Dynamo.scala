@@ -10,12 +10,13 @@ import com.ovoenergy.comms.model.{CommManifest, CommType}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
-
-class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], templateSummaryTable: Table[TemplateSummary]) {
+class Dynamo(db: AmazonDynamoDB,
+             templateVersionTable: Table[TemplateVersion],
+             templateSummaryTable: Table[TemplateSummary]) {
 
   def listVersions(commName: String): Seq[TemplateVersion] = {
     val query = templateVersionTable.query('commName -> commName)
-    Scanamo.exec(db)(query).flatMap{ result =>
+    Scanamo.exec(db)(query).flatMap { result =>
       logIfError(result).toOption
     }
   }
@@ -39,13 +40,14 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
 
       Right(())
     } else {
-      Left(s"There is a newer version (${getTemplateSummary(commManifest.name).map(_.latestVersion)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
+      Left(s"There is a newer version (${getTemplateSummary(commManifest.name)
+        .map(_.latestVersion)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
     }
   }
 
   def listTemplateSummaries: List[TemplateSummary] = {
     val query = templateSummaryTable.scan()
-    Scanamo.exec(db)(query).flatMap{ result =>
+    Scanamo.exec(db)(query).flatMap { result =>
       logIfError(result).toOption
     }
   }
@@ -61,18 +63,18 @@ class Dynamo(db: AmazonDynamoDB, templateVersionTable: Table[TemplateVersion], t
   }
 
   private def logIfError[A](res: Either[DynamoReadError, A]) = {
-    res.left.map{
-      err => Logger.warn(s"Dynamo query failed with error: ${describe(err)}")
-        err
+    res.left.map { err =>
+      Logger.warn(s"Dynamo query failed with error: ${describe(err)}")
+      err
     }
   }
 
   private def isNewestVersion(commManifest: CommManifest): Boolean = {
     getTemplateSummary(commManifest.name)
       .map(summary => TemplateSummary.versionCompare(commManifest.version.trim, summary.latestVersion.trim))
-      .forall{
+      .forall {
         case Right(comparison) => if (comparison > 0) true else false
-        case Left(error)       =>
+        case Left(error) =>
           Logger.warn("Unable to check if template is latest version: $error")
           false
       }

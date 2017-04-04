@@ -40,6 +40,4 @@ class TemplateSummarySpec extends FlatSpec with Matchers {
     TemplateSummary.nextVersion("x").isLeft shouldBe true
   }
 
-
-
 }

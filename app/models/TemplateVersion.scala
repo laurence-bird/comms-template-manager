@@ -9,10 +9,13 @@ import com.ovoenergy.comms.model.{CommManifest, CommType}
 import scala.util.Try
 import scala.util.control.NonFatal
 
+case class TemplateVersion(commName: String,
+                           version: String,
+                           publishedAt: Instant,
+                           publishedBy: String,
+                           commType: CommType)
 
-case class TemplateVersion(commName: String, version: String, publishedAt: Instant, publishedBy: String, commType: CommType)
-
-object TemplateVersion{
+object TemplateVersion {
   def apply(commManifest: CommManifest, publishedBy: String): TemplateVersion = {
     TemplateVersion(
       commManifest.name,
@@ -28,7 +31,7 @@ case class ZippedRawTemplate(templateFiles: Array[Byte])
 
 case class TemplateSummary(commName: String, commType: CommType, latestVersion: String)
 
-object TemplateSummary{
+object TemplateSummary {
   def apply(commManifest: CommManifest): TemplateSummary = {
     TemplateSummary(
       commManifest.name,
@@ -51,15 +54,15 @@ object TemplateSummary{
 
   def versionCompare(l: String, r: String): ErrorsOr[Int] = {
     try {
-      val leftVersionVals = l.split("\\.").map(_.toInt)
+      val leftVersionVals  = l.split("\\.").map(_.toInt)
       val rightVersionVals = r.split("\\.").map(_.toInt)
 
       //A pragmatic use of return?
       def findDifferencePosition(): Int = {
         leftVersionVals.foldLeft(0)((position, vals1Value) => {
-            if (position < rightVersionVals.length && vals1Value.equals(rightVersionVals(position))) position + 1
-            else return position
-          })
+          if (position < rightVersionVals.length && vals1Value.equals(rightVersionVals(position))) position + 1
+          else return position
+        })
       }
 
       val positionOfDifference = findDifferencePosition()
@@ -78,5 +81,3 @@ object TemplateSummary{
     }
   }
 }
-
-

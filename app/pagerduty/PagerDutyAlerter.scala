@@ -15,7 +15,7 @@ object PagerDutyAlerter {
 
   val httpClient = new OkHttpClient()
   def apply(message: String, context: Context): Unit = {
-    if(context.enableAlerts){
+    if (context.enableAlerts) {
       val alertBody = AlertBody(context.serviceKey, "trigger", message).asJson.toString()
       try {
         val request = new Request.Builder()
@@ -27,8 +27,7 @@ object PagerDutyAlerter {
           .newCall(request)
           .execute()
 
-
-        response.code match{
+        response.code match {
           case 200 => Logger.info(s"Raised alert to pagerduty for : $message}")
           case _   => Logger.warn(s"Failed to raise pagerduty alert for: $message")
 

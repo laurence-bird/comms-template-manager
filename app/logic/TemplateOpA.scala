@@ -18,13 +18,17 @@ case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq
 
 case class ListTemplateSummaries() extends TemplateOpA[Seq[TemplateSummary]]
 
-case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedFile]) extends TemplateOpA[ProcessedFiles]
+case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedFile])
+    extends TemplateOpA[ProcessedFiles]
 
-case class UploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String) extends TemplateOpA[String]
+case class UploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String)
+    extends TemplateOpA[String]
 
-case class UploadProcessedTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String) extends TemplateOpA[String]
+case class UploadProcessedTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String)
+    extends TemplateOpA[String]
 
-case class UploadTemplateAssetFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String) extends TemplateOpA[String]
+case class UploadTemplateAssetFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String)
+    extends TemplateOpA[String]
 
 case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]) extends TemplateOpA[Unit]
 

@@ -11,14 +11,12 @@ import aws.dynamo.DynamoFormats._
 import com.ovoenergy.comms.model.{CommManifest, CommType}
 import models.{TemplateSummary, TemplateVersion}
 
-class DynamoSpec extends FlatSpec
-  with Matchers
-  with BeforeAndAfterAll {
+class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
-  val client = LocalDynamoDB.client()
+  val client                = LocalDynamoDB.client()
   val templateVersionsTable = "template-version"
-  val templateSummaryTable = "template-summary"
-  val publishedBy = "joe.bloggs"
+  val templateSummaryTable  = "template-summary"
+  val publishedBy           = "joe.bloggs"
 
   val dynamo = new Dynamo(
     client,
@@ -28,7 +26,7 @@ class DynamoSpec extends FlatSpec
 
   override def beforeAll(): Unit = {
     LocalDynamoDB.createTable(client)(templateVersionsTable)('commName -> S, 'version -> S)
-    LocalDynamoDB.createTable(client)("template-summary")('commName -> S)
+    LocalDynamoDB.createTable(client)("template-summary")('commName    -> S)
 
     val templateVersions = Seq(
       TemplateVersion("comm1", "1.0", Instant.now, "laurence", Service),
@@ -41,11 +39,11 @@ class DynamoSpec extends FlatSpec
       TemplateSummary("comm2", Service, "2.0")
     )
 
-    templateSummarries.foreach{ ts =>
+    templateSummarries.foreach { ts =>
       Scanamo.put(client)(templateSummaryTable)(ts)
     }
 
-    templateVersions.foreach{ t =>
+    templateVersions.foreach { t =>
       Scanamo.put(client)(templateVersionsTable)(t)
     }
   }
@@ -84,17 +82,23 @@ class DynamoSpec extends FlatSpec
     result.map(_.publishedBy) shouldBe Some("chris")
   }
 
-  it should "return a None if a template version doesn't exist" in{
+  it should "return a None if a template version doesn't exist" in {
     val result = dynamo.getTemplateVersion("comm2", "yolo")
     result shouldBe None
   }
 
   it should "error when writing a new version that is not the newest" in {
-    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "1.5"), publishedBy).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
+    dynamo
+      .writeNewVersion(CommManifest(CommType.Service, "comm2", "1.5"), publishedBy)
+      .left
+      .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
   }
 
   it should "error when writing a new version that already exists" in {
-    dynamo.writeNewVersion(CommManifest(CommType.Service, "comm2", "2.0"), publishedBy).left.get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
+    dynamo
+      .writeNewVersion(CommManifest(CommType.Service, "comm2", "2.0"), publishedBy)
+      .left
+      .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
   }
 
   it should "write new version" in {
