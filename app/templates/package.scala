@@ -22,7 +22,7 @@ package object templates {
     }
 
     object SMS {
-      case object TextBody extends TemplateFileType { val regex = "^sms/body.txt".r }
+      case object TextBody extends TemplateFileType { val regex = "^sms/body.txt$".r }
 
       val allFiles = List(TextBody)
     }

@@ -124,7 +124,7 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
 
     val fileNames = getFileNames(zipFileStream, Nil)
 
-    fileNames should contain allOf ("/email/body.html", "/email/body.txt", "/email/subject.txt")
+    fileNames should contain allOf ("email/body.html", "email/body.txt", "email/subject.txt")
   }
 
   it should "Publish a new valid template, storing the assets and processed template files in the correct bucket" taggedAs DockerComposeTag in {
