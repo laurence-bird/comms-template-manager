@@ -5,6 +5,7 @@ import cats.Apply
 import cats.data.Validated.{Invalid, Valid}
 import cats.data._
 import com.ovoenergy.comms.model.CommManifest
+import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.PartialsS3Retriever
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
@@ -28,9 +29,9 @@ object TemplateValidator {
   }
 
   private def validateIfAllFilesAreExpected(uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
-    val emailFiles = UploadedFile.extractAllEmailFiles(uploadedFiles)
+    val expectedFiles = UploadedFile.extractAllExpectedFiles(uploadedFiles)
     val errors =
-      uploadedFiles.filterNot(emailFiles.toSet).map(file => s"${file.path} is not an expected template file")
+      uploadedFiles.filterNot(expectedFiles.toSet).map(file => s"${file.path} is not an expected template file")
     NonEmptyList.fromList(errors).map(Invalid(_)).getOrElse(Valid(()))
   }
 
@@ -38,17 +39,18 @@ object TemplateValidator {
                                        commManifest: CommManifest,
                                        uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
     val uploadedTemplateFiles = UploadedFile
-      .extractNonAssetEmailFiles(uploadedFiles)
-      .flatMap(EmailTemplateFile.fromUploadedFile)
+      .extractNonAssetFiles(uploadedFiles)
+      .flatMap(UploadedTemplateFile.fromUploadedFile)
 
     val templateContext = TemplatesContext(
-      emailTemplateRetriever = new EmailTemplateBuilder(uploadedTemplateFiles),
-      parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client))
+      templatesRetriever = new TemplateBuilder(uploadedTemplateFiles),
+      parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client)),
+      cachingStrategy = CachingStrategy.noCache
     )
 
     val validationResult = for {
       template <- TemplatesRepo.getTemplate(templateContext, commManifest).toEither.right
-      result   <- template.combineRequiredData.toEither.right
+      result   <- template.requiredData.toEither.right
     } yield result
 
     validationResult match {

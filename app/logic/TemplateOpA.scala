@@ -16,7 +16,7 @@ case class CompressTemplates(templateFiles: TemplateFiles) extends TemplateOpA[A
 
 case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq[TemplateVersion]]
 
-case class ListTemplateSummaries() extends TemplateOpA[Seq[TemplateSummary]]
+case object ListTemplateSummaries extends TemplateOpA[Seq[TemplateSummary]]
 
 case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedFile])
     extends TemplateOpA[ProcessedFiles]

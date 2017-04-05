@@ -33,6 +33,7 @@ class TemplateOpSpec extends FlatSpec with Matchers {
       case RetrieveTemplateFromS3(commManifest)            => templateFiles
       case RetrieveTemplateVersionFromDynamo(commManifest) => genTemplateVersion(commManifest)
       case CompressTemplates(templatesFiles)               => templateFileStream
+      case _                                               => ???
     }
   }
 

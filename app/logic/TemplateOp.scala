@@ -26,7 +26,7 @@ object TemplateOp {
     liftF(CompressTemplates(templateFiles))
 
   def listTemplateSummaries(): TemplateOp[Seq[TemplateSummary]] =
-    liftF(ListTemplateSummaries())
+    liftF(ListTemplateSummaries)
 
   def validateAndUploadExistingTemplate(commName: String,
                                         uploadedFiles: List[UploadedFile],

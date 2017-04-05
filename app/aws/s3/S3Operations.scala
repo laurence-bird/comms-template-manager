@@ -23,7 +23,7 @@ object S3Operations {
         val file = s3ClientWrapper.downloadFile(bucketName, absKey).right
 
         val pair: Either[String, (String, Array[Byte])] = file map { f =>
-          val strippedKey = absKey.stripPrefix(prefix).dropWhile(_ == "/")
+          val strippedKey = absKey.stripPrefix(prefix).dropWhile(_ == '/')
           (strippedKey, f)
         }
         pair

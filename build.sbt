@@ -5,8 +5,7 @@ resolvers += Resolver.bintrayRepo("ovotech", "maven")
 
 libraryDependencies ++= Seq(
   ws,
-  "com.ovoenergy" %% "comms-kafka-messages" % "1.0",
-  "io.circe" %% "circe-generic" % "0.7.0",
+  "com.ovoenergy" %% "comms-kafka-messages" % "1.13",
   "io.circe" %% "circe-core" % "0.7.0",
   "io.circe" %% "circe-generic-extras" % "0.7.0",
   "io.circe" %% "circe-parser" % "0.7.0",
@@ -16,13 +15,12 @@ libraryDependencies ++= Seq(
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
   "com.gu" %% "play-googleauth" % "0.6.0",
-  "com.ovoenergy" %% "comms-templates" % "0.1.1",
+  "com.ovoenergy" %% "comms-templates" % "0.4",
   "org.webjars" % "bootstrap" % "3.3.4",
   "com.squareup.okhttp3" % "okhttp" % "3.5.0",
   "org.scalatest" %% "scalatest" % "2.2.6" %  Test,
   "com.github.alexarchambault"  %% "scalacheck-shapeless_1.13" % "1.1.4" %   Test,
-  "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
-  "com.squareup.okhttp3" % "okhttp" % "3.4.2" % Test
+  "org.scalacheck" %% "scalacheck" % "1.13.4" % Test
 )
 
 lazy val ipAddress: String = {

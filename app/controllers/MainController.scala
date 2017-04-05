@@ -43,7 +43,7 @@ class MainController(val authConfig: GoogleAuthConfig,
     Ok(views.html.index())
   }
 
-  def getTemplateVersion(commName: String, version: String) = Authenticated { request =>
+  def getTemplateVersion(commName: String, version: String) = Authenticated {
     TemplateOp.retrieveTemplate(CommManifest(CommType.Service, commName, version)).foldMap(interpreter) match {
       case Left(err) => NotFound(s"Failed to retrieve template: $err")
       case Right(res: ZippedRawTemplate) =>
