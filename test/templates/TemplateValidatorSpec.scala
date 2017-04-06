@@ -36,24 +36,25 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       NonEmptyList.of("email/extra.txt is not an expected template file"))
   }
 
-  it should "error if expected files not present" in {
+  it should "error if expected files not present in email template" in {
     val uploadedFiles = List(
       generateUploadedFile("email/body.html", "fsfdsfs"),
       generateUploadedFile("email/body.txt", "fsfdsfs"),
       generateUploadedFile("email/sender.txt", "Test <testing@test.com>")
     )
     TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(
-      NonEmptyList.of("No subject file has been provided in template"))
+      NonEmptyList.of("No email subject file has been provided in template"))
   }
 
-  it should "not error if zip contains extra root folder" in {
+  it should "error if zip contains extra root folder" in {
     val uploadedFiles = List(
       generateUploadedFile("template/email/body.html", "fsfdsfs"),
       generateUploadedFile("template/email/subject.txt", "fsfdsfs")
     )
     val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
-    result should contain("No html body file has been provided in template")
-    result should contain("No subject file has been provided in template")
+    result should contain("template/email/body.html is not an expected template file")
+    result should contain("template/email/subject.txt is not an expected template file")
+    result should contain("Template has no channels defined")
   }
 
   it should "merge multiple errors" in {
@@ -63,10 +64,10 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     )
     val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
     result should contain("email/extra.txt is not an expected template file")
-    result should contain("No subject file has been provided in template")
+    result should contain("No email subject file has been provided in template")
   }
 
-  it should "not error if full fileset present" in {
+  it should "not error if full fileset present for email template" in {
     val uploadedFiles = List(
       generateUploadedFile("email/body.html", "fsfdsfs"),
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
@@ -78,7 +79,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
   }
 
-  it should "not error if minimal fileset present" in {
+  it should "not error if minimal fileset present for email template" in {
     val uploadedFiles = List(
       generateUploadedFile("email/body.html", "fsfdsfs"),
       generateUploadedFile("email/subject.txt", "fsfdsfs")
@@ -139,4 +140,29 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     )
     TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
   }
+
+  it should "error if no channel templates are present" in {
+    val uploadedFiles = List(
+      generateUploadedFile("email/assets/image.gif", "fsfdsfs")
+    )
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
+    result should contain("Template has no channels defined")
+  }
+
+  it should "not error if only SMS template is present" in {
+    val uploadedFiles = List(
+      generateUploadedFile("sms/body.txt", "fsfdsfs")
+    )
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+  }
+
+  it should "not error if valid email and SMS channel templates are present" in {
+    val uploadedFiles = List(
+      generateUploadedFile("email/body.html", "fsfdsfs"),
+      generateUploadedFile("email/subject.txt", "fsfdsfs"),
+      generateUploadedFile("sms/body.txt", "fsfdsfs")
+    )
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+  }
+
 }

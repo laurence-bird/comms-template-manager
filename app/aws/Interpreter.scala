@@ -38,7 +38,7 @@ object Interpreter {
 
           case CompressTemplates(templateFiles) => S3Operations.compressFiles(templateFiles)
 
-          case ListTemplateSummaries() => {
+          case ListTemplateSummaries => {
             val templateSummaries = awsContext.dynamo.listTemplateSummaries
             if (templateSummaries.isEmpty)
               Left(NonEmptyList.of("Failed to find any templates"))
