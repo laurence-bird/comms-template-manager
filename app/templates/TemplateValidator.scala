@@ -17,22 +17,26 @@ object TemplateValidator {
 
   def validateTemplate(s3Client: S3Client,
                        commManifest: CommManifest,
-                       uploadedFiles: List[UploadedFile]): ErrorsOr[Unit] = {
+                       uploadedFiles: List[UploadedFile]): ErrorsOr[List[UploadedTemplateFile]] = {
     val expFileValidations         = validateIfAllFilesAreExpected(uploadedFiles)
     val templateContentValidations = validateTemplateContents(s3Client, commManifest, uploadedFiles)
     val assetReferenceValidations  = validateAssetsExist(uploadedFiles)
     Apply[TemplateErrors]
       .map3(expFileValidations, templateContentValidations, assetReferenceValidations) {
-        case (_, _, _) => ()
+        case (files, _, _) => files
       }
       .toEither
   }
 
-  private def validateIfAllFilesAreExpected(uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
+  private def validateIfAllFilesAreExpected(
+      uploadedFiles: List[UploadedFile]): TemplateErrors[List[UploadedTemplateFile]] = {
     val expectedFiles = UploadedFile.extractAllExpectedFiles(uploadedFiles)
     val errors =
-      uploadedFiles.filterNot(expectedFiles.toSet).map(file => s"${file.path} is not an expected template file")
-    NonEmptyList.fromList(errors).map(Invalid(_)).getOrElse(Valid(()))
+      uploadedFiles
+        .map(_.path)
+        .filterNot(expectedFiles.map(_.path).toSet)
+        .map(path => s"$path is not an expected template file")
+    NonEmptyList.fromList(errors).map(Invalid(_)).getOrElse(Valid(expectedFiles))
   }
 
   private def validateTemplateContents(s3Client: S3Client,
@@ -65,15 +69,15 @@ object TemplateValidator {
 
     val errors = UploadedFile
       .extractNonAssetFiles(uploadedFiles)
-      .foldLeft(List[String]())((errors, uploadedFile) => {
-        val fileContents    = new String(uploadedFile.contents)
+      .foldLeft(List[String]())((errors, templateFile) => {
+        val fileContents    = new String(templateFile.contents)
         val assetReferences = assetTemplateReferenceRegex.findAllMatchIn(fileContents)
         val uploadedFileErrors = assetReferences.toList
           .map(_.group(1))
           .flatMap(assetReference =>
             if (!uploadedAssetFilePaths.contains(assetReference))
               Some(
-                s"The file ${uploadedFile.path} contains the reference '$assetReference' to a non-existent asset file")
+                s"The file ${templateFile.path} contains the reference '$assetReference' to a non-existent asset file")
             else None)
         uploadedFileErrors ++ errors
       })

@@ -10,21 +10,19 @@ object AssetProcessing {
 
   private val assetTemplateReferenceRegex = "(?:'|\")(?: *)(assets)(?:/[^(\"')]+)(?: *)(?:'|\")".r
 
-  case class ProcessedFiles(templateFiles: List[UploadedFile], assetFiles: List[UploadedFile])
+  case class ProcessedFiles(templateFiles: List[UploadedTemplateFile], assetFiles: List[UploadedTemplateFile])
 
   def processAssets(region: Regions,
                     assetsS3Bucket: String,
                     commManifest: CommManifest,
-                    uploadedFiles: List[UploadedFile]): ErrorsOr[ProcessedFiles] = {
+                    uploadedFiles: List[UploadedTemplateFile]): ErrorsOr[ProcessedFiles] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    val nonAssetFiles = UploadedFile.extractNonAssetFiles(uploadedFiles)
-    val assetFiles    = uploadedFiles.filterNot(nonAssetFiles.contains)
-    val processedTemplateFiles: Validated[NonEmptyList[String], List[UploadedFile]] = nonAssetFiles
-      .filter(_.channel.isDefined)
-      .traverseU(uploadedFile => {
-        replaceAssetReferences(region, assetsS3Bucket, uploadedFile.channel.get, commManifest, uploadedFile.contents)
-          .map(contents => uploadedFile.copy(contents = contents))
+    val (assetFiles, nonAssetFiles) = uploadedFiles.partition(_.fileType == Asset)
+    val processedTemplateFiles: Validated[NonEmptyList[String], List[UploadedTemplateFile]] = nonAssetFiles
+      .traverseU(templateFile => {
+        replaceAssetReferences(region, assetsS3Bucket, templateFile.channel, commManifest, templateFile.contents)
+          .map(contents => templateFile.copy(contents = contents))
       })
     processedTemplateFiles.map(ProcessedFiles(_, assetFiles)).toEither
   }
