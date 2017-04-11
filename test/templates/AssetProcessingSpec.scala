@@ -43,13 +43,57 @@ class AssetProcessingSpec extends FlatSpec with Matchers {
     processedFiles.assetFiles.size shouldBe 2
     processedFiles.assetFiles should contain allOf (asset1, asset2)
     processedFiles.templateFiles.size shouldBe 4
-    processedFiles.templateFiles.map(file => (file.path, new String(file.contents))) should contain allOf
-      ((processedBodyHtml.path, new String(processedBodyHtml.contents)), (processedSubject.path,
-                                                                          new String(processedSubject.contents)), (bodyText.path,
-                                                                                                                   new String(
-                                                                                                                     bodyText.contents)), (sender.path,
-                                                                                                                                           new String(
-                                                                                                                                             sender.contents)))
+    processedFiles.templateFiles.map(file => (file.path, new String(file.contents))) should contain allOf (
+      (processedBodyHtml.path, new String(processedBodyHtml.contents)),
+      (processedSubject.path, new String(processedSubject.contents)),
+      (bodyText.path, new String(bodyText.contents)),
+      (sender.path, new String(sender.contents))
+    )
+  }
+
+  it should "process uploaded SMS file" in {
+    val smsTextBody = generateUploadedFile("sms/body.txt", "some message {{someVar}}")
+
+    val uploadedFiles  = List(smsTextBody)
+    val processedFiles = AssetProcessing.processAssets(region, s3Bucket, manifest, uploadedFiles).right.get
+    processedFiles.assetFiles.size shouldBe 0
+    processedFiles.templateFiles.size shouldBe 1
+    processedFiles.templateFiles.map(file => (file.path, new String(file.contents))) should contain(
+      smsTextBody.path,
+      new String(smsTextBody.contents))
+  }
+
+  it should "ignore any unexpected files" in {
+    val emailBodyHtml = generateUploadedFile(
+      "email/body.html",
+      "<html><head></head><body><img src=\"assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"assets/something/assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"></body></html>"
+    )
+    val emailSubject = generateUploadedFile(
+      "email/subject.txt",
+      "fsfdsfs<img src=\"assets/something/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\">")
+    val emailAsset     = generateUploadedFile("email/assets/image.png", "fsfdsfs")
+    val smsTextBody    = generateUploadedFile("sms/body.txt", "some message {{someVar}}")
+    val someRandomFile = generateUploadedFile("notexpected/whatever.txt", "sadhasiuhdasuhuaidhi")
+
+    val uploadedFiles  = List(emailBodyHtml, emailSubject, emailAsset, smsTextBody, someRandomFile)
+    val processedFiles = AssetProcessing.processAssets(region, s3Bucket, manifest, uploadedFiles).right.get
+
+    val expProcessedBodyHtml = generateUploadedFile(
+      "email/body.html",
+      "<html><head></head><body><img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/something/assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"></body></html>"
+    )
+    val expProcessedSubject = generateUploadedFile(
+      "email/subject.txt",
+      "fsfdsfs<img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/something/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\">"
+    )
+
+    processedFiles.assetFiles.size shouldBe 1
+    processedFiles.templateFiles.size shouldBe 3
+    processedFiles.templateFiles.map(file => (file.path, new String(file.contents))) should contain allOf (
+      (expProcessedBodyHtml.path, new String(expProcessedBodyHtml.contents)),
+      (expProcessedSubject.path, new String(expProcessedSubject.contents)),
+      (smsTextBody.path, new String(smsTextBody.contents))
+    )
   }
 
 }

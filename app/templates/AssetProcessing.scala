@@ -19,13 +19,14 @@ object AssetProcessing {
     import cats.syntax.traverse._
     import cats.instances.list._
     val nonAssetFiles = UploadedFile.extractNonAssetFiles(uploadedFiles)
-    val assetFiles    = uploadedFiles.filterNot(nonAssetFiles.contains)
+    val assetFiles    = uploadedFiles.filterNot(file => nonAssetFiles.contains(file) || file.channel.isEmpty)
     val processedTemplateFiles: Validated[NonEmptyList[String], List[UploadedFile]] = nonAssetFiles
-      .filter(_.channel.isDefined)
-      .traverseU(uploadedFile => {
-        replaceAssetReferences(region, assetsS3Bucket, uploadedFile.channel.get, commManifest, uploadedFile.contents)
-          .map(contents => uploadedFile.copy(contents = contents))
-      })
+      .flatMap(
+        file =>
+          file.channel.map(channel =>
+            replaceAssetReferences(region, assetsS3Bucket, channel, commManifest, file.contents)
+              .map(contents => file.copy(contents = contents))))
+      .traverseU(uploadedFile => uploadedFile)
     processedTemplateFiles.map(ProcessedFiles(_, assetFiles)).toEither
   }
 
