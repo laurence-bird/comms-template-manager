@@ -2,39 +2,29 @@ package templates
 
 import aws.Interpreter.ErrorsOr
 import cats.data.Validated.{Invalid, Valid}
-import cats.data.{NonEmptyList, ValidatedNel}
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import com.amazonaws.regions.{Region, Regions}
-import com.ovoenergy.comms.model.Channel.Email
 import com.ovoenergy.comms.model.{Channel, CommManifest}
 
 object AssetProcessing {
 
   private val assetTemplateReferenceRegex = "(?:'|\")(?: *)(assets)(?:/[^(\"')]+)(?: *)(?:'|\")".r
 
-  case class ProcessedFiles(templateFiles: List[UploadedFile], assetFiles: List[UploadedFile])
+  case class ProcessedFiles(templateFiles: List[UploadedTemplateFile], assetFiles: List[UploadedTemplateFile])
 
   def processAssets(region: Regions,
                     assetsS3Bucket: String,
                     commManifest: CommManifest,
-                    uploadedFiles: List[UploadedFile]): ErrorsOr[ProcessedFiles] = {
-    val emailFiles = UploadedFile.extractAllEmailFiles(uploadedFiles)
-    processEmailAssets(region, assetsS3Bucket, commManifest, emailFiles).toEither
-  }
-
-  private def processEmailAssets(region: Regions,
-                                 assetsS3Bucket: String,
-                                 commManifest: CommManifest,
-                                 uploadedFiles: List[UploadedFile]): ValidatedNel[String, ProcessedFiles] = {
+                    uploadedFiles: List[UploadedTemplateFile]): ErrorsOr[ProcessedFiles] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    val assetFiles = UploadedFile.extractAssetEmailFiles(uploadedFiles)
-    val processedTemplateFiles = UploadedFile
-      .extractNonAssetEmailFiles(uploadedFiles)
-      .traverseU(uploadedFile => {
-        replaceAssetReferences(region, assetsS3Bucket, Email, commManifest, uploadedFile.contents).map(contents =>
-          uploadedFile.copy(contents = contents))
+    val (assetFiles, nonAssetFiles) = uploadedFiles.partition(_.fileType == Asset)
+    val processedTemplateFiles: Validated[NonEmptyList[String], List[UploadedTemplateFile]] = nonAssetFiles
+      .traverseU(templateFile => {
+        replaceAssetReferences(region, assetsS3Bucket, templateFile.channel, commManifest, templateFile.contents)
+          .map(contents => templateFile.copy(contents = contents))
       })
-    processedTemplateFiles.map(ProcessedFiles(_, assetFiles))
+    processedTemplateFiles.map(ProcessedFiles(_, assetFiles)).toEither
   }
 
   private def replaceAssetReferences(region: Regions,

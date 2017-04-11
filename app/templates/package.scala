@@ -1,4 +1,6 @@
 import cats.data._
+import com.ovoenergy.comms.model.Channel
+import com.ovoenergy.comms.model.Channel.{Email, SMS}
 
 import scala.util.matching.Regex
 
@@ -6,64 +8,68 @@ package object templates {
 
   type TemplateErrors[A] = ValidatedNel[String, A]
 
-  sealed trait TemplateFileType { def regex: Regex }
+  sealed trait FileType
 
-  object TemplateFileType {
+  case object Subject  extends FileType
+  case object HtmlBody extends FileType
+  case object TextBody extends FileType
+  case object Sender   extends FileType
+  case object Asset    extends FileType
 
-    object Email {
-      case object Subject  extends TemplateFileType { val regex = "^email/subject.txt$".r }
-      case object HtmlBody extends TemplateFileType { val regex = "^email/body.html$".r   }
-      case object TextBody extends TemplateFileType { val regex = "^email/body.txt$".r    }
-      case object Sender   extends TemplateFileType { val regex = "^email/sender.txt$".r  }
-      case object Assets   extends TemplateFileType { val regex = "^email/assets/*".r     }
-
-      val nonAssetFiles = List(Subject, HtmlBody, TextBody, Sender)
-      val allFiles      = Assets :: nonAssetFiles
-    }
-
-    object SMS {
-      case object TextBody extends TemplateFileType { val regex = "^sms/body.txt$".r }
-
-      val allFiles = List(TextBody)
-    }
-
-    val nonAssetFiles = Email.nonAssetFiles ++ SMS.allFiles
-    val allFiles      = Email.allFiles ++ SMS.allFiles
-
-  }
-
-  object UploadedTemplateFile {
-    def fromUploadedFile(uploadedFile: UploadedFile): Option[UploadedTemplateFile] =
-      TemplateFileType.allFiles.collectFirst {
-        case fileType if fileType.regex.pattern.matcher(uploadedFile.path).find =>
-          UploadedTemplateFile(fileType, uploadedFile.contents)
-      }
-  }
-
-  case class UploadedTemplateFile(fileType: TemplateFileType, contents: Array[Byte])
+  case class UploadedTemplateFile(path: String, contents: Array[Byte], channel: Channel, fileType: FileType)
 
   object UploadedFile {
-    def extractAllExpectedFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
-      filter(uploadedFiles, TemplateFileType.allFiles)
 
-    def extractAllEmailFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
-      filter(uploadedFiles, TemplateFileType.Email.allFiles)
+    private sealed trait FileRegex { def regex: Regex; def channel: Channel; def fileType: FileType }
+    private case object EmailSubjectRegex extends FileRegex {
+      val regex = "^email/subject.txt$".r; val channel = Email; val fileType = Subject
+    }
+    private case object EmailHtmlBodyRegex extends FileRegex {
+      val regex = "^email/body.html$".r; val channel = Email; val fileType = HtmlBody
+    }
+    private case object EmailTextBodyRegex extends FileRegex {
+      val regex = "^email/body.txt$".r; val channel = Email; val fileType = TextBody
+    }
+    private case object EmailSenderRegex extends FileRegex {
+      val regex = "^email/sender.txt$".r; val channel = Email; val fileType = Sender
+    }
+    private case object EmailAssetsRegex extends FileRegex {
+      val regex = "^email/assets/*".r; val channel = Email; val fileType = Asset
+    }
 
-    def extractNonAssetFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
-      filter(uploadedFiles, TemplateFileType.nonAssetFiles)
+    private case object SMSTextBodyRegex extends FileRegex {
+      val regex = "^sms/body.txt$".r; val channel = SMS; val fileType = TextBody
+    }
 
-    def extractNonAssetEmailFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
-      filter(uploadedFiles, TemplateFileType.Email.nonAssetFiles)
+    private val emailNonAssetFilesRegexes =
+      List(EmailSubjectRegex, EmailHtmlBodyRegex, EmailTextBodyRegex, EmailSenderRegex)
+    private val emailAllFilesRegexes = EmailAssetsRegex :: emailNonAssetFilesRegexes
+    private val smsAllFilesRegexes   = List(SMSTextBodyRegex)
 
-    def extractAssetEmailFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
-      filter(uploadedFiles, List(TemplateFileType.Email.Assets))
+    private val nonAssetFilesRegexes = emailNonAssetFilesRegexes ++ smsAllFilesRegexes
+    private val allFilesRegexes      = emailAllFilesRegexes ++ smsAllFilesRegexes
 
-    private def filter(uploadedFiles: List[UploadedFile], subset: Iterable[TemplateFileType]): List[UploadedFile] =
-      uploadedFiles.filter(uploadedFile => subset.exists(_.regex.pattern.matcher(uploadedFile.path).find))
+    def extractAllExpectedFiles(uploadedFiles: List[UploadedFile]): List[UploadedTemplateFile] =
+      filter(uploadedFiles, allFilesRegexes)
+
+    def extractNonAssetFiles(uploadedFiles: List[UploadedFile]): List[UploadedTemplateFile] =
+      filter(uploadedFiles, nonAssetFilesRegexes)
+
+    def extractAssetFiles(uploadedFiles: List[UploadedFile]): List[UploadedTemplateFile] =
+      filter(uploadedFiles, List(EmailAssetsRegex))
+
+    private def filter(uploadedFiles: List[UploadedFile], regexes: Iterable[FileRegex]): List[UploadedTemplateFile] =
+      uploadedFiles.flatMap { uploadedFile =>
+        regexes.collectFirst {
+          case r if r.regex.pattern.matcher(uploadedFile.path).find =>
+            UploadedTemplateFile(uploadedFile.path, uploadedFile.contents, r.channel, r.fileType)
+        }
+      }
 
   }
 
   case class UploadedFile(path: String, contents: Array[Byte]) {
+
     override def toString: String = {
       s"UploadedFile($path,${new String(contents)})"
     }

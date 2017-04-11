@@ -148,8 +148,8 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
 
     assetsInBucket should contain("service/TEST-COMM/1.0/email/assets/canary.png")
-    templatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt")
-    rawTemplatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/assets/canary.png", "service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt")
+    templatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
+    rawTemplatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/assets/canary.png", "service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
 
     val templateSummaries = scan(templateSummaryTable)
     val templateVersions  = scan(templateVersionTable)

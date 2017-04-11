@@ -1,6 +1,7 @@
 package templates
 
 import cats.data.NonEmptyList
+import com.ovoenergy.comms.model.Channel.{Email, SMS}
 import com.ovoenergy.comms.model.{CommManifest, CommType}
 import org.scalatest.{FlatSpec, Matchers}
 import com.ovoenergy.comms.templates.s3.S3Client
@@ -76,7 +77,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/image.png", "fsfdsfs"),
       generateUploadedFile("email/assets/something/image.png", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "not error if minimal fileset present for email template" in {
@@ -84,7 +85,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "fsfdsfs"),
       generateUploadedFile("email/subject.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "not error if valid partial referenced" in {
@@ -92,7 +93,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "{{> aValidPartial}}"),
       generateUploadedFile("email/subject.txt", "{{something.else}}")
     )
-    TemplateValidator.validateTemplate(S3ClientStubWithPartial, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStubWithPartial, commManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "error if problem with required template data" in {
@@ -138,7 +139,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/smiley.gif", "fsfdsfs"),
       generateUploadedFile("email/assets/something/another.gif", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "error if no channel templates are present" in {
@@ -153,7 +154,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     val uploadedFiles = List(
       generateUploadedFile("sms/body.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "not error if valid email and SMS channel templates are present" in {
@@ -162,7 +163,17 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
       generateUploadedFile("sms/body.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe Right(())
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).right.get
+    for (i <- 0 to 2) {
+      result(i).path shouldBe uploadedFiles(i).path
+      new String(result(i).contents) shouldBe new String(uploadedFiles(i).contents)
+    }
+    result(0).channel shouldBe Email
+    result(0).fileType shouldBe HtmlBody
+    result(1).channel shouldBe Email
+    result(1).fileType shouldBe Subject
+    result(2).channel shouldBe SMS
+    result(2).fileType shouldBe TextBody
   }
 
 }
