@@ -12,33 +12,33 @@ import com.ovoenergy.comms.templates.model.template.files.email.EmailTemplateFil
 import com.ovoenergy.comms.templates.model.template.files.sms.SMSTemplateFiles
 import com.ovoenergy.comms.templates.retriever.TemplatesRetriever
 
-class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetriever {
+class TemplateBuilder(files: List[UploadedFile]) extends TemplatesRetriever {
 
   override def getEmailTemplate(commManifest: CommManifest): Option[TemplateErrors[EmailTemplateFiles]] = {
     val subject: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(TemplateFileType.Email.Subject, contents) =>
+      case uploadedFile if uploadedFile.templateFileType.contains(EmailSubject) =>
         TemplateFile(commManifest.commType,
                      Channel.Email,
                      FileFormat.Text,
-                     new String(contents, StandardCharsets.UTF_8))
+                     new String(uploadedFile.contents, StandardCharsets.UTF_8))
     }
     val htmlBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(TemplateFileType.Email.HtmlBody, contents) =>
+      case uploadedFile if uploadedFile.templateFileType.contains(EmailHtmlBody) =>
         TemplateFile(commManifest.commType,
                      Channel.Email,
                      FileFormat.Html,
-                     new String(contents, StandardCharsets.UTF_8))
+                     new String(uploadedFile.contents, StandardCharsets.UTF_8))
     }
     val textBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(TemplateFileType.Email.TextBody, contents) =>
+      case uploadedFile if uploadedFile.templateFileType.contains(EmailTextBody) =>
         TemplateFile(commManifest.commType,
                      Channel.Email,
                      FileFormat.Text,
-                     new String(contents, StandardCharsets.UTF_8))
+                     new String(uploadedFile.contents, StandardCharsets.UTF_8))
     }
     val customSender: Option[String] = files.collectFirst {
-      case UploadedTemplateFile(TemplateFileType.Email.Sender, contents) =>
-        new String(contents, StandardCharsets.UTF_8)
+      case uploadedFile if uploadedFile.templateFileType.contains(EmailSender) =>
+        new String(uploadedFile.contents, StandardCharsets.UTF_8)
     }
 
     val templateOrError: TemplateErrors[EmailTemplateFiles] = {
@@ -67,7 +67,7 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getSMSTemplate(commManifest: CommManifest): Option[TemplateErrors[SMSTemplateFiles]] = {
     val textBody: Option[TemplateFile] = files
-      .find(_.fileType == TemplateFileType.SMS.TextBody)
+      .find(_.templateFileType.contains(SMSTextBody))
       .map(file => TemplateFile(commManifest.commType, Channel.Email, FileFormat.Html, new String(file.contents)))
 
     textBody.map(tb => Valid(SMSTemplateFiles(textBody = tb)))

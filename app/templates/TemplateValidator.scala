@@ -20,7 +20,7 @@ object TemplateValidator {
                        uploadedFiles: List[UploadedFile]): ErrorsOr[Unit] = {
     val expFileValidations         = validateIfAllFilesAreExpected(uploadedFiles)
     val templateContentValidations = validateTemplateContents(s3Client, commManifest, uploadedFiles)
-    val assetReferenceValidations  = validateAllEmailAssetsExist(uploadedFiles)
+    val assetReferenceValidations  = validateAssetsExist(uploadedFiles)
     Apply[TemplateErrors]
       .map3(expFileValidations, templateContentValidations, assetReferenceValidations) {
         case (_, _, _) => ()
@@ -40,7 +40,6 @@ object TemplateValidator {
                                        uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
     val uploadedTemplateFiles = UploadedFile
       .extractNonAssetFiles(uploadedFiles)
-      .flatMap(UploadedTemplateFile.fromUploadedFile)
 
     val templateContext = TemplatesContext(
       templatesRetriever = new TemplateBuilder(uploadedTemplateFiles),
@@ -59,17 +58,17 @@ object TemplateValidator {
     }
   }
 
-  private def validateAllEmailAssetsExist(uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
+  private def validateAssetsExist(uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
     val uploadedAssetFilePaths = UploadedFile
-      .extractAssetEmailFiles(uploadedFiles)
-      .map(_.path.replaceFirst("^email/", ""))
+      .extractAssetFiles(uploadedFiles)
+      .map(_.path.replaceFirst("^[a-zA-Z]+/", ""))
 
     val errors = UploadedFile
-      .extractNonAssetEmailFiles(uploadedFiles)
+      .extractNonAssetFiles(uploadedFiles)
       .foldLeft(List[String]())((errors, uploadedFile) => {
-        val emailTemplateFileContents        = new String(uploadedFile.contents)
-        val emailTemplateFileAssetReferences = assetTemplateReferenceRegex.findAllMatchIn(emailTemplateFileContents)
-        val uploadedFileErrors = emailTemplateFileAssetReferences.toList
+        val fileContents    = new String(uploadedFile.contents)
+        val assetReferences = assetTemplateReferenceRegex.findAllMatchIn(fileContents)
+        val uploadedFileErrors = assetReferences.toList
           .map(_.group(1))
           .flatMap(assetReference =>
             if (!uploadedAssetFilePaths.contains(assetReference))

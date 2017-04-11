@@ -2,9 +2,8 @@ package templates
 
 import aws.Interpreter.ErrorsOr
 import cats.data.Validated.{Invalid, Valid}
-import cats.data.{NonEmptyList, ValidatedNel}
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import com.amazonaws.regions.{Region, Regions}
-import com.ovoenergy.comms.model.Channel.Email
 import com.ovoenergy.comms.model.{Channel, CommManifest}
 
 object AssetProcessing {
@@ -17,24 +16,17 @@ object AssetProcessing {
                     assetsS3Bucket: String,
                     commManifest: CommManifest,
                     uploadedFiles: List[UploadedFile]): ErrorsOr[ProcessedFiles] = {
-    val emailFiles = UploadedFile.extractAllEmailFiles(uploadedFiles)
-    processEmailAssets(region, assetsS3Bucket, commManifest, emailFiles).toEither
-  }
-
-  private def processEmailAssets(region: Regions,
-                                 assetsS3Bucket: String,
-                                 commManifest: CommManifest,
-                                 uploadedFiles: List[UploadedFile]): ValidatedNel[String, ProcessedFiles] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    val assetFiles = UploadedFile.extractAssetEmailFiles(uploadedFiles)
-    val processedTemplateFiles = UploadedFile
-      .extractNonAssetEmailFiles(uploadedFiles)
+    val nonAssetFiles = UploadedFile.extractNonAssetFiles(uploadedFiles)
+    val assetFiles    = uploadedFiles.filterNot(nonAssetFiles.contains)
+    val processedTemplateFiles: Validated[NonEmptyList[String], List[UploadedFile]] = nonAssetFiles
+      .filter(_.channel.isDefined)
       .traverseU(uploadedFile => {
-        replaceAssetReferences(region, assetsS3Bucket, Email, commManifest, uploadedFile.contents).map(contents =>
-          uploadedFile.copy(contents = contents))
+        replaceAssetReferences(region, assetsS3Bucket, uploadedFile.channel.get, commManifest, uploadedFile.contents)
+          .map(contents => uploadedFile.copy(contents = contents))
       })
-    processedTemplateFiles.map(ProcessedFiles(_, assetFiles))
+    processedTemplateFiles.map(ProcessedFiles(_, assetFiles)).toEither
   }
 
   private def replaceAssetReferences(region: Regions,
