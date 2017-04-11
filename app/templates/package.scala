@@ -54,9 +54,6 @@ package object templates {
     def extractNonAssetFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
       filter(uploadedFiles, nonAssetFilesRegexes)
 
-    def extractNonAssetEmailFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
-      filter(uploadedFiles, emailNonAssetFilesRegexes)
-
     def extractAssetFiles(uploadedFiles: List[UploadedFile]): List[UploadedFile] =
       filter(uploadedFiles, List(EmailAssetsRegex))
 
