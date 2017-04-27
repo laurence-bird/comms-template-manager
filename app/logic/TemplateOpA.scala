@@ -4,7 +4,7 @@ import com.ovoenergy.comms.model.CommManifest
 import logic.TemplateOp.TemplateFiles
 import models.{TemplateSummary, TemplateVersion}
 import templates.AssetProcessing.ProcessedFiles
-import templates.UploadedFile
+import templates.{UploadedFile, UploadedTemplateFile}
 
 sealed trait TemplateOpA[T]
 
@@ -18,19 +18,26 @@ case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq
 
 case object ListTemplateSummaries extends TemplateOpA[Seq[TemplateSummary]]
 
-case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedFile])
+case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedTemplateFile])
     extends TemplateOpA[ProcessedFiles]
 
-case class UploadRawTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String)
+case class UploadRawTemplateFileToS3(commManifest: CommManifest,
+                                     uploadedFile: UploadedTemplateFile,
+                                     publishedBy: String)
     extends TemplateOpA[String]
 
-case class UploadProcessedTemplateFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String)
+case class UploadProcessedTemplateFileToS3(commManifest: CommManifest,
+                                           uploadedFile: UploadedTemplateFile,
+                                           publishedBy: String)
     extends TemplateOpA[String]
 
-case class UploadTemplateAssetFileToS3(commManifest: CommManifest, uploadedFile: UploadedFile, publishedBy: String)
+case class UploadTemplateAssetFileToS3(commManifest: CommManifest,
+                                       uploadedFile: UploadedTemplateFile,
+                                       publishedBy: String)
     extends TemplateOpA[String]
 
-case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile]) extends TemplateOpA[Unit]
+case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[UploadedFile])
+    extends TemplateOpA[List[UploadedTemplateFile]]
 
 case class ValidateTemplateDoesNotExist(commManifest: CommManifest) extends TemplateOpA[Unit]
 
