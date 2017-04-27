@@ -1,0 +1,134 @@
+@(commName: Option[String], channel: Option[String], url: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@main{
+
+    <link rel="stylesheet" href="@routes.Assets.at("stylesheets/metrics.css")">
+
+    <div class="page-header">
+        <h1>Operational Metrics</h1>
+    </div>
+
+    <form class="form-horizontal" method="get" action="@routes.MainController.operationalMetrics(None, None)">
+        <div class="form-group">
+            <label for="commName" class="col-sm-2 control-label">Comm Name</label>
+            <div class="col-sm-5">
+                <input id="commName" name="commName" type="text" class="form-control" placeholder="Comm name (e.g cc-payment-taken)" value="@commName">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="channel" class="col-sm-2 control-label">Channel</label>
+            <div class="col-sm-5">
+                <select id="channel" name="channel" class="form-control">
+                    <option value=""      @{if(channel.isEmpty) {"selected"}}          > -- no channel selected -- </option>
+                    <option value="Email" @{if(channel.contains("Email")) {"selected"}}>Email</option>
+                    <option value="SMS"   @{if(channel.contains("SMS")) {"selected"}}  >SMS</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" id="show" class="btn btn-default">Show Metrics</button>
+            </div>
+        </div>
+    </form>
+
+    <iframe class="metrics-iframe" src="@url"></iframe>
+
+    <div class="unselectedHelpText" id="txtAreaCal">
+        Time period <span class="glyphicon glyphicon-chevron-down"></span>
+    </div>
+    <div class="unselectedHelpText"  id="txtAreaPlatformFailure">
+        What is the 'Platform Failure Rate' metric? <span class="glyphicon glyphicon-chevron-down"></span>
+    </div>
+     <div class="unselectedHelpText"  id="txtAreaDeliveryFailure">
+        What is the 'Delivery Failure Rate' metric? <span class="glyphicon glyphicon-chevron-down"></span>
+    </div>
+    <div class="unselectedHelpText"  id="txtAreaLatency">
+        What is the 'Latency' metric? <span class="glyphicon glyphicon-chevron-down"></span>
+    </div>
+
+    <script type="text/javascript">
+            var txtAreaPlatformFailure =  $('#txtAreaPlatformFailure');
+            txtAreaPlatformFailure.on("click", function(event) {
+                if(txtAreaPlatformFailure.hasClass('txtAreaPlatformFailure')){
+                    txtAreaPlatformFailure.addClass('unselectedHelpText');
+                    txtAreaPlatformFailure.removeClass('txtAreaPlatformFailure');
+                    document.getElementById("txtAreaPlatformFailure").innerHTML="What is the 'Platform Failure Rate' metric? <span class=\"glyphicon glyphicon-chevron-down\"></span>";
+                } else {
+                    txtAreaPlatformFailure.addClass('txtAreaPlatformFailure');
+                    txtAreaPlatformFailure.removeClass('unselectedHelpText');
+                    document.getElementById("txtAreaPlatformFailure").innerHTML="What is the 'Platform Failure Rate' metric? <span class=\"glyphicon glyphicon-chevron-up\"></span>" +
+                            "<br><br>" +
+                            "For the 'Platform Failure Rate' metric, a 'Platform Failure' is defined as a comm, that due to a failure within the bounds of the Comms Platform was not issued to a gateway to be delivered." +
+                            "<br><br>" +
+                            "Reasons for this will be things like:" +
+                            "<ul>" +
+                            "<li>The email address was blacklisted</li>" +
+                            "<li>The customer is missing some required profile information</li>" +
+                            "<li>Customer is not opted into any channels supported by the comm </li>" +
+                            "<li>Unable to render the template</li>" +
+                            "</ul>";
+                }
+            });
+
+            var txtAreaCal =  $('#txtAreaCal');
+            txtAreaCal.on("click", function(event) {
+                if(txtAreaCal.hasClass('txtAreaCal')){
+                    txtAreaCal.addClass('unselectedHelpText');
+                    txtAreaCal.removeClass('txtAreaCal');
+                    document.getElementById("txtAreaCal").innerHTML="Time period <span class=\"glyphicon glyphicon-chevron-down\"></span>";
+                } else {
+                    txtAreaCal.addClass('txtAreaCal');
+                    txtAreaCal.removeClass('unselectedHelpText');
+                    document.getElementById("txtAreaCal").innerHTML="Time period <span class=\"glyphicon glyphicon-chevron-up\"></span>" +
+                            "<br><br>" +
+                            "The above operational metrics default to the last month, this can be changed using the calendar widget.";
+                }
+            });
+
+            var txtAreaDeliveryFailure =  $('#txtAreaDeliveryFailure');
+            txtAreaDeliveryFailure.on("click", function(event) {
+                if(txtAreaDeliveryFailure.hasClass('txtAreaDeliveryFailure')){
+                    txtAreaDeliveryFailure.addClass('unselectedHelpText');
+                    txtAreaDeliveryFailure.removeClass('txtAreaDeliveryFailure');
+                    document.getElementById("txtAreaDeliveryFailure").innerHTML="What is the 'Delivery Failure Rate' metric? <span class=\"glyphicon glyphicon-chevron-down\"></span>";
+                } else {
+                    txtAreaDeliveryFailure.addClass('txtAreaDeliveryFailure');
+                    txtAreaDeliveryFailure.removeClass('unselectedHelpText');
+                    document.getElementById("txtAreaDeliveryFailure").innerHTML="What is the 'Delivery Failure Rate' metric? <span class=\"glyphicon glyphicon-chevron-up\"></span>" +
+                            "<br><br>" +
+                            "For the 'Delivery Failure Rate' metric, a 'Delivery Failure' is defined as a comm, that when issued to a gateway to be delivered, subsequently failed to be received by the recipient." +
+                            "<br>" +
+                            "Reasons for this will be things like:" +
+                            "<ul>" +
+                                "<li>The email address was not valid</li>" +
+                                "<li>The mobile number was not in service</li>" +
+                                "<li>The comm was determined to be spam</li>" +
+                            "</ul>";
+                }
+            });
+
+            var txtAreaLatency =  $('#txtAreaLatency');
+            txtAreaLatency.on("click", function(event) {
+                if(txtAreaLatency.hasClass('txtAreaLatency')){
+                    txtAreaLatency.addClass('unselectedHelpText');
+                    txtAreaLatency.removeClass('txtAreaLatency');
+                    document.getElementById("txtAreaLatency").innerHTML=" What is the 'Latency' metric? <span class=\"glyphicon glyphicon-chevron-down\"></span>";
+                } else {
+                    txtAreaLatency.addClass('txtAreaLatency');
+                    txtAreaLatency.removeClass('unselectedHelpText');
+                    document.getElementById("txtAreaLatency").innerHTML=" What is the 'Latency' metric? <span class=\"glyphicon glyphicon-chevron-up\"></span>" +
+                            "<br><br>" +
+                            "The 'Latency' metric is the time it took the comm, from the time it is scheduled* to being received by the recipient." +
+                            "<br><br>" +
+                            "*This is not strictly true, as the latency is recorded from the time we start processing the comm rather than the exact scheduled time.";
+                }
+            });
+    </script>
+
+
+
+
+
+
+
+}

@@ -21,3 +21,5 @@ POST   /publish/template           controllers.MainController.publishNewTemplate
 
 GET    /publish/template/:commName     controllers.MainController.publishExistingTemplateGet(commName)
 POST   /publish/template/:commName     controllers.MainController.publishExistingTemplatePost(commName)
+
+GET    /metrics    controllers.MainController.operationalMetrics(commName: Option[String], channel: Option[String])

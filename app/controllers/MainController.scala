@@ -1,6 +1,8 @@
 package controllers
 
 import java.io.ByteArrayInputStream
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import java.util.zip.{ZipEntry, ZipFile}
 
 import akka.stream.scaladsl.{Source, StreamConverters}
@@ -29,7 +31,8 @@ class MainController(val authConfig: GoogleAuthConfig,
                      interpreter: ~>[TemplateOpA, ErrorsOr],
                      val messagesApi: MessagesApi,
                      commPerformanceUrl: String,
-                     commSearchUrl: String)
+                     commSearchUrl: String,
+                     libratoMetricsUrl: String)
     extends AuthActions
     with Controller
     with I18nSupport {
@@ -127,6 +130,18 @@ class MainController(val authConfig: GoogleAuthConfig,
         .getOrElse {
           Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
         }
+  }
+
+  def operationalMetrics(commName: Option[String], channel: Option[String]) = Authenticated { request =>
+    implicit val user = request.user
+
+    val commNameString = commName.getOrElse("").toLowerCase
+    val channelString  = channel.getOrElse("").toLowerCase
+    val endOfPeriod    = OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).toEpochSecond
+    val duration       = endOfPeriod - OffsetDateTime.now().minusMonths(1).truncatedTo(ChronoUnit.DAYS).toEpochSecond
+    val url =
+      s"$libratoMetricsUrl?duration=$duration&end_time=$endOfPeriod&source=%2A$commNameString.$channelString%2A"
+    Ok(views.html.operationalMetrics(commName, channel, url))
   }
 
   private def extractUploadedFiles(templateFile: FilePart[TemporaryFile]): List[UploadedFile] = {

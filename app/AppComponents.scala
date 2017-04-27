@@ -61,6 +61,7 @@ class AppComponents(context: Context) extends BuiltInComponentsFromContext(conte
 
   val commPerformanceUrl = mandatoryConfig("auditLog.commPerformanceUrl")
   val commSearchUrl      = mandatoryConfig("auditLog.commSearchUrl")
+  val libraroMetricsUrl  = mandatoryConfig("librato.metricsUrl")
 
   val mainController = new MainController(googleAuthConfig,
                                           wsClient,
@@ -68,7 +69,8 @@ class AppComponents(context: Context) extends BuiltInComponentsFromContext(conte
                                           interpreter,
                                           messagesApi,
                                           commPerformanceUrl,
-                                          commSearchUrl)
+                                          commSearchUrl,
+                                          libraroMetricsUrl)
 
   val authController = new AuthController(googleAuthConfig, wsClient, enableAuth)
 
