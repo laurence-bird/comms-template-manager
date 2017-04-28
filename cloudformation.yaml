@@ -67,6 +67,21 @@ Resources:
                 - 'arn:aws:s3:::ovo-comms-templates-raw/*'
                 - 'arn:aws:s3:::ovo-comms-template-assets'
                 - 'arn:aws:s3:::ovo-comms-template-assets/*'
+        -
+          PolicyName: read-credstash
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - 'kms:Decrypt'
+              Resource:
+                - !Sub "arn:aws:kms:eu-west-1:${AWS::AccountId}:key/*"
+            - Effect: Allow
+              Action:
+                - 'dynamodb:GetItem'
+                - 'dynamodb:Query'
+              Resource:
+                - !Sub "arn:aws:dynamodb:eu-west-1:${AWS::AccountId}:table/credential-store"
 
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
