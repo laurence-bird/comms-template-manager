@@ -42,9 +42,12 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
   val templateVersionTable = Table[TemplateVersion](templateVersionsTableName)
   val templateSummaryTable = Table[TemplateSummary](templateSummaryTableName)
 
+  val httpClient = new OkHttpClient()
+
   override def beforeAll() = {
     initialiseS3Bucket()
     createDynamoTables()
+    waitForAppToStart()
   }
 
   override def afterAll() = {
@@ -72,6 +75,27 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
         }
       }
     }
+  }
+
+  private def waitForAppToStart() = {
+    def loop(attempts: Int): Unit = {
+      if (attempts <= 0)
+        fail("App didn't start up :(")
+      else {
+        println("Waiting for app to start ...")
+
+        Thread.sleep(1000L)
+
+        try {
+          val response = makeRequest(new Request.Builder().url("http://localhost:9000/").build())
+          response.code shouldBe 200
+        } catch {
+          case _: Exception => loop(attempts - 1)
+        }
+      }
+    }
+
+    loop(20)
   }
 
   private def initialiseS3Bucket() = {
@@ -211,8 +235,6 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     templateVersionResult.length shouldBe 2
     templateVersionResult.map(_.version) should contain allOf ("1.0", "2.0")
 
-    val latestVersion = templateVersionResult.find(t => t.commName == commName && t.version == "2.0").get
-
     templateSummaries.length shouldBe 1
     val templateSummaryResult = templateSummaries.find(_.commName == commName).get
     templateSummaryResult.latestVersion shouldBe "2.0"
@@ -307,10 +329,6 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     Scanamo.exec(dynamoClient)(query).flatMap(_.toOption)
   }
 
-  private def makeRequest(request: Request) = {
-    val client = new OkHttpClient()
-    client.newBuilder().connectTimeout(2, TimeUnit.SECONDS)
-    client.newCall(request).execute()
-  }
+  private def makeRequest(request: Request) = httpClient.newCall(request).execute()
 
 }
