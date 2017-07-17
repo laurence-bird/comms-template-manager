@@ -1,8 +1,7 @@
 package templates
 
 import cats.data.NonEmptyList
-import com.ovoenergy.comms.model.Channel.{Email, SMS}
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model._
 import org.scalatest.{FlatSpec, Matchers}
 import com.ovoenergy.comms.templates.s3.S3Client
 
@@ -23,7 +22,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     override def listFiles(prefix: String): Seq[String] = fail("Not expected to be invoked")
   }
 
-  val commManifest = CommManifest(CommType.Service, "canary", "snapshot")
+  val commManifest = CommManifest(Service, "canary", "snapshot")
 
   behavior of "TemplateValidator"
 

@@ -7,7 +7,7 @@ import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.model.AmazonDynamoDBException
 import com.amazonaws.services.s3.{AmazonS3Client, S3ClientOptions}
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType._
 import com.gu.scanamo.{Scanamo, Table}
 import com.typesafe.config.{ConfigFactory, ConfigParseOptions, ConfigResolveOptions}
@@ -123,7 +123,7 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "Download a raw template version, and compress the contents in a ZIP file with an appropriate name" taggedAs DockerComposeTag in {
-    val commManifest: CommManifest = CommManifest(CommType.Service, "template-manager-service-test", "0.1")
+    val commManifest: CommManifest = CommManifest(Service, "template-manager-service-test", "0.1")
 
     val url = s"http://localhost:9000/templates/${commManifest.name.toLowerCase}/${commManifest.version}"
 
@@ -181,12 +181,12 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM").get
     templateVersionResult.version shouldBe "1.0"
     templateVersionResult.publishedBy shouldBe "dummy.email"
-    templateVersionResult.commType shouldBe CommType.Service
+    templateVersionResult.commType shouldBe Service
 
     val templateSummaryResult = templateSummaries.find(_.commName == "TEST-COMM").get
     templateSummaries.length shouldBe 1
     templateSummaryResult.latestVersion shouldBe "1.0"
-    templateSummaryResult.commType shouldBe CommType.Service
+    templateSummaryResult.commType shouldBe Service
 
     result.body.string() should include("<ul><li>Template published: CommManifest(Service,TEST-COMM,1.0)</li></ul>")
   }
@@ -238,7 +238,7 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     templateSummaries.length shouldBe 1
     val templateSummaryResult = templateSummaries.find(_.commName == commName).get
     templateSummaryResult.latestVersion shouldBe "2.0"
-    templateSummaryResult.commType shouldBe CommType.Service
+    templateSummaryResult.commType shouldBe Service
 
     result.body.string() should include(
       "<ul><li>Template published: TemplateSummary(TEST-COMM-2,Service,2.0)</li></ul>")

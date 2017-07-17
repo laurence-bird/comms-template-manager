@@ -11,7 +11,7 @@ import aws.Interpreter.ErrorsOr
 import cats.instances.either._
 import cats.~>
 import com.gu.googleauth.GoogleAuthConfig
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
 import logic.{TemplateOp, TemplateOpA}
 import models.ZippedRawTemplate
 import org.apache.commons.compress.utils.IOUtils
@@ -47,7 +47,7 @@ class MainController(val authConfig: GoogleAuthConfig,
   }
 
   def getTemplateVersion(commName: String, version: String) = Authenticated {
-    TemplateOp.retrieveTemplate(CommManifest(CommType.Service, commName, version)).foldMap(interpreter) match {
+    TemplateOp.retrieveTemplate(CommManifest(Service, commName, version)).foldMap(interpreter) match {
       case Left(err) => NotFound(s"Failed to retrieve template: $err")
       case Right(res: ZippedRawTemplate) =>
         val dataContent: Source[ByteString, _] =

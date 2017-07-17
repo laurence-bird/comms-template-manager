@@ -3,7 +3,7 @@ package logic
 import java.time.Instant
 
 import cats._
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
 import models.{TemplateVersion, ZippedRawTemplate}
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -39,7 +39,7 @@ class TemplateOpSpec extends FlatSpec with Matchers {
 
   it should "Retrieve a template" in {
 
-    val commManifest = CommManifest(CommType.Service, "testTemplate", "1.0")
+    val commManifest = CommManifest(Service, "testTemplate", "1.0")
 
     val template       = TemplateOp.retrieveTemplate(commManifest).foldMap(testInterpreter)
     val expectedResult = ZippedRawTemplate(templateFileStream)

@@ -5,8 +5,7 @@ import java.nio.charset.StandardCharsets
 import cats.data.Validated.Valid
 import cats.data.{NonEmptyList, Validated}
 import cats.syntax.cartesian._
-import com.ovoenergy.comms.model.Channel.{Email, SMS}
-import com.ovoenergy.comms.model.{Channel, CommManifest}
+import com.ovoenergy.comms.model.{Channel, CommManifest, Email, SMS}
 import com.ovoenergy.comms.templates.model.FileFormat
 import com.ovoenergy.comms.templates.model.template.files.TemplateFile
 import com.ovoenergy.comms.templates.model.template.files.email.EmailTemplateFiles
@@ -18,24 +17,15 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
   override def getEmailTemplate(commManifest: CommManifest): Option[TemplateErrors[EmailTemplateFiles]] = {
     val subject: Option[TemplateFile] = files.collectFirst {
       case UploadedTemplateFile(_, contents, Email, Subject) =>
-        TemplateFile(commManifest.commType,
-                     Channel.Email,
-                     FileFormat.Text,
-                     new String(contents, StandardCharsets.UTF_8))
+        TemplateFile(commManifest.commType, Email, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
     }
     val htmlBody: Option[TemplateFile] = files.collectFirst {
       case UploadedTemplateFile(_, contents, Email, HtmlBody) =>
-        TemplateFile(commManifest.commType,
-                     Channel.Email,
-                     FileFormat.Html,
-                     new String(contents, StandardCharsets.UTF_8))
+        TemplateFile(commManifest.commType, Email, FileFormat.Html, new String(contents, StandardCharsets.UTF_8))
     }
     val textBody: Option[TemplateFile] = files.collectFirst {
       case UploadedTemplateFile(_, contents, Email, TextBody) =>
-        TemplateFile(commManifest.commType,
-                     Channel.Email,
-                     FileFormat.Text,
-                     new String(contents, StandardCharsets.UTF_8))
+        TemplateFile(commManifest.commType, Email, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
     }
     val customSender: Option[String] = files.collectFirst {
       case UploadedTemplateFile(_, contents, Email, Sender) =>

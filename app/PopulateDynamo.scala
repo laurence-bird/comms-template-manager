@@ -8,7 +8,7 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model.{AmazonS3Exception, ListObjectsV2Request}
 import com.gu.scanamo.{Scanamo, Table}
 import aws.dynamo.DynamoFormats._
-import com.ovoenergy.comms.model.CommType
+import com.ovoenergy.comms.model.{CommType, Service}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
@@ -42,7 +42,7 @@ object PopulateDynamo {
     .toSeq
 
   val templateVersions: Seq[TemplateVersion] = commDetails.map {
-    case ((name, version), date) => TemplateVersion(name, version, date.toInstant, "MigrationScript", CommType.Service)
+    case ((name, version), date) => TemplateVersion(name, version, date.toInstant, "MigrationScript", Service)
   }
 
   val templateVersionTable = Table[TemplateVersion]("template-manager-PRD-TemplateVersionTable-FBZI031JQM9K")
@@ -53,7 +53,7 @@ object PopulateDynamo {
     .mapValues { v =>
       val sortedTemplateVersions = v.sortBy(_.publishedAt.toEpochMilli)
       val version                = sortedTemplateVersions.last
-      TemplateSummary(version.commName, CommType.Service, version.version)
+      TemplateSummary(version.commName, Service, version.version)
     }
     .values
 

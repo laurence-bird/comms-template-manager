@@ -1,6 +1,6 @@
 import cats.data._
 import com.ovoenergy.comms.model.Channel
-import com.ovoenergy.comms.model.Channel.{Email, SMS}
+import com.ovoenergy.comms.model.{Email, SMS}
 
 import scala.util.matching.Regex
 

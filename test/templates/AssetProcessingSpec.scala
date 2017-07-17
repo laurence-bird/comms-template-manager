@@ -1,9 +1,9 @@
 package templates
 
 import com.amazonaws.regions.Regions
-import com.ovoenergy.comms.model.Channel.{Email, SMS}
-import com.ovoenergy.comms.model.{Channel, CommManifest}
-import com.ovoenergy.comms.model.CommType.Service
+import com.ovoenergy.comms.model.{Email, SMS}
+import com.ovoenergy.comms.model.{Channel, CommManifest, Service}
+
 import org.scalatest.{FlatSpec, Matchers}
 
 class AssetProcessingSpec extends FlatSpec with Matchers {
