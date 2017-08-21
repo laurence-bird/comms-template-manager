@@ -110,11 +110,11 @@ Resources:
         - IpProtocol: tcp
           FromPort: '443'
           ToPort: '443'
-          CidrIp: 109.232.58.84/32 # London
+          CidrIp: 109.232.58.84/32 # London Astley House
         - IpProtocol: tcp
           FromPort: '443'
           ToPort: '443'
-          CidrIp: 109.232.60.4/32 # London again
+          CidrIp: 109.232.60.4/32 # London Astley House again
         - IpProtocol: tcp
           FromPort: '443'
           ToPort: '443'
@@ -123,6 +123,14 @@ Resources:
           FromPort: '443'
           ToPort: '443'
           CidrIp: 137.221.142.20/32 # Bristol Templeback again
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.144.116/32 # London Kensington Church Street
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 137.221.144.132/32 # London Kensington Church Street again
         - IpProtocol: tcp
           FromPort: '443'
           ToPort: '443'
