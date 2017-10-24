@@ -70,6 +70,8 @@ object Interpreter {
               case Right(success) => Right(success)
             }
 
+          case InjectChannelSpecificStuff(processedFiles) => ??? // TODO: Implement me
+
           case UploadProcessedTemplateFileToS3(commManifest, uploadedFile, publishedBy) =>
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"

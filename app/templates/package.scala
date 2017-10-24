@@ -47,6 +47,7 @@ package object templates {
     private val smsAllFilesRegexes   = List(SMSTextBodyRegex)
 
     private val nonAssetFilesRegexes = emailNonAssetFilesRegexes ++ smsAllFilesRegexes
+    // TODO: Update for print
     private val allFilesRegexes      = emailAllFilesRegexes ++ smsAllFilesRegexes
 
     def extractAllExpectedFiles(uploadedFiles: List[UploadedFile]): List[UploadedTemplateFile] =

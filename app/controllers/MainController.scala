@@ -10,7 +10,7 @@ import akka.util.ByteString
 import aws.Interpreter.ErrorsOr
 import cats.instances.either._
 import cats.~>
-import com.gu.googleauth.GoogleAuthConfig
+import com.gu.googleauth.{GoogleAuthConfig, UserIdentity}
 import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
 import logic.{TemplateOp, TemplateOpA}
 import models.ZippedRawTemplate
@@ -85,7 +85,7 @@ class MainController(val authConfig: GoogleAuthConfig,
   }
 
   def publishNewTemplatePost = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
-    implicit val user = multipartFormRequest.user
+    implicit val user: UserIdentity = multipartFormRequest.user
 
     val result = for {
       commName     <- multipartFormRequest.body.dataParts.get("commName")
