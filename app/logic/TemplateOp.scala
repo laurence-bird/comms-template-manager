@@ -59,11 +59,11 @@ object TemplateOp {
     import cats.syntax.traverse._
     import cats.instances.list._
     for {
-      processedFiles              <- processTemplateAssets(commManifest, uploadedFiles)
-      assetsUploadResults         <- processedFiles.assetFiles.traverseU(file =>
+      processedFiles <- processTemplateAssets(commManifest, uploadedFiles)
+      assetsUploadResults <- processedFiles.assetFiles.traverseU(file =>
         uploadTemplateAssetFileToS3(commManifest, file, publishedBy))
-      furtherProcessedFiles       <- injectChannelSpecificStuff(processedFiles)
-      templateFilesUploadResults  <- furtherProcessedFiles.templateFiles.traverseU(file =>
+      furtherProcessedFiles <- injectChannelSpecificStuff(processedFiles)
+      templateFilesUploadResults <- furtherProcessedFiles.templateFiles.traverseU(file =>
         uploadProcessedTemplateFileToS3(commManifest, file, publishedBy))
     } yield assetsUploadResults ++ templateFilesUploadResults
   }
@@ -82,7 +82,7 @@ object TemplateOp {
   }
 
   def injectChannelSpecificStuff(processedFiles: ProcessedFiles): TemplateOp[ProcessedFiles] = {
-    liftF(InjectChannelSpecificStuff(processedFiles))
+    liftF(InjectChannelSpecificScript(processedFiles))
   }
 
   def getNextTemplateSummary(commName: String): TemplateOp[TemplateSummary] = {

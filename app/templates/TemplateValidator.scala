@@ -33,8 +33,8 @@ object TemplateValidator {
     templateErrorsOr.right.flatMap(validateChannelSpecificRequirements)
   }
 
-
-  private def validateChannelSpecificRequirements(uploadedFiles: List[UploadedTemplateFile]): ErrorsOr[List[UploadedTemplateFile]] = {
+  private def validateChannelSpecificRequirements(
+      uploadedFiles: List[UploadedTemplateFile]): ErrorsOr[List[UploadedTemplateFile]] = {
     /*
               TODO: Validation for:
           - Address box is present
@@ -43,8 +43,8 @@ object TemplateValidator {
           - Images are cmyk
           - Print image assets are only TIFF or JPEG, and are CMYK encoded
 
-               */
-    ???
+     */
+    null
   }
 
   private def validateIfAllFilesAreExpected(

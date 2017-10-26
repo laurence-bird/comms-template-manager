@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
   "com.gu" %% "play-googleauth" % "0.6.0",
-  "com.ovoenergy" %% "comms-templates" % "0.7",
+  "com.ovoenergy" %% "comms-templates" % "0.12",
   "org.webjars" % "bootstrap" % "3.3.4",
   "com.squareup.okhttp3" % "okhttp" % "3.5.0",
   "org.scalatest" %% "scalatest" % "2.2.6" %  Test,

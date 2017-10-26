@@ -7,7 +7,7 @@ import com.ovoenergy.comms.model.{CommManifest, CommType}
 import logic._
 import models.{TemplateSummary, TemplateVersion}
 import pagerduty.PagerDutyAlerter
-import templates.{AssetProcessing, TemplateValidator}
+import templates.{AssetProcessing, Injector, TemplateValidator}
 
 import scala.util.Right
 
@@ -70,7 +70,9 @@ object Interpreter {
               case Right(success) => Right(success)
             }
 
-          case InjectChannelSpecificStuff(processedFiles) => ??? // TODO: Implement me
+          case InjectChannelSpecificScript(processedFiles) => {
+            Injector.injectIntoTemplate(awsContext, processedFiles)
+          }
 
           case UploadProcessedTemplateFileToS3(commManifest, uploadedFile, publishedBy) =>
             val key =

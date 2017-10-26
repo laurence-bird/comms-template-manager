@@ -21,8 +21,7 @@ case object ListTemplateSummaries extends TemplateOpA[Seq[TemplateSummary]]
 case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedTemplateFile])
     extends TemplateOpA[ProcessedFiles]
 
-
-case class InjectChannelSpecificStuff(processedFiles: ProcessedFiles) extends TemplateOpA[ProcessedFiles]
+case class InjectChannelSpecificScript(processedFiles: ProcessedFiles) extends TemplateOpA[ProcessedFiles]
 
 case class UploadRawTemplateFileToS3(commManifest: CommManifest,
                                      uploadedFile: UploadedTemplateFile,
