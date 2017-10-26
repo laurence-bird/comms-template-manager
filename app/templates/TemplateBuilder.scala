@@ -68,8 +68,8 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getPrintTemplate(commManifest: CommManifest): Option[TemplateErrors[PrintTemplateFiles]] = {
     val htmlBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Print, TextBody) =>
-        TemplateFile(commManifest.commType, Print, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
+      case UploadedTemplateFile(_, contents, Print, HtmlBody) =>
+        TemplateFile(commManifest.commType, Print, FileFormat.Html, new String(contents, StandardCharsets.UTF_8))
     }
 
     htmlBody.map(tb => Valid(PrintTemplateFiles(body = tb)))

@@ -175,4 +175,57 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     result(2).fileType shouldBe TextBody
   }
 
+  it should "not error if valid email, print and SMS channel templates are present" in {
+    val uploadedFiles = List(
+      generateUploadedFile("email/body.html", "fsfdsfs"),
+      generateUploadedFile("email/subject.txt", "fsfdsfs"),
+      generateUploadedFile("sms/body.txt", "fsfdsfs"),
+      generateUploadedFile("print/body.html", "blablabla")
+    )
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).right.get
+    for (i <- 0 to 3) {
+      result(i).path shouldBe uploadedFiles(i).path
+      new String(result(i).contents) shouldBe new String(uploadedFiles(i).contents)
+    }
+    result(0).channel shouldBe Email
+    result(0).fileType shouldBe HtmlBody
+    result(1).channel shouldBe Email
+    result(1).fileType shouldBe Subject
+    result(2).channel shouldBe SMS
+    result(2).fileType shouldBe TextBody
+    result(3).channel shouldBe Print
+    result(3).fileType shouldBe HtmlBody
+  }
+
+  it should "not error if valid print body referenced" in {
+    val uploadedFiles = List(
+      generateUploadedFile("print/body.html", "Print template body")
+    )
+    TemplateValidator.validateTemplate(S3ClientStubWithPartial, commManifest, uploadedFiles) shouldBe 'right
+  }
+
+  it should "not error if valid print assets are referenced" in {
+    val uploadedFiles = List(
+      generateUploadedFile(
+        "print/body.html",
+        "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"assets/something/another.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"
+      ),
+      generateUploadedFile("print/assets/smiley.gif", "fsfdsfs"),
+      generateUploadedFile("print/assets/something/another.gif", "fsfdsfs")
+    )
+    TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
+  }
+
+  it should "error if non-existent print assets are referenced" in {
+    val uploadedFiles = List(
+      generateUploadedFile("print/body.html",
+                           "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"),
+      generateUploadedFile("print/assets/image.gif", "fsfdsfs"),
+      generateUploadedFile("print/assets/something/image.png", "fsfdsfs")
+    )
+    val result = TemplateValidator.validateTemplate(S3ClientStub, commManifest, uploadedFiles).left.get.toList
+    result should contain(
+      "The file print/body.html contains the reference 'assets/smiley.gif' to a non-existent asset file")
+
+  }
 }

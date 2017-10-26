@@ -8,7 +8,7 @@ import templates.AssetProcessing.ProcessedFiles
 class InjectorSpec extends FlatSpec with Matchers {
 
   val assetsBucket = "ovo-comms-template-assets"
-  val awsContext = aws.Context(null, null, null, null, null, assetsBucket, Regions.EU_WEST_1)
+  val awsContext   = aws.Context(null, null, null, null, null, assetsBucket, Regions.EU_WEST_1)
 
   it should "create style tag" in {
 
@@ -45,11 +45,10 @@ class InjectorSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
 
-    val processedFiles = ProcessedFiles(
-      List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody)),
-      List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody)))
+    val processedFiles = ProcessedFiles(List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody)),
+                                        List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody)))
 
-    val result = Injector.injectIntoTemplate(awsContext, processedFiles)
+    val result       = Injector.injectIntoTemplate(awsContext, processedFiles)
     val resultString = new String(result.right.get.templateFiles(0).contents)
 
     resultString shouldBe expected
@@ -96,11 +95,10 @@ class InjectorSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
 
-    val processedFiles = ProcessedFiles(
-      List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody)),
-      List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody)))
+    val processedFiles = ProcessedFiles(List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody)),
+                                        List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody)))
 
-    val result = Injector.injectIntoTemplate(awsContext, processedFiles)
+    val result       = Injector.injectIntoTemplate(awsContext, processedFiles)
     val resultString = new String(result.right.get.templateFiles(0).contents)
 
     resultString shouldBe expected

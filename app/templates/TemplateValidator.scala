@@ -30,22 +30,22 @@ object TemplateValidator {
       }
       .toEither
 
-    templateErrorsOr.right.flatMap(validateChannelSpecificRequirements)
+    templateErrorsOr //.right.flatMap(validateChannelSpecificRequirements)
   }
 
-  private def validateChannelSpecificRequirements(
-      uploadedFiles: List[UploadedTemplateFile]): ErrorsOr[List[UploadedTemplateFile]] = {
-    /*
-              TODO: Validation for:
-          - Address box is present
-          - No JS is included
-          - Colour encoding is CMYK
-          - Images are cmyk
-          - Print image assets are only TIFF or JPEG, and are CMYK encoded
-
-     */
-    null
-  }
+//  private def validateChannelSpecificRequirements(
+//      uploadedFiles: List[UploadedTemplateFile]): ErrorsOr[List[UploadedTemplateFile]] = {
+//    /*
+//              TODO: Validation for:
+//          - Address box is present
+//          - No JS is included
+//          - Colour encoding is CMYK
+//          - Images are cmyk
+//          - Print image assets are only TIFF or JPEG, and are CMYK encoded
+//
+//     */
+//    null
+//  }
 
   private def validateIfAllFilesAreExpected(
       uploadedFiles: List[UploadedFile]): TemplateErrors[List[UploadedTemplateFile]] = {
