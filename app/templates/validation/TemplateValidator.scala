@@ -1,28 +1,32 @@
-package templates
+package templates.validation
 
 import aws.Interpreter.ErrorsOr
 import cats.Apply
 import cats.data.Validated.{Invalid, Valid}
 import cats.data._
-import com.ovoenergy.comms.model.CommManifest
+import cats.implicits._
+import com.ovoenergy.comms.model.{CommManifest, Print}
 import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.PartialsS3Retriever
-import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import com.ovoenergy.comms.templates.s3.S3Client
+import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
+import templates.{TemplateBuilder, TemplateErrors, UploadedFile, UploadedTemplateFile}
 
 object TemplateValidator {
 
   private val assetTemplateReferenceRegex = "(?:'|\")(?: *)(assets/[^(\"')]+)(?: *)(?:'|\")".r
+  def validateTemplate(
+      channelSpecificValidator: List[UploadedTemplateFile] => TemplateErrors[List[UploadedTemplateFile]])(
+      s3Client: S3Client,
+      commManifest: CommManifest,
+      uploadedFiles: List[UploadedFile]): ErrorsOr[List[UploadedTemplateFile]] = {
 
-  def validateTemplate(s3Client: S3Client,
-                       commManifest: CommManifest,
-                       uploadedFiles: List[UploadedFile]): ErrorsOr[List[UploadedTemplateFile]] = {
-    val expFileValidations         = validateIfAllFilesAreExpected(uploadedFiles)
+    val fileValidations            = validateIfAllFilesAreExpected(uploadedFiles).andThen(channelSpecificValidator)
     val templateContentValidations = validateTemplateContents(s3Client, commManifest, uploadedFiles)
     val assetReferenceValidations  = validateAssetsExist(uploadedFiles)
     Apply[TemplateErrors]
-      .map3(expFileValidations, templateContentValidations, assetReferenceValidations) {
+      .map3(fileValidations, templateContentValidations, assetReferenceValidations) {
         case (files, _, _) => files
       }
       .toEither

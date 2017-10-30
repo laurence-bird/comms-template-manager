@@ -324,6 +324,72 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
       "<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
   }
 
+  it should "Publish a new valid template with print, storing the assets and processed template files in the correct bucket" taggedAs DockerComposeTag in {
+    val mediaType = MediaType.parse("application/zip")
+    val path      = getClass.getResource("/templates/valid-with-print.zip").getPath
+    val requestBody = new MultipartBody.Builder()
+      .setType(MultipartBody.FORM)
+      .addFormDataPart("commName", "TEST-COMM-PRINT")
+      .addFormDataPart("commType", "Service")
+      .addFormDataPart("templateFile", "valid-with-print.zip", RequestBody.create(mediaType, new File(path)))
+      .build()
+
+    val request = new Request.Builder()
+      .url("http://localhost:9000/publish/template")
+      .post(requestBody)
+      .build()
+    val result = makeRequest(request)
+
+    val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+
+    assetsInBucket should contain("service/TEST-COMM-PRINT/1.0/email/assets/canary.png")
+    templatesInBucket should contain allOf ("service/TEST-COMM-PRINT/1.0/email/body.html", "service/TEST-COMM-PRINT/1.0/email/subject.txt", "service/TEST-COMM-PRINT/1.0/sms/body.txt")
+    rawTemplatesInBucket should contain allOf ("service/TEST-COMM-PRINT/1.0/email/assets/canary.png", "service/TEST-COMM-PRINT/1.0/email/body.html", "service/TEST-COMM-PRINT/1.0/email/subject.txt", "service/TEST-COMM-PRINT/1.0/sms/body.txt")
+
+    val templateSummaries = scan(templateSummaryTable)
+    val templateVersions  = scan(templateVersionTable)
+
+    val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM-PRINT").get
+    templateVersionResult.version shouldBe "1.0"
+    templateVersionResult.publishedBy shouldBe "dummy.email"
+    templateVersionResult.commType shouldBe Service
+
+    val templateSummaryResult = templateSummaries.find(_.commName == "TEST-COMM-PRINT").get
+    templateSummaryResult.latestVersion shouldBe "1.0"
+    templateSummaryResult.commType shouldBe Service
+
+    result.body.string() should include(
+      "<ul><li>Template published: CommManifest(Service,TEST-COMM-PRINT,1.0)</li></ul>")
+  }
+
+  it should "reject new publication of invalid print templates with missing address field and script included" taggedAs DockerComposeTag in {
+    val mediaType = MediaType.parse("application/zip")
+    val path      = getClass.getResource("/templates/invalid-print-template.zip").getPath
+    val requestBody = new MultipartBody.Builder()
+      .setType(MultipartBody.FORM)
+      .addFormDataPart("commName", "INVALID-PRINT-COMM")
+      .addFormDataPart("commType", "Service")
+      .addFormDataPart("templateFile", "invalid-print-template.zip", RequestBody.create(mediaType, new File(path)))
+      .build()
+
+    val request = new Request.Builder()
+      .url("http://localhost:9000/publish/template")
+      .post(requestBody)
+      .build()
+
+    val result            = makeRequest(request)
+    val templateSummaries = scan(templateSummaryTable)
+    val templateVersions  = scan(templateVersionTable)
+
+    templateVersions.find(_.commName == "INVALID-PRINT-COMM") shouldBe None
+    templateSummaries.find(_.commName == "INVALID-PRINT-COMM") shouldBe None
+    val resultBody = result.body().string()
+    resultBody should include("<li>Missing expected address placeholder address.county</li>")
+    resultBody should include("<li>Script included in print/body.html is not allowed</li>")
+  }
+
   private def scan[A](table: Table[A]): List[A] = {
     val query = table.scan()
     Scanamo.exec(dynamoClient)(query).flatMap(_.toOption)

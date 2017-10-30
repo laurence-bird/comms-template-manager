@@ -1,11 +1,9 @@
 import cats.data._
-import com.ovoenergy.comms.model.Channel
-import com.ovoenergy.comms.model.{Email, SMS}
+import com.ovoenergy.comms.model._
 
 import scala.util.matching.Regex
 
 package object templates {
-
   type TemplateErrors[A] = ValidatedNel[String, A]
 
   sealed trait FileType
@@ -41,13 +39,23 @@ package object templates {
       val regex = "^sms/body.txt$".r; val channel = SMS; val fileType = TextBody
     }
 
+    private case object PrintHtmlBodyRegex extends FileRegex {
+      val regex = "^print/body.html$".r; val channel = Print; val fileType = HtmlBody
+    }
+    private case object PrintAssetsRegex extends FileRegex {
+      val regex = "^print/assets/*".r; val channel = Print; val fileType = Asset
+    }
+
     private val emailNonAssetFilesRegexes =
       List(EmailSubjectRegex, EmailHtmlBodyRegex, EmailTextBodyRegex, EmailSenderRegex)
-    private val emailAllFilesRegexes = EmailAssetsRegex :: emailNonAssetFilesRegexes
-    private val smsAllFilesRegexes   = List(SMSTextBodyRegex)
+    private val emailAllFilesRegexes      = EmailAssetsRegex :: emailNonAssetFilesRegexes
+    private val smsAllFilesRegexes        = List(SMSTextBodyRegex)
+    private val printNonAssetFilesRegexes = List(PrintHtmlBodyRegex)
+    private val printAllFilesRegexes      = PrintAssetsRegex :: printNonAssetFilesRegexes
 
-    private val nonAssetFilesRegexes = emailNonAssetFilesRegexes ++ smsAllFilesRegexes
-    private val allFilesRegexes      = emailAllFilesRegexes ++ smsAllFilesRegexes
+    private val nonAssetFilesRegexes = emailNonAssetFilesRegexes ++ smsAllFilesRegexes ++ printNonAssetFilesRegexes
+
+    private val allFilesRegexes = emailAllFilesRegexes ++ smsAllFilesRegexes ++ printAllFilesRegexes
 
     def extractAllExpectedFiles(uploadedFiles: List[UploadedFile]): List[UploadedTemplateFile] =
       filter(uploadedFiles, allFilesRegexes)
@@ -56,7 +64,7 @@ package object templates {
       filter(uploadedFiles, nonAssetFilesRegexes)
 
     def extractAssetFiles(uploadedFiles: List[UploadedFile]): List[UploadedTemplateFile] =
-      filter(uploadedFiles, List(EmailAssetsRegex))
+      filter(uploadedFiles, List(EmailAssetsRegex, PrintAssetsRegex))
 
     private def filter(uploadedFiles: List[UploadedFile], regexes: Iterable[FileRegex]): List[UploadedTemplateFile] =
       uploadedFiles.flatMap { uploadedFile =>

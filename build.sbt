@@ -5,7 +5,7 @@ resolvers += Resolver.bintrayRepo("ovotech", "maven")
 
 libraryDependencies ++= Seq(
   ws,
-  "com.ovoenergy" %% "comms-kafka-messages" % "1.26",
+  "com.ovoenergy" %% "comms-kafka-messages" % "1.36",
   "io.circe" %% "circe-core" % "0.7.0",
   "io.circe" %% "circe-generic-extras" % "0.7.0",
   "io.circe" %% "circe-parser" % "0.7.0",
@@ -15,9 +15,13 @@ libraryDependencies ++= Seq(
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
   "com.gu" %% "play-googleauth" % "0.6.0",
-  "com.ovoenergy" %% "comms-templates" % "0.7",
+  "com.ovoenergy" %% "comms-templates" % "0.12",
   "org.webjars" % "bootstrap" % "3.3.4",
   "com.squareup.okhttp3" % "okhttp" % "3.5.0",
+  "com.sksamuel.scrimage" %% "scrimage-core" % "3.0.0-alpha4",
+  "com.sksamuel.scrimage" %% "scrimage-io-extra" % "3.0.0-alpha4",
+  "com.sksamuel.scrimage" %% "scrimage-filters" % "3.0.0-alpha4",
+  "net.ruippeixotog" %% "scala-scraper" % "2.0.0",
   "org.scalatest" %% "scalatest" % "2.2.6" %  Test,
   "com.github.alexarchambault"  %% "scalacheck-shapeless_1.13" % "1.1.4" %   Test,
   "org.scalacheck" %% "scalacheck" % "1.13.4" % Test

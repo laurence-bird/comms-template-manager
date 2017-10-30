@@ -5,10 +5,12 @@ import java.nio.charset.StandardCharsets
 import cats.data.Validated.Valid
 import cats.data.{NonEmptyList, Validated}
 import cats.syntax.cartesian._
-import com.ovoenergy.comms.model.{Channel, CommManifest, Email, SMS}
+import com.ovoenergy.comms.model._
+import com.ovoenergy.comms.templates.ErrorsOr
 import com.ovoenergy.comms.templates.model.FileFormat
 import com.ovoenergy.comms.templates.model.template.files.TemplateFile
 import com.ovoenergy.comms.templates.model.template.files.email.EmailTemplateFiles
+import com.ovoenergy.comms.templates.model.template.files.print.PrintTemplateFiles
 import com.ovoenergy.comms.templates.model.template.files.sms.SMSTemplateFiles
 import com.ovoenergy.comms.templates.retriever.TemplatesRetriever
 
@@ -33,7 +35,7 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
     }
 
     val templateOrError: TemplateErrors[EmailTemplateFiles] = {
-      val s =
+      val s: Validated[NonEmptyList[String], TemplateFile] =
         Validated.fromOption(subject, ifNone = NonEmptyList.of(s"No email subject file has been provided in template"))
       val h =
         Validated.fromOption(htmlBody,
@@ -65,4 +67,12 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
     textBody.map(tb => Valid(SMSTemplateFiles(textBody = tb)))
   }
 
+  override def getPrintTemplate(commManifest: CommManifest): Option[TemplateErrors[PrintTemplateFiles]] = {
+    val htmlBody: Option[TemplateFile] = files.collectFirst {
+      case UploadedTemplateFile(_, contents, Print, HtmlBody) =>
+        TemplateFile(commManifest.commType, Print, FileFormat.Html, new String(contents, StandardCharsets.UTF_8))
+    }
+
+    htmlBody.map(tb => Valid(PrintTemplateFiles(body = tb)))
+  }
 }

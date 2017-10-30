@@ -1,0 +1,388 @@
+<html>
+<head>
+    <meta charset="utf-8" />
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans|Open+Sans:600" rel="stylesheet">
+    <link href="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/letter/letter.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://s3-eu-west-1.amazonaws.com/ovo-comms-template-assets/shared/template-validation.js"></script>
+    <style>
+        @page {
+            size: 225mm 320mm portrait;
+            /*-ro-media-size: SRA4;*/
+
+            margin: 11.5mm;
+            padding: 60px;
+            margin-bottom: 20mm;
+
+            @bottom-center{
+                content: element(footerIdentifier)
+            }
+        }
+
+        footer{
+            position: running(footerIdentifier);
+            margin-left: 60px;
+            padding-right: 60px;
+            width: 620px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<footer class="footer" id="footer">
+    <table>
+        <tr>
+            <td width="25%">
+                OVO Energy Ltd.<br>
+                ovoenergy.com<br>
+                VAT No. 100119879
+            </td>
+            <td width="30%">
+                OVO Energy, 1 Rivergate,<br>
+                Temple Quay, Bristol, BS1 6ED
+            </td>
+            <td width="20%">
+                T. 0800 5999 440<br>
+                T. 0117 9303 100
+            </td>
+            <td width="25%">
+                Registered in England and<br>
+                Wales No. 06890795<br>
+                We are a FIT licensee
+            </td>
+        </tr>
+    </table>
+</footer>
+
+<div style="height: 800px">
+    <div class="header" id="header">
+
+        <div id="logo">
+            <img class="logo" src="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/letter/CMYK_LOGO_GREEN.png">
+        </div>
+
+        <div class="ovoAddress">
+            <p>
+                <span><b>OVO Energy</b></span>
+                <span>1 Rivergate,Temple Quay, Bristol, BS1 6ED</span>
+                <span>hello@ovoenergy.com</span>
+                <span>ovoenergy.com</span>
+            </p>
+        </div>
+    </div>
+
+
+    <div class="letterAddress" id="letterAddress">
+        <div class="bottomAlign">
+            <p>
+                <span>{{profile.firstName}} {{profile.lastName}}</span>
+                <span>{{address.line1}}</span>
+                <span>{{address.line2}}</span>
+                <span>{{address.town}}</span>
+                <span>{{address.postcode}}</span>
+            </p>
+        </div>
+    </div>
+
+
+    <div class="letterRightToAddress rightAlign">
+        <table width="100%">
+            <tr>
+                <td>Date:</td>
+                <td class="rightAlign">{{system.dayOfMonth}}/{{system.month}}/{{system.year}}</td>
+            </tr>
+            <tr>
+                <td>Account Number:</td>
+                <td class="rightAlign">{{accountNumber}}</td>
+            </tr>
+            <tr>
+                <td>My OVO ID:</td>
+                <td class="rightAlign">{{myOvoId}}</td>
+            </tr>
+        </table>
+    </div>
+
+
+    <div class="letterBody" id="letterBody">
+        <h1>Your OVO contract.</h1>
+
+        <h3 class="extraBottomMargin">Hello {{profile.firstName}},</h3>
+
+        <p>Here's a copy of your OVO contract</p>
+
+        <p>The next page shows everything we agreed about your energy, so please keep it safe.</p>
+
+        <p>Any questions? Visit OVO Answers on <b>https://www.ovoenergy.com/ovo-answers</b></p>
+
+        <p>Thanks,<br>The OVO Team</p>
+    </div>
+
+
+    <div class="infoBox">
+        <h4>Impartial advice</h4>
+
+        It's easy to get free, independent advice so that you know your rights as an energy consumer. You might want to get a
+        better deal, find out how to make a complaint, get advice about the quality of your electricity or gas supply, or ask for
+        help if you're struggling to pay your bills. To <b>know your rights</b> visit <b>www.citizensadvice.org.uk/energy</b> for up to date
+        information or contact the Citizens Advice consumer service on 03454 04 05 06. You can also call us to get a copy of
+        the leaflet posted.
+
+        <h4>Something not right?</h4>
+
+        Customer service really matters to us. If you’re disappointed, we want to put things right the first time you contact us.
+        Here’s our complaints process:<br><br>
+
+        <ul>
+            <li>We’ll aim to solve your complaint in 5 working days.</li>
+            <li>If it’s more complex, within 8 weeks.</li>
+            <li>After 8 weeks, or if you’re not happy with our response you can go to the energy Ombudsman.</li>
+        </ul>
+
+        You can find our detailed process here: <b>https://www.ovoenergy.com/help/feedback</b>.
+    </div>
+</div>
+
+
+<!--Second Page-->
+
+<!--<div style="height: 500px; background-color: yellow">-->
+
+<!--</div>-->
+
+<!--<div style="height: 800px; background-color: lightpink">-->
+
+<!--</div>-->
+
+<div style="height: 800px">
+
+    <table width="100%">
+        <tr>
+            <td width="40%" style="vertical-align: top">
+                <h1>Your plan overview</h1>
+
+                <h3>Legal agreement - please check carefully</h3>
+
+                If any details are incorrect, please contact us
+                within seven working days.
+
+                <h3>If you change your mind</h3>
+
+                If you’re on one of our fixed rate plans and your
+                plan started after 26th June 2016, we’ll charge
+                you £30 for each fuel if you leave after your
+                14-day cooling-off period. If you signed up
+                before 26th June 2016 or you’re on Simpler (our
+                variable rate plan), you can leave at any time
+                without exit fees.
+
+                <h3>Contacting your local network</h3>
+
+                If your power goes down, or you have to move
+                your meter or upgrade your supply, you will
+                need to contact your Local Network Operator.
+                To get through to the correct network operator
+                for your area, call 105 free of charge. For more
+                info, visit<br>
+                <b>https://www.ovoenergy.com/guides/energy-guides/dno.html</b>
+
+                <h3>Emergencies</h3>
+
+                If you smell gas or think you have a leak:
+                <ul>
+                    <li>Open all doors and windows to let the gas escape</li>
+                    <li>Don’t turn light switches on or off, use doorbells, mobile phones or naked flames</li>
+                    <li>Check your gas appliances are switched off</li>
+                    <li>Call the 24-hour national Gas Emergency Hotline on 0800 111 999</li>
+                    <li>If you’re worried that carbon monoxide
+                        fumes are escaping from your gas appliance,
+                        or if you have issues with your meter, call the
+                        24-hour national Gas Emergency Hotline</li>
+                </ul>
+
+                <h3>How green are we?</h3>
+
+                To see where your energy comes from, just go to:<br>
+                <b>www.ovoenergy.com/where-does-ovo-get-electricity-from.html</b>
+
+                <br><br>
+
+                A copy of our T&Cs can be found here:<br>
+                <b>www.ovoenergy.com/terms</b>
+
+                <p>All prices exclude VAT, charged at 5% for domestic customers.</p>
+
+            </td>
+            <td>
+                <table cellspacing="10px">
+                    <tr>
+                        <td>
+                            <table class="colouredBox">
+
+                                <tr>
+                                    <td><h3>Important info</h3></td>
+                                    <td><img align="right" src="https://cdn4.iconfinder.com/data/icons/stock-trading-apps/500/Stocks-5_8-512.png"></td>
+                                </tr>
+                                <tr>
+                                    <td>Account number</td>
+                                    <td>1234567</td>
+                                </tr>
+                                <tr>
+                                    <td>Date of contract</td>
+                                    <td>23 August 2017</td>
+                                </tr>
+                                <tr>
+                                    <td>Tariff name</td>
+                                    <td>Greener Energy Online</td>
+                                </tr>
+                                <tr>
+                                    <td>Cool-off period ends</td>
+                                    <td>29 December 2017</td>
+                                </tr>
+                                <tr>
+                                    <td>Supply switch over date</td>
+                                    <td>21 August 2017</td>
+                                </tr>
+                                <tr>
+                                    <td>My OVO ID</td>
+                                    <td>123412341</td>
+                                </tr>
+                                <tr>
+                                    <td>Electricity supply number (MPAN)</td>
+                                    <td>203945729475</td>
+                                </tr>
+                                <tr>
+                                    <td>Gas supply number (MPAN)</td>
+                                    <td>57293847</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="colouredBox">
+                                <tr>
+                                    <td><h3>About you</h3></td>
+                                    <td><img align="right" src="https://openclipart.org/download/247316/abstract-user-flat-2.svg"></td>
+                                </tr>
+                                <tr>
+                                    <td>Name on agreement</td>
+                                    <td>Zsolt Balvanyos</td>
+                                </tr>
+                                <tr>
+                                    <td>Contact address</td>
+                                    <td>
+                                        33 Nottingham Hill Gate<br>
+                                        Kensington<br>
+                                        London<br>
+                                        W11 3JQ
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Phone number</td>
+                                    <td>077 1234 4321</td>
+                                </tr>
+                                <tr>
+                                    <td>Email address</td>
+                                    <td>email@email.com</td>
+                                </tr>
+                                <tr>
+                                    <td>Communications preference</td>
+                                    <td>Online communication - Free</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="colouredBox">
+                                <tr>
+                                    <td><h3>How you'll pay</h3></td>
+                                    <td><img align="right" src="http://www.iconsdb.com/icons/preview/black/pound-xxl.png"></td>
+                                </tr>
+                                <tr>
+                                    <td>Payment method</td>
+                                    <td>Monthly Direct Debit in advance</td>
+                                </tr>
+                                <tr>
+                                    <td>First payment</td>
+                                    <td>01 January 2018</td>
+                                </tr>
+                                <tr>
+                                    <td>Payment amount</td>
+                                    <td>£100.00</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="colouredBox">
+                                <tr>
+                                    <td><h3>Your electricity supply</h3></td>
+                                    <td><img align="right" src="https://cdn2.iconfinder.com/data/icons/business-office-4/256/Idea-256.png"></td>
+                                </tr>
+                                <tr>
+                                    <td>Electricity agreement</td>
+                                    <td>12 month fixed contract from 23/12/2017</td>
+                                </tr>
+                                <tr>
+                                    <td>Electricity supply address</td>
+                                    <td>
+                                        33 Nottingham Hill Gate<br>
+                                        Kensington,
+                                        London,
+                                        W11 3JQ
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Electricity standing charge (p/day)</td>
+                                    <td>27.40p per day</td>
+                                </tr>
+                                <tr>
+                                    <td>Electricity unit charge (p/kWh)</td>
+                                    <td>15.60p per kWh</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="colouredBox">
+                                <tr>
+                                    <td><h3>Your gas supply</h3></td>
+                                    <td><img align="right" src="https://cdn4.iconfinder.com/data/icons/sibcode-line-tech/512/flame-512.png"></td>
+                                </tr>
+                                <tr>
+                                    <td>Gas agreement</td>
+                                    <td>12 month fixed contract from 23/12/2017</td>
+                                </tr>
+                                <tr>
+                                    <td>Gas supply address</td>
+                                    <td>
+                                        33 Nottingham Hill Gate<br>
+                                        Kensington,
+                                        London,
+                                        W11 3JQ
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Gas standing charge (p/day)</td>
+                                    <td>27.40p per day</td>
+                                </tr>
+                                <tr>
+                                    <td>Gas unit charge (p/kWh)</td>
+                                    <td>3.17p per kWh</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>
+</body>
+</html>

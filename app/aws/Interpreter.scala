@@ -7,7 +7,8 @@ import com.ovoenergy.comms.model.{CommManifest, CommType}
 import logic._
 import models.{TemplateSummary, TemplateVersion}
 import pagerduty.PagerDutyAlerter
-import templates.{AssetProcessing, TemplateValidator}
+import templates.{AssetProcessing, Injector}
+import templates.validation.{PrintTemplateValidation, TemplateValidator}
 
 import scala.util.Right
 
@@ -70,6 +71,10 @@ object Interpreter {
               case Right(success) => Right(success)
             }
 
+          case InjectChannelSpecificScript(processedFiles) => {
+            Injector.injectIntoTemplate(awsContext, processedFiles)
+          }
+
           case UploadProcessedTemplateFileToS3(commManifest, uploadedFile, publishedBy) =>
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
@@ -89,7 +94,10 @@ object Interpreter {
                                           uploadedFiles)
 
           case ValidateTemplate(commManifest, uploadedFiles) =>
-            TemplateValidator.validateTemplate(awsContext.templatesS3ClientWrapper, commManifest, uploadedFiles)
+            TemplateValidator.validateTemplate(PrintTemplateValidation.validatePrintFiles)(
+              awsContext.templatesS3ClientWrapper,
+              commManifest,
+              uploadedFiles)
 
           case ValidateTemplateDoesNotExist(commManifest) =>
             if (awsContext.dynamo.listVersions(commManifest.name).isEmpty) {
