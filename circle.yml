@@ -26,7 +26,6 @@ deployment:
     branch: master
     owner: ovotech
     commands:
-      - sbt uploadAssetsToS3
       - git clone git@github.com:ovotech/comms-ci-scripts
       - comms-ci-scripts/publish_docker_image.sh
       - comms-ci-scripts/deploy_to_ecs.sh -s template-manager PRD aws/container-definition.json
