@@ -12,6 +12,7 @@ import net.ruippeixotog.scalascraper.model.Element
 import templates.{Asset, HtmlBody, TemplateErrors, UploadedTemplateFile}
 
 import scala.util.Try
+import scala.util.matching.Regex
 
 object PrintTemplateValidation {
 
@@ -25,6 +26,7 @@ object PrintTemplateValidation {
   private val validAssetTypes = ".*.tiff|.*.tif|.*.jpeg|.*.jpg|.*.css".r
   private val imgMatcher      = ".*.tiff|.*.tif|.*.jpeg|.*.jpg".r
   private val cssMatcher      = ".*.css".r
+  private val validCssMatcher = "^assets/([^/]+).css$".r
 
   private def validateAddressBox(templateStr: String): TemplateErrors[Boolean] = {
     val addressBoxElementOpt = HtmlContentParser.getElementWithId(htmlStr = templateStr, id = addressBoxId)
@@ -54,13 +56,24 @@ object PrintTemplateValidation {
 
   private def validateExternalStylesheets(printTemplateStr: String): TemplateErrors[Boolean] = {
     val linkElems = HtmlContentParser.getElements(printTemplateStr, "link").getOrElse(Nil)
-    val cssLinks =
-      linkElems.flatMap(e => Try(e.attr("href")).toOption.flatMap(link => cssMatcher.findFirstMatchIn(link)))
-    cssLinks match {
-      case cssLinks if cssLinks.size == 0 => Valid(true)
-      case cssLinks =>
-        Invalid(NonEmptyList.of(s"The template should not reference external files: ${cssLinks.mkString(", ")}"))
+    val cssLinks = {
+      linkElems.flatMap { e =>
+        Try(e.attr("href")).toOption
+          .flatMap { link =>
+            cssMatcher.findFirstIn(link).flatMap { l =>
+              if (l.startsWith("assets/"))
+                None
+              else
+                Some(link)
+            }
+          }
+      }
     }
+
+    if (cssLinks.isEmpty)
+      Valid(true)
+    else
+      Invalid(NonEmptyList.of(s"The template should not reference external files: ${cssLinks.mkString(", ")}"))
   }
 
   private def validateNoJsIncluded(templateStr: String,

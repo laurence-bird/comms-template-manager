@@ -279,4 +279,36 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
     PrintTemplateValidation.validatePrintFiles(templateFiles) shouldBe Invalid(NonEmptyList.of(
       "The template should not reference external files: https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/letter/letter.css, https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/letter/pretty.css"))
   }
+
+  it should "Allow references to css assets " in {
+    val exampleHtml =
+      """<html>
+        |     <head>
+        |       <link href="assets/letter.css" rel="stylesheet">
+        |       <link href="assets/pretty.css" rel="stylesheet">
+        |       <style>
+        |       h1 {
+        |         color: cmyk(0, 0, 0, 0);
+        |         margin-left: 40px;
+        |       }
+        |       </style>
+        |
+        |     </head>
+        |     <div id="letterAddress">
+        |       {{address.line1}}
+        |       {{address.line2}}
+        |       {{address.town}}
+        |       {{address.county}}
+        |       {{address.postcode}}
+        |       {{address.country}}
+        |     </div>
+        |</html>
+      """.stripMargin
+
+    val templateFiles = List(
+      UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody)
+    )
+
+    PrintTemplateValidation.validatePrintFiles(templateFiles) shouldBe 'valid
+  }
 }
