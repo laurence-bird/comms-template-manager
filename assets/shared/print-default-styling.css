@@ -1,0 +1,15 @@
+/*
+    Default styling for print templates, injected on template upload
+*/
+@page {
+    size: 225mm 320mm portrait;
+    margin: 11.5mm 7.5mm;
+    @bottom-center{content: element(footerIdentifier)}}
+
+footer{
+    position: running(footerIdentifier);
+}
+
+@prince-pdf {
+    prince-pdf-output-intent: url(https://s3-eu-west-1.amazonaws.com/ovo-comms-template-assets/shared/WebCoatedSWOP2006Grade5.icc);
+}

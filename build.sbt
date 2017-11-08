@@ -1,3 +1,6 @@
+import sbt._
+import sbt.Keys._
+
 organization := "com.ovoenergy"
 scalaVersion := "2.11.11"
 
@@ -31,6 +34,15 @@ lazy val ipAddress: String = {
   val addr = "./get_ip_address.sh".!!.trim
   println(s"My IP address appears to be $addr")
   addr
+}
+
+val uploadAssetsToS3 = TaskKey[Unit]("uploadAssetsToS3", "upload shared templates assets to S3")
+
+uploadAssetsToS3 := {
+  import sys.process._
+  println("Uploading template assets to s3...")
+  "aws s3 sync assets/shared s3://ovo-comms-template-assets/shared".!!
+
 }
 
 val testReportsDir = sys.env.getOrElse("CI_REPORTS", "target/reports")

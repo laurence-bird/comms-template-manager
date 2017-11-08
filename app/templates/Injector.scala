@@ -15,12 +15,15 @@ import scala.util.Properties
 
 object Injector {
 
-  val elementValidation: String = "template-validation.js"
-  val iccProfile: String        = "WebCoatedSWOP2006Grade5.icc"
-  val sharedFolder              = "/shared/"
-  val newLine                   = Properties.lineSeparator
-  val htmlComment               = s"$newLine<!-- Statement injected by the Comms Template Manager -->$newLine"
-  val cssComment                = s"$newLine/* Statement injected by the Comms Template Manager */$newLine"
+  // Correspond with files in assets directory in this project
+
+  val printCssFileName  = "print-default-styling.css"
+  val elementValidation = "template-validation.js"
+
+  val sharedFolder = "/shared/"
+  val newLine      = Properties.lineSeparator
+  val htmlComment  = s"$newLine<!-- Statement injected by the Comms Template Manager -->$newLine"
+  val cssComment   = s"$newLine<!-- Stylesheet injected by the Comms Template Manager -->$newLine"
 
   def getByteTemplate(content: String): Validated[NonEmptyList[String], Array[Byte]] = {
     Valid(content.getBytes())
@@ -30,28 +33,15 @@ object Injector {
 
   def injectIntoTemplate(awsConfig: aws.Context, processedFiles: ProcessedFiles) = {
 
-    def getS3AssetLink(assetName: String) = {
+    def getS3SharedAssetLink(assetName: String) = {
       val region = awsConfig.region.getName
       val bucket = awsConfig.s3TemplateAssetsBucket
       s""""https://s3-$region.amazonaws.com/$bucket$sharedFolder$assetName""""
     }
 
-    val princeICCProfile =
-      s"""|@prince-pdf {
-          |    prince-pdf-output-intent: url(${getS3AssetLink(iccProfile)});
-          |}""".stripMargin
-
-    val bleedArea =
-      s"""|@page {
-          |    size: 225mm 320mm portrait;
-          |    margin: 11.5mm 7.5mm;
-          |    @bottom-center{content: element(footerIdentifier)}}
-          |footer{position: running(footerIdentifier);}""".stripMargin
-
     def printInjections(html: String): Validated[NonEmptyList[String], String] = {
       injectAssetLink(elementValidation, html) andThen
-        injectStyle(princeICCProfile) andThen
-        injectStyle(bleedArea)
+        injectStyleLink
     }
 
     def getUpdatedTemplate(template: UploadedTemplateFile)(
@@ -68,7 +58,7 @@ object Injector {
     }
 
     def injectAssetLink(assetName: String, html: String): Validated[NonEmptyList[String], String] = {
-      val link = s"<link href=${getS3AssetLink(assetName)}>"
+      val link = s"<link href=${getS3SharedAssetLink(assetName)}>"
       if (html.contains("</head>")) {
         Valid(html.replace("</head>", s"$htmlComment$link$newLine</head>"))
       } else {
@@ -76,11 +66,12 @@ object Injector {
       }
     }
 
-    def injectStyle(styleElement: String) = { (html: String) =>
-      if (html.contains("</style>")) {
-        Valid(html.replaceFirst("</style>", s"$cssComment$styleElement$newLine</style>"))
-      } else if (html.contains("</head>")) {
-        Valid(html.replace("</head>", s"$newLine<style>$cssComment$styleElement$newLine</style>$newLine</head>"))
+    def injectStyleLink = { (html: String) =>
+      if (html.contains("</head>")) {
+        Valid(
+          html.replace("</head>",
+                       s"""$newLine$cssComment<link rel="stylesheet" type="text/css" href=${getS3SharedAssetLink(
+                         printCssFileName)}/>$newLine</head>"""))
       } else {
         Invalid(NonEmptyList.of("The template should have a <head> tag."))
       }
