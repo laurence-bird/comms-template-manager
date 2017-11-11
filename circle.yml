@@ -18,7 +18,6 @@ dependencies:
 
 test:
   override:
-    - sbt uploadAssetsToS3
     - sbt "testWithDynamo"
     - sbt dockerComposeTest
 
