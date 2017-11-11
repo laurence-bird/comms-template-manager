@@ -19,6 +19,7 @@ object Injector {
 
   val printCssFileName  = "print-default-styling.css"
   val elementValidation = "template-validation.js"
+  val headMatcher       = "<head[^>]*>".r
 
   val sharedFolder = "/shared/"
   val newLine      = Properties.lineSeparator
@@ -41,7 +42,8 @@ object Injector {
 
     def printInjections(html: String): Validated[NonEmptyList[String], String] = {
       injectAssetLink(elementValidation, html) andThen
-        injectStyleLink
+        injectStyleLink andThen
+        injectCharSet
     }
 
     def getUpdatedTemplate(template: UploadedTemplateFile)(
@@ -57,23 +59,24 @@ object Injector {
         getUpdatedTemplate(template)
     }
 
-    def injectAssetLink(assetName: String, html: String): Validated[NonEmptyList[String], String] = {
+    def injectAssetLink(assetName: String, html: String) = {
       val link = s"<link href=${getS3SharedAssetLink(assetName)}>"
-      if (html.contains("</head>")) {
-        Valid(html.replace("</head>", s"$htmlComment$link$newLine</head>"))
-      } else {
-        Invalid(NonEmptyList.of("The template should have a <head> tag."))
-      }
+      injectIntoHead(html, s"$htmlComment$link$newLine")
     }
 
     def injectStyleLink = { (html: String) =>
-      if (html.contains("</head>")) {
-        Valid(
-          html.replace("</head>",
-                       s"""$newLine$cssComment<link rel="stylesheet" type="text/css" href=${getS3SharedAssetLink(
-                         printCssFileName)}/>$newLine</head>"""))
-      } else {
-        Invalid(NonEmptyList.of("The template should have a <head> tag."))
+      injectIntoHead(html, s"""$newLine$cssComment<link rel="stylesheet" type="text/css" href=${getS3SharedAssetLink(
+        printCssFileName)}/>$newLine""")
+    }
+
+    def injectCharSet = { (html: String) =>
+      injectIntoHead(html, s"""$htmlComment<meta charset="utf-8"/>""")
+    }
+
+    def injectIntoHead(html: String, element: String) = {
+      headMatcher.findFirstIn(html) match {
+        case Some(headTag) => Valid(html.replace(headTag, s"$headTag$element"))
+        case None          => Invalid(NonEmptyList.of("The template should have a <head> tag."))
       }
     }
 
