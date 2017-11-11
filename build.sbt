@@ -42,6 +42,7 @@ uploadAssetsToS3 := {
   import sys.process._
   println("Uploading template assets to s3...")
   "aws s3 sync assets/shared s3://ovo-comms-template-assets/shared".!!
+  "aws s3 sync assets/shared s3://dev-ovo-comms-template-assets/shared".!!
 
 }
 
