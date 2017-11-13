@@ -27,11 +27,13 @@ class InjectorSpec extends FlatSpec with Matchers {
         |<html>
         |<head>
         |<!-- Statement injected by the Comms Template Manager -->
-        |<link href="https://s3-eu-west-1.amazonaws.com/ovo-comms-template-assets/shared/template-validation.js">
-        |
+        |<meta charset="utf-8"/>
         |
         |<!-- Stylesheet injected by the Comms Template Manager -->
         |<link rel="stylesheet" type="text/css" href="https://s3-eu-west-1.amazonaws.com/ovo-comms-template-assets/shared/print-default-styling.css"/>
+        |
+        |<!-- Statement injected by the Comms Template Manager -->
+        |<link href="https://s3-eu-west-1.amazonaws.com/ovo-comms-template-assets/shared/template-validation.js">
         |</head>
         |<body>Ovo Energy</body>
         |</html>

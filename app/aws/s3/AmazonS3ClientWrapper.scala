@@ -17,6 +17,7 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
     try {
       val meta = new ObjectMetadata()
       meta.setContentLength(fileDetails.contents.length)
+      if (fileDetails.key.endsWith("css")) meta.setContentType("text/css")
       client.putObject(fileDetails.bucket, fileDetails.key, stream, meta)
       Logger.info(s"Uploaded file to S3: ${fileDetails.bucket} - ${fileDetails.key}")
       Right(client.getResourceUrl(fileDetails.bucket, fileDetails.key))

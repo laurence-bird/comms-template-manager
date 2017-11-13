@@ -4,12 +4,21 @@
 @page {
     size: 225mm 320mm portrait;
     margin: 11.5mm 7.5mm;
-    @bottom-center{content: element(footerIdentifier)}}
+    @bottom-center{
+        content: element(footerIdentifier)
+    }
+
+    margin-bottom: 40mm;
+}
 
 footer{
     position: running(footerIdentifier);
 }
 
+@font-face {
+    font-family: "Open Sans";
+    src: url("https://s3-eu-west-1.amazonaws.com/ovo-comms-template-assets/shared/OpenSans-Regular.ttf")
+}
 @prince-pdf {
     prince-pdf-output-intent: url(https://s3-eu-west-1.amazonaws.com/ovo-comms-template-assets/shared/WebCoatedSWOP2006Grade5.icc);
 }
