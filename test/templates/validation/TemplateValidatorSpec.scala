@@ -5,6 +5,7 @@ import cats.data.Validated.{Invalid, Valid}
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.s3.S3Client
 import org.scalatest.{FlatSpec, Matchers}
+import play.api.libs.MimeTypes
 import templates._
 
 class TemplateValidatorSpec extends FlatSpec with Matchers {
@@ -293,5 +294,25 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       "very bad",
       "oh no"
     )
+  }
+
+  it should "determine file mime types" in {
+    val uploadedFiles = List(
+      generateUploadedFile(
+        "email/body.html",
+        "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"assets/something/another.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"
+      ),
+      generateUploadedFile("email/subject.txt", "fsfdsfs"),
+      generateUploadedFile("email/assets/smiley.gif", "fsfdsfs"),
+      generateUploadedFile("email/assets/something/another.gif", "fsfdsfs")
+    )
+
+    val result =
+      TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+
+    result.right.get.flatMap(_.contentType) should contain theSameElementsAs Seq("text/html",
+                                                                                 "text/plain",
+                                                                                 "image/gif",
+                                                                                 "image/gif")
   }
 }

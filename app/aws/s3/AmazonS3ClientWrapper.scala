@@ -8,16 +8,21 @@ import org.apache.commons.compress.utils.IOUtils
 import scala.collection.JavaConverters._
 import play.api.Logger
 
-case class S3FileDetails(contents: Array[Byte], key: String, bucket: String)
+case class S3FileDetails(contents: Array[Byte], key: String, bucket: String, contentType: Option[String] = None)
 
 class AmazonS3ClientWrapper(client: AmazonS3Client) {
 
   def uploadFile(fileDetails: S3FileDetails): Either[String, String] = {
     val stream = new ByteArrayInputStream(fileDetails.contents)
     try {
+
       val meta = new ObjectMetadata()
       meta.setContentLength(fileDetails.contents.length)
-      if (fileDetails.key.endsWith("css")) meta.setContentType("text/css")
+
+      fileDetails.contentType.foreach { c =>
+        meta.setContentType(c)
+      }
+
       client.putObject(fileDetails.bucket, fileDetails.key, stream, meta)
       Logger.info(s"Uploaded file to S3: ${fileDetails.bucket} - ${fileDetails.key}")
       Right(client.getResourceUrl(fileDetails.bucket, fileDetails.key))
