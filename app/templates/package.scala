@@ -19,7 +19,7 @@ package object templates {
                                   contents: Array[Byte],
                                   channel: Channel,
                                   fileType: FileType,
-                                  contentType: Option[String] = None)
+                                  contentType: Option[String])
 
   object UploadedFile {
 

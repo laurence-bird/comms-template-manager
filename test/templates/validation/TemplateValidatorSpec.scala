@@ -304,7 +304,8 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       ),
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
       generateUploadedFile("email/assets/smiley.gif", "fsfdsfs"),
-      generateUploadedFile("email/assets/something/another.gif", "fsfdsfs")
+      generateUploadedFile("email/assets/something/another.gif", "fsfdsfs"),
+      generateUploadedFile("print/assets/something/anotherAnother.tiff", "yo")
     )
 
     val result =
@@ -313,6 +314,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     result.right.get.flatMap(_.contentType) should contain theSameElementsAs Seq("text/html",
                                                                                  "text/plain",
                                                                                  "image/gif",
-                                                                                 "image/gif")
+                                                                                 "image/gif",
+                                                                                 "image/tiff")
   }
 }
