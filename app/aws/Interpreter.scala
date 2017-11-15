@@ -50,7 +50,8 @@ object Interpreter {
           case UploadRawTemplateFileToS3(commManifest, uploadedFile, publishedBy) =>
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
-            val s3File = S3FileDetails(uploadedFile.contents, key, awsContext.s3RawTemplatesBucket)
+            val s3File =
+              S3FileDetails(uploadedFile.contents, key, awsContext.s3RawTemplatesBucket, uploadedFile.contentType)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
               case Left(error) => {
                 PagerDutyAlerter(s"Attempt to publish file by $publishedBy to $key failed", pagerDutyContext)
@@ -59,10 +60,11 @@ object Interpreter {
               case Right(success) => Right(success)
             }
 
-          case UploadTemplateAssetFileToS3(commManifest, uploadedFile, publishedBy) =>
+          case UploadTemplateAssetFileToS3(commManifest, uploadedFile: templates.UploadedTemplateFile, publishedBy) =>
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
-            val s3File = S3FileDetails(uploadedFile.contents, key, awsContext.s3TemplateAssetsBucket)
+            val s3File =
+              S3FileDetails(uploadedFile.contents, key, awsContext.s3TemplateAssetsBucket, uploadedFile.contentType)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
               case Left(error) => {
                 PagerDutyAlerter(s"Attempt to publish file by $publishedBy to $key failed", pagerDutyContext)

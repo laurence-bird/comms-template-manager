@@ -39,8 +39,10 @@ class InjectorSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
 
-    val processedFiles = ProcessedFiles(List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody)),
-                                        List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody)))
+    val processedFiles = ProcessedFiles(
+      List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody, None)),
+      List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody, None))
+    )
 
     val result       = Injector.injectIntoTemplate(awsContext, processedFiles)
     val resultString = new String(result.right.get.templateFiles(0).contents)
@@ -56,8 +58,10 @@ class InjectorSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
 
-    val processedFiles = ProcessedFiles(List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody)),
-                                        List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody)))
+    val processedFiles = ProcessedFiles(
+      List(UploadedTemplateFile("templatesPath", html.getBytes, Print, HtmlBody, None)),
+      List(UploadedTemplateFile("assetsPath", html.getBytes, Print, HtmlBody, None))
+    )
 
     val result = Injector.injectIntoTemplate(awsContext, processedFiles)
 
