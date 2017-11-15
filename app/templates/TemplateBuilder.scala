@@ -18,19 +18,19 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getEmailTemplate(commManifest: CommManifest): Option[TemplateErrors[EmailTemplateFiles]] = {
     val subject: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, Subject) =>
+      case UploadedTemplateFile(_, contents, Email, Subject, _) =>
         TemplateFile(commManifest.commType, Email, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
     }
     val htmlBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, HtmlBody) =>
+      case UploadedTemplateFile(_, contents, Email, HtmlBody, _) =>
         TemplateFile(commManifest.commType, Email, FileFormat.Html, new String(contents, StandardCharsets.UTF_8))
     }
     val textBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, TextBody) =>
+      case UploadedTemplateFile(_, contents, Email, TextBody, _) =>
         TemplateFile(commManifest.commType, Email, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
     }
     val customSender: Option[String] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, Sender) =>
+      case UploadedTemplateFile(_, contents, Email, Sender, _) =>
         new String(contents, StandardCharsets.UTF_8)
     }
 
@@ -60,7 +60,7 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getSMSTemplate(commManifest: CommManifest): Option[TemplateErrors[SMSTemplateFiles]] = {
     val textBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, SMS, TextBody) =>
+      case UploadedTemplateFile(_, contents, SMS, TextBody, _) =>
         TemplateFile(commManifest.commType, SMS, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
     }
 
@@ -69,7 +69,7 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getPrintTemplate(commManifest: CommManifest): Option[TemplateErrors[PrintTemplateFiles]] = {
     val htmlBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Print, HtmlBody) =>
+      case UploadedTemplateFile(_, contents, Print, HtmlBody, _) =>
         TemplateFile(commManifest.commType, Print, FileFormat.Html, new String(contents, StandardCharsets.UTF_8))
     }
 

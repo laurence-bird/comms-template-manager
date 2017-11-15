@@ -1,5 +1,6 @@
 import cats.data._
 import com.ovoenergy.comms.model._
+import play.api.libs.MimeTypes
 
 import scala.util.matching.Regex
 
@@ -14,7 +15,11 @@ package object templates {
   case object Sender   extends FileType
   case object Asset    extends FileType
 
-  case class UploadedTemplateFile(path: String, contents: Array[Byte], channel: Channel, fileType: FileType)
+  case class UploadedTemplateFile(path: String,
+                                  contents: Array[Byte],
+                                  channel: Channel,
+                                  fileType: FileType,
+                                  contentType: Option[String] = None)
 
   object UploadedFile {
 
@@ -68,9 +73,10 @@ package object templates {
 
     private def filter(uploadedFiles: List[UploadedFile], regexes: Iterable[FileRegex]): List[UploadedTemplateFile] =
       uploadedFiles.flatMap { uploadedFile =>
+        val mimeType = MimeTypes.forFileName(uploadedFile.path)
         regexes.collectFirst {
           case r if r.regex.pattern.matcher(uploadedFile.path).find =>
-            UploadedTemplateFile(uploadedFile.path, uploadedFile.contents, r.channel, r.fileType)
+            UploadedTemplateFile(uploadedFile.path, uploadedFile.contents, r.channel, r.fileType, mimeType)
         }
       }
 
