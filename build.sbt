@@ -73,3 +73,5 @@ scalafmtAll := {
   streams.value.log.info("Done")
 }
 (compile in Compile) := (compile in Compile).dependsOn(scalafmtAll).value
+
+commsPackagingHeapSize := 512
