@@ -1,5 +1,7 @@
 package templates.validation
 
+import java.nio.charset.StandardCharsets
+
 import aws.Interpreter.ErrorsOr
 import cats.Apply
 import cats.data.Validated.{Invalid, Valid}
@@ -74,7 +76,7 @@ object TemplateValidator {
     val errors = UploadedFile
       .extractNonAssetFiles(uploadedFiles)
       .foldLeft(List[String]())((errors, templateFile) => {
-        val fileContents    = new String(templateFile.contents)
+        val fileContents    = templateFile.utf8Content
         val assetReferences = assetTemplateReferenceRegex.findAllMatchIn(fileContents)
         val uploadedFileErrors = assetReferences.toList
           .map(_.group(1))

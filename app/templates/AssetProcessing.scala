@@ -31,14 +31,17 @@ object AssetProcessing {
                                      assetsS3Bucket: String,
                                      channel: Channel,
                                      commManifest: CommManifest,
-                                     contents: Array[Byte]): ValidatedNel[String, Array[Byte]] = {
-    def replaceReferences(s3Endpoint: String, contentsString: String) = {
+                                     contents: Content): ValidatedNel[String, Content] = {
+
+    def replaceReferences(s3Endpoint: String, contents: Content): Content = {
       val replacementAssetsPath = s"$s3Endpoint/assets"
-      assetTemplateReferenceRegex
-        .replaceAllIn(contentsString, m => m.group(0).replaceFirst(m.group(1), replacementAssetsPath))
-        .getBytes
+      contents.mapUtf8(
+        contentsString =>
+          assetTemplateReferenceRegex
+            .replaceAllIn(contentsString, m => m.group(0).replaceFirst(m.group(1), replacementAssetsPath)))
     }
-    determineS3Endpoint(region, assetsS3Bucket, channel, commManifest).map(replaceReferences(_, new String(contents)))
+
+    determineS3Endpoint(region, assetsS3Bucket, channel, commManifest).map(replaceReferences(_, contents))
   }
 
   private def determineS3Endpoint(region: Regions,

@@ -1,6 +1,7 @@
 package controllers
 
 import java.io.ByteArrayInputStream
+import java.nio.file.{Files, OpenOption, StandardOpenOption}
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.zip.{ZipEntry, ZipFile}
@@ -21,7 +22,7 @@ import play.api.libs.Files.TemporaryFile
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc._
-import templates.UploadedFile
+import templates.{Content, UploadedFile}
 
 import scala.collection.JavaConversions._
 
@@ -95,7 +96,9 @@ class MainController(val authConfig: GoogleAuthConfig,
       val commManifest = CommManifest(CommType.CommTypeFromValue(commType.head), commName.head, "1.0")
 
       val uploadedFiles = extractUploadedFiles(templateFile)
-      TemplateOp.validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username).foldMap(interpreter) match {
+      val result = TemplateOp
+        .validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username)
+        .foldMap(interpreter) match {
         case Right(_) =>
           Ok(
             views.html.publishNewTemplate("ok",
@@ -105,6 +108,10 @@ class MainController(val authConfig: GoogleAuthConfig,
         case Left(errors) =>
           Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
       }
+
+      uploadedFiles.foreach(_.clean())
+
+      result
     }
     result.getOrElse {
       Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
@@ -119,13 +126,19 @@ class MainController(val authConfig: GoogleAuthConfig,
         .file("templateFile")
         .map { templateFile =>
           val uploadedFiles = extractUploadedFiles(templateFile)
-          TemplateOp
+
+          val result = TemplateOp
             .validateAndUploadExistingTemplate(commName, uploadedFiles, user.username)
             .foldMap(interpreter) match {
             case Right(newVersion) =>
               Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
-            case Left(errors) => Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
+            case Left(errors) =>
+              Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
           }
+
+          uploadedFiles.foreach(_.clean())
+
+          result
         }
         .getOrElse {
           Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
@@ -154,10 +167,21 @@ class MainController(val authConfig: GoogleAuthConfig,
         val inputStream = zip.getInputStream(zipEntry)
         try {
           val path = zipEntry.getName.replaceFirst("^/", "")
-          UploadedFile(path, IOUtils.toByteArray(inputStream)) :: list
+
+          val content = if (zipEntry.getSize <= 250 * 1024) {
+            Content(IOUtils.toByteArray(inputStream))
+          } else {
+            val temporaryFile = TemporaryFile()
+            temporaryFile.file.mkdirs()
+            IOUtils.copy(inputStream, Files.newOutputStream(temporaryFile.file.toPath))
+            Content(temporaryFile)
+          }
+
+          UploadedFile(path, content) :: list
         } finally {
           IOUtils.closeQuietly(inputStream)
         }
       })
+
   }
 }

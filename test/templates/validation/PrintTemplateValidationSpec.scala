@@ -6,7 +6,7 @@ import cats.data.NonEmptyList
 import cats.data.Validated.Invalid
 import com.ovoenergy.comms.model.Print
 import org.scalatest.{FlatSpec, Matchers}
-import templates.{Asset, HtmlBody, UploadedTemplateFile, validation}
+import templates._
 
 class PrintTemplateValidationSpec extends FlatSpec with Matchers {
 
@@ -24,7 +24,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
 
-    val printTemplateFile = List(UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None))
+    val printTemplateFile = List(UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None))
     val result            = PrintTemplateValidation.validatePrintFiles(printTemplateFile)
 
     result shouldBe Invalid(
@@ -39,7 +39,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
 
-    val printTemplateFile = List(UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None))
+    val printTemplateFile = List(UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None))
     val result            = PrintTemplateValidation.validatePrintFiles(printTemplateFile)
 
     result shouldBe Invalid(NonEmptyList.of("Could not find expected address element with id letterAddress"))
@@ -60,7 +60,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
 
-    val printTemplateFile = List(UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None))
+    val printTemplateFile = List(UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None))
     val result            = PrintTemplateValidation.validatePrintFiles(printTemplateFile)
 
     result shouldBe Invalid(NonEmptyList.of("Script included in body.html is not allowed"))
@@ -92,7 +92,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |     </div>
         |</html>
       """.stripMargin
-    val printTemplateFile = List(UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None))
+    val printTemplateFile = List(UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None))
     val result            = PrintTemplateValidation.validatePrintFiles(printTemplateFile)
 
     result shouldBe Invalid(
@@ -122,7 +122,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |     </div>
         |</html>
       """.stripMargin
-    val printTemplateFile = List(UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None))
+    val printTemplateFile = List(UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None))
     val result            = PrintTemplateValidation.validatePrintFiles(printTemplateFile)
 
     result shouldBe 'valid
@@ -131,7 +131,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
   it should "Error if an invalid image format is present" in {
 
     val imagePath       = getClass.getResource("/images/donnie.png")
-    val file            = Files.readAllBytes(Paths.get("test/resources/images/donnie.png"))
+    val file            = Content(Paths.get("test/resources/images/donnie.png"))
     val printImageAsset = List(UploadedTemplateFile("assets/donnie.png", file, Print, Asset, None))
 
     val result = PrintTemplateValidation.validatePrintFiles(printImageAsset)
@@ -141,7 +141,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
 
   it should "Error if an RGB image is included" in {
     val imagePath       = getClass.getResource("/images/donnie.jpg")
-    val file            = Files.readAllBytes(Paths.get("test/resources/images/donnie.jpg"))
+    val file            = Content(Paths.get("test/resources/images/donnie.jpg"))
     val printImageAsset = List(UploadedTemplateFile("assets/donnie.jpg", file, Print, Asset, None))
 
     val result = PrintTemplateValidation.validatePrintFiles(printImageAsset)
@@ -153,8 +153,12 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
 
   it should "Allow CMYK image is included" in {
     def templateFileForName(name: String) = {
-      val bytes = Files.readAllBytes(Paths.get(s"test/resources/images/$name"))
-      List(UploadedTemplateFile("assets/cmyk.jpg", bytes, Print, Asset, None))
+      List(
+        UploadedTemplateFile("assets/cmyk.jpg",
+                             Content(Paths.get(s"test/resources/images/$name")),
+                             Print,
+                             Asset,
+                             None))
     }
 
     val validImageFiles = List("cmyk.jpg", "ovoGreen.tif")
@@ -170,7 +174,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
   }
 
   it should "allow lots of valid templateFiles" in {
-    val bytes = Files.readAllBytes(Paths.get(s"test/resources/images/cmyk.jpg"))
+    val exampleImage = Paths.get(s"test/resources/images/cmyk.jpg")
     val exampleHtml =
       """<html>
         |     <head>
@@ -193,8 +197,8 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |</html>
       """.stripMargin
     val templateFiles = List(
-      UploadedTemplateFile("assets/cmyk.jpg", bytes, Print, Asset, None),
-      UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None)
+      UploadedTemplateFile("assets/cmyk.jpg", Content(exampleImage), Print, Asset, None),
+      UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None)
     )
     PrintTemplateValidation.validatePrintFiles(templateFiles) shouldBe 'valid
   }
@@ -216,7 +220,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val templateFiles = List(
-      UploadedTemplateFile("assets/myStyle.css", exampleCSS.getBytes, Print, Asset, None)
+      UploadedTemplateFile("assets/myStyle.css", Content(exampleCSS), Print, Asset, None)
     )
 
     PrintTemplateValidation.validatePrintFiles(templateFiles) shouldBe 'valid
@@ -239,7 +243,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val templateFiles = List(
-      UploadedTemplateFile("assets/myStyle.css", exampleCSS.getBytes, Print, Asset, None)
+      UploadedTemplateFile("assets/myStyle.css", Content(exampleCSS), Print, Asset, None)
     )
 
     PrintTemplateValidation.validatePrintFiles(templateFiles) shouldBe Invalid(
@@ -273,7 +277,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val templateFiles = List(
-      UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None)
+      UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None)
     )
 
     PrintTemplateValidation.validatePrintFiles(templateFiles) shouldBe Invalid(NonEmptyList.of(
@@ -306,7 +310,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val templateFiles = List(
-      UploadedTemplateFile("body.html", exampleHtml.getBytes, Print, HtmlBody, None)
+      UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None)
     )
 
     PrintTemplateValidation.validatePrintFiles(templateFiles) shouldBe 'valid

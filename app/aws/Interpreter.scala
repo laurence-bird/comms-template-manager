@@ -1,5 +1,7 @@
 package aws
 
+import java.nio.file.Files
+
 import aws.s3.{S3FileDetails, S3Operations}
 import cats.data.NonEmptyList
 import cats.~>
@@ -51,7 +53,10 @@ object Interpreter {
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
             val s3File =
-              S3FileDetails(uploadedFile.contents, key, awsContext.s3RawTemplatesBucket, uploadedFile.contentType)
+              S3FileDetails(uploadedFile.byteArrayContents,
+                            key,
+                            awsContext.s3RawTemplatesBucket,
+                            uploadedFile.contentType)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
               case Left(error) => {
                 PagerDutyAlerter(s"Attempt to publish file by $publishedBy to $key failed", pagerDutyContext)
@@ -64,7 +69,10 @@ object Interpreter {
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
             val s3File =
-              S3FileDetails(uploadedFile.contents, key, awsContext.s3TemplateAssetsBucket, uploadedFile.contentType)
+              S3FileDetails(uploadedFile.byteArrayContents,
+                            key,
+                            awsContext.s3TemplateAssetsBucket,
+                            uploadedFile.contentType)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
               case Left(error) => {
                 PagerDutyAlerter(s"Attempt to publish file by $publishedBy to $key failed", pagerDutyContext)
@@ -80,7 +88,8 @@ object Interpreter {
           case UploadProcessedTemplateFileToS3(commManifest, uploadedFile, publishedBy) =>
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
-            val s3File = S3FileDetails(uploadedFile.contents, key, awsContext.s3TemplateFilesBucket)
+            val s3File =
+              S3FileDetails(uploadedFile.byteArrayContents, key, awsContext.s3TemplateFilesBucket)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
               case Left(error) => {
                 PagerDutyAlerter(s"Attempt to publish file by $publishedBy to $key failed", pagerDutyContext)

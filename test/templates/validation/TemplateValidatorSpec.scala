@@ -10,7 +10,7 @@ import templates._
 
 class TemplateValidatorSpec extends FlatSpec with Matchers {
 
-  def generateUploadedFile(path: String, contents: String) = UploadedFile(path, contents.getBytes)
+  def generateUploadedFile(path: String, contents: String) = UploadedFile(path, Content(contents))
 
   object S3ClientStub extends S3Client {
     override def getUTF8TextFileContent(key: String): Option[String] = fail("Not expected to be invoked")
@@ -201,7 +201,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       .get
     for (i <- 0 to 2) {
       result(i).path shouldBe uploadedFiles(i).path
-      new String(result(i).contents) shouldBe new String(uploadedFiles(i).contents)
+      result(i).utf8Content shouldBe uploadedFiles(i).utf8Content
     }
     result(0).channel shouldBe Email
     result(0).fileType shouldBe HtmlBody
@@ -224,7 +224,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       .get
     for (i <- 0 to 3) {
       result(i).path shouldBe uploadedFiles(i).path
-      new String(result(i).contents) shouldBe new String(uploadedFiles(i).contents)
+      result(i).utf8Content shouldBe uploadedFiles(i).utf8Content
     }
     result(0).channel shouldBe Email
     result(0).fileType shouldBe HtmlBody

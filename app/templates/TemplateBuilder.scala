@@ -1,7 +1,5 @@
 package templates
 
-import java.nio.charset.StandardCharsets
-
 import cats.data.Validated.Valid
 import cats.data.{NonEmptyList, Validated}
 import cats.syntax.cartesian._
@@ -18,20 +16,19 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getEmailTemplate(commManifest: CommManifest): Option[TemplateErrors[EmailTemplateFiles]] = {
     val subject: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, Subject, _) =>
-        TemplateFile(commManifest.commType, Email, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
+      case uploaded @ UploadedTemplateFile(_, _, Email, Subject, _) =>
+        TemplateFile(commManifest.commType, Email, FileFormat.Text, uploaded.utf8Content)
     }
     val htmlBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, HtmlBody, _) =>
-        TemplateFile(commManifest.commType, Email, FileFormat.Html, new String(contents, StandardCharsets.UTF_8))
+      case uploaded @ UploadedTemplateFile(_, _, Email, HtmlBody, _) =>
+        TemplateFile(commManifest.commType, Email, FileFormat.Html, uploaded.utf8Content)
     }
     val textBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, TextBody, _) =>
-        TemplateFile(commManifest.commType, Email, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
+      case uploaded @ UploadedTemplateFile(_, _, Email, TextBody, _) =>
+        TemplateFile(commManifest.commType, Email, FileFormat.Text, uploaded.utf8Content)
     }
     val customSender: Option[String] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Email, Sender, _) =>
-        new String(contents, StandardCharsets.UTF_8)
+      case uploaded @ UploadedTemplateFile(_, _, Email, Sender, _) => uploaded.utf8Content
     }
 
     val templateOrError: TemplateErrors[EmailTemplateFiles] = {
@@ -60,8 +57,8 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getSMSTemplate(commManifest: CommManifest): Option[TemplateErrors[SMSTemplateFiles]] = {
     val textBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, SMS, TextBody, _) =>
-        TemplateFile(commManifest.commType, SMS, FileFormat.Text, new String(contents, StandardCharsets.UTF_8))
+      case uploaded @ UploadedTemplateFile(_, _, SMS, TextBody, _) =>
+        TemplateFile(commManifest.commType, SMS, FileFormat.Text, uploaded.utf8Content)
     }
 
     textBody.map(tb => Valid(SMSTemplateFiles(textBody = tb)))
@@ -69,8 +66,8 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
 
   override def getPrintTemplate(commManifest: CommManifest): Option[TemplateErrors[PrintTemplateFiles]] = {
     val htmlBody: Option[TemplateFile] = files.collectFirst {
-      case UploadedTemplateFile(_, contents, Print, HtmlBody, _) =>
-        TemplateFile(commManifest.commType, Print, FileFormat.Html, new String(contents, StandardCharsets.UTF_8))
+      case uploaded @ UploadedTemplateFile(_, _, Print, HtmlBody, _) =>
+        TemplateFile(commManifest.commType, Print, FileFormat.Html, uploaded.utf8Content)
     }
 
     htmlBody.map(tb => Valid(PrintTemplateFiles(body = tb)))

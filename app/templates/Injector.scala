@@ -1,6 +1,8 @@
 package templates
 
 import java.io
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path}
 
 import cats.{Apply, Traverse}
 import cats.data.{NonEmptyList, Validated}
@@ -30,7 +32,8 @@ object Injector {
     Valid(content.getBytes())
   }
 
-  def getStringTemplate(content: Array[Byte]) = new String(content)
+  def getStringTemplate(path: Path) =
+    new String(Files.readAllBytes(path), StandardCharsets.UTF_8)
 
   def injectIntoTemplate(awsConfig: aws.Context, processedFiles: ProcessedFiles) = {
 
@@ -48,13 +51,12 @@ object Injector {
 
     def getUpdatedTemplate(template: UploadedTemplateFile)(
         contents: Array[Byte]): Validated[NonEmptyList[String], UploadedTemplateFile] =
-      Valid(template.copy(contents = contents))
+      Valid(template.mapContent(_ => contents))
 
     def inject(injectTemplateContent: String => Validated[NonEmptyList[String], String])(
         template: UploadedTemplateFile) = {
-      val templateString = getStringTemplate(template.contents)
 
-      injectTemplateContent(templateString) andThen
+      injectTemplateContent(template.utf8Content) andThen
         getByteTemplate andThen
         getUpdatedTemplate(template)
     }

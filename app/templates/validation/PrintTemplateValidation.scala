@@ -1,6 +1,6 @@
 package templates.validation
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, InputStream}
 
 import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import cats.data.Validated.{Invalid, Valid}
@@ -101,11 +101,10 @@ object PrintTemplateValidation {
 
     def isSupportedColourSpace: TemplateErrors[UploadedTemplateFile] = {
       val colourSpaceTagIdentifiers = Seq("colour space", "photometric interpretation", "color space")
-      val inputStream               = new ByteArrayInputStream(printTemplateFile.contents)
 
       val colourSpaceTags: Seq[Tag] = {
-        Image
-          .fromStream(inputStream)
+        printTemplateFile.contents
+          .withContentStream(in => Image.fromStream(in))
           .metadata
           .tags
           .filter(t => colourSpaceTagIdentifiers.contains(t.name.toLowerCase))
@@ -162,7 +161,7 @@ object PrintTemplateValidation {
       printTemplateFile match {
 
         case htmlFile if htmlFile.fileType == HtmlBody => {
-          val htmlStr = new String(htmlFile.contents)
+          val htmlStr = htmlFile.utf8Content
           (validateAddressBox(htmlStr) |@| validateHtmlColourSpace(htmlStr, printTemplateFile) |@| validateNoJsIncluded(
             htmlStr,
             printTemplateFile) |@| validateExternalStylesheets(htmlStr))
@@ -180,7 +179,7 @@ object PrintTemplateValidation {
         }
 
         case cssFile if cssFile.fileType == Asset && cssMatcher.findFirstMatchIn(cssFile.path).isDefined => {
-          verifyColourUsage(new String(cssFile.contents), cssFile.path) match {
+          verifyColourUsage(cssFile.utf8Content, cssFile.path) match {
             case Valid(())    => Valid(cssFile)
             case Invalid(err) => Invalid(err)
           }
