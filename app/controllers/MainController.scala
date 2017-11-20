@@ -96,7 +96,7 @@ class MainController(val authConfig: GoogleAuthConfig,
       val commManifest = CommManifest(CommType.CommTypeFromValue(commType.head), commName.head, "1.0")
 
       val uploadedFiles = extractUploadedFiles(templateFile)
-      val result = TemplateOp
+      TemplateOp
         .validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username)
         .foldMap(interpreter) match {
         case Right(_) =>
@@ -109,9 +109,6 @@ class MainController(val authConfig: GoogleAuthConfig,
           Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
       }
 
-      uploadedFiles.foreach(_.clean())
-
-      result
     }
     result.getOrElse {
       Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
@@ -127,7 +124,7 @@ class MainController(val authConfig: GoogleAuthConfig,
         .map { templateFile =>
           val uploadedFiles = extractUploadedFiles(templateFile)
 
-          val result = TemplateOp
+          TemplateOp
             .validateAndUploadExistingTemplate(commName, uploadedFiles, user.username)
             .foldMap(interpreter) match {
             case Right(newVersion) =>
@@ -135,10 +132,6 @@ class MainController(val authConfig: GoogleAuthConfig,
             case Left(errors) =>
               Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
           }
-
-          uploadedFiles.foreach(_.clean())
-
-          result
         }
         .getOrElse {
           Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
@@ -166,16 +159,8 @@ class MainController(val authConfig: GoogleAuthConfig,
       .foldLeft(List[UploadedFile]())((list, zipEntry) => {
         val inputStream = zip.getInputStream(zipEntry)
         try {
-          val path = zipEntry.getName.replaceFirst("^/", "")
-
-          val content = if (zipEntry.getSize <= 250 * 1024) {
-            Content(IOUtils.toByteArray(inputStream))
-          } else {
-            val temporaryFile = TemporaryFile()
-            temporaryFile.file.mkdirs()
-            IOUtils.copy(inputStream, Files.newOutputStream(temporaryFile.file.toPath))
-            Content(temporaryFile)
-          }
+          val path    = zipEntry.getName.replaceFirst("^/", "")
+          val content = Content(inputStream, zipEntry.getSize)
 
           UploadedFile(path, content) :: list
         } finally {
