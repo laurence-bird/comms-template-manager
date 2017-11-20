@@ -1,5 +1,5 @@
 import java.io.{ByteArrayInputStream, IOException, InputStream}
-import java.nio.file.{Files, Path, StandardOpenOption}
+import java.nio.file.{Files, Path, StandardCopyOption, StandardOpenOption}
 
 import cats.data._
 import cats.implicits._
@@ -114,7 +114,7 @@ package object templates {
 
     def apply(path: Path): Content = {
       val destination = TemporaryFile()
-      Files.copy(path, destination.file.toPath)
+      Files.copy(path, destination.file.toPath, StandardCopyOption.REPLACE_EXISTING)
       PathContent(destination)
     }
 
