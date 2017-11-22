@@ -47,21 +47,4 @@ trait AuthActions { _: GoogleAuthComponents =>
         defaultParser = controllerComponents.parsers.default
       )
 
-//  object DummyAuthAction
-//      extends AuthenticatedBuilder[UserIdentity](userinfo = _ => {
-//        Logger.info("Skipping authentication because auth is disabled")
-//        Some(
-//          UserIdentity(sub = "dummy.user",
-//                       email = "dummy.email",
-//                       firstName = "Dummy",
-//                       lastName = "User",
-//                       exp = Long.MaxValue,
-//                       avatarUrl = None))
-//      })
-//
-//  def Authenticated: ActionBuilder[AuthRequest] =
-//    if (enableAuth) {
-//      AuthAction andThen LogRequest
-//    } else
-//      DummyAuthAction andThen LogRequest
 }
