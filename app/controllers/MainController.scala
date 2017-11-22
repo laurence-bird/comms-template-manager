@@ -36,7 +36,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   val log = LoggerFactory.getLogger("MainController")
 
-  val healthcheck = Authenticated { Ok("OK") }
+  val healthcheck = Action { Ok("OK") }
 
   val index = Authenticated { request =>
     implicit val user = request.user

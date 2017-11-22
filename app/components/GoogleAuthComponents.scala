@@ -9,7 +9,6 @@ import play.api.Logger
 
 import scala.collection.JavaConverters._
 
-
 trait GoogleAuthComponents { self: ConfigUtil =>
 
   def googleAuthConfig = GoogleAuthConfig(
