@@ -5,9 +5,9 @@ import play.api.Logger
 import play.api.mvc.ActionTransformer
 import Auth.AuthRequest
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-object LogRequest extends ActionTransformer[AuthRequest, AuthRequest] {
+class LogRequest(implicit val executionContext: ExecutionContext) extends ActionTransformer[AuthRequest, AuthRequest] {
 
   private val requestLogger = Logger("requestLogger")
 

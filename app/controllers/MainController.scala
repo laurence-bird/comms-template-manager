@@ -1,7 +1,6 @@
 package controllers
 
 import java.io.ByteArrayInputStream
-import java.nio.file.{Files, OpenOption, StandardOpenOption}
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.zip.{ZipEntry, ZipFile}
@@ -11,36 +10,33 @@ import akka.util.ByteString
 import aws.Interpreter.ErrorsOr
 import cats.instances.either._
 import cats.~>
-import com.gu.googleauth.{GoogleAuthConfig, UserIdentity}
+import com.gu.googleauth.UserIdentity
 import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
+import controllers.Auth.AuthRequest
 import logic.{TemplateOp, TemplateOpA}
 import models.ZippedRawTemplate
 import org.apache.commons.compress.utils.IOUtils
 import org.slf4j.LoggerFactory
-import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.i18n.I18nSupport
 import play.api.libs.Files.TemporaryFile
-import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc._
 import templates.{Content, UploadedFile}
-
+import play.api.http.FileMimeTypes
 import scala.collection.JavaConversions._
 
-class MainController(val authConfig: GoogleAuthConfig,
-                     val wsClient: WSClient,
-                     val enableAuth: Boolean,
+class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
+                     override val controllerComponents: ControllerComponents,
                      interpreter: ~>[TemplateOpA, ErrorsOr],
-                     val messagesApi: MessagesApi,
                      commPerformanceUrl: String,
                      commSearchUrl: String,
                      libratoMetricsUrl: String)
-    extends AuthActions
-    with Controller
+    extends AbstractController(controllerComponents)
     with I18nSupport {
 
   val log = LoggerFactory.getLogger("MainController")
 
-  val healthcheck = Action { Ok("OK") }
+  val healthcheck = Authenticated { Ok("OK") }
 
   val index = Authenticated { request =>
     implicit val user = request.user
@@ -75,12 +71,12 @@ class MainController(val authConfig: GoogleAuthConfig,
     }
   }
 
-  def publishNewTemplateGet = Authenticated { request =>
+  def publishNewTemplateGet = Authenticated { implicit request =>
     implicit val user = request.user
     Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None))
   }
 
-  def publishExistingTemplateGet(commName: String) = Authenticated { request =>
+  def publishExistingTemplateGet(commName: String) = Authenticated { implicit request =>
     implicit val user = request.user
     Ok(views.html.publishExistingTemplate("inprogress", List[String](), commName))
   }
@@ -138,7 +134,7 @@ class MainController(val authConfig: GoogleAuthConfig,
         }
   }
 
-  def operationalMetrics(commName: Option[String], channel: Option[String]) = Authenticated { request =>
+  def operationalMetrics(commName: Option[String], channel: Option[String]) = Authenticated { implicit request =>
     implicit val user = request.user
 
     val commNameString = commName.getOrElse("").toLowerCase
@@ -150,7 +146,8 @@ class MainController(val authConfig: GoogleAuthConfig,
     Ok(views.html.operationalMetrics(commName, channel, url))
   }
 
-  private def extractUploadedFiles(templateFile: FilePart[TemporaryFile]): List[UploadedFile] = {
+  private def extractUploadedFiles(templateFile: FilePart[TemporaryFile])(
+      implicit fileMimeTypes: FileMimeTypes): List[UploadedFile] = {
     val zip                                       = new ZipFile(templateFile.ref.file)
     val zipEntries: collection.Iterator[ZipEntry] = zip.entries
 
@@ -161,8 +158,7 @@ class MainController(val authConfig: GoogleAuthConfig,
         try {
           val path    = zipEntry.getName.replaceFirst("^/", "")
           val content = Content(inputStream, zipEntry.getSize)
-
-          UploadedFile(path, content) :: list
+          UploadedFile(path, content, fileMimeTypes.forFileName(path)) :: list
         } finally {
           IOUtils.closeQuietly(inputStream)
         }

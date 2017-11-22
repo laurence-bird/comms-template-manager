@@ -32,9 +32,6 @@ object Injector {
     Valid(content.getBytes())
   }
 
-  def getStringTemplate(path: Path) =
-    new String(Files.readAllBytes(path), StandardCharsets.UTF_8)
-
   def injectIntoTemplate(awsConfig: aws.Context, processedFiles: ProcessedFiles) = {
 
     def getS3SharedAssetLink(assetName: String) = {
