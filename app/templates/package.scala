@@ -6,7 +6,6 @@ import cats.implicits._
 import com.ovoenergy.comms.model._
 import org.apache.commons.io.IOUtils
 import play.api.libs.Files.TemporaryFile
-import play.api.libs.MimeTypes
 
 import scala.util.matching.Regex
 import java.nio.charset.StandardCharsets.UTF_8
@@ -91,7 +90,7 @@ package object templates {
 
     private def filter(uploadedFiles: List[UploadedFile], regexes: Iterable[FileRegex]): List[UploadedTemplateFile] =
       uploadedFiles.flatMap { uploadedFile =>
-        val mimeType = MimeTypes.forFileName(uploadedFile.path)
+        val mimeType = uploadedFile.mimetypeStr
         regexes.collectFirst {
           case r if r.regex.pattern.matcher(uploadedFile.path).find =>
             UploadedTemplateFile(uploadedFile.path, uploadedFile.contents, r.channel, r.fileType, mimeType)
@@ -112,9 +111,9 @@ package object templates {
 
     def apply(stream: InputStream, size: Long): Content =
       if (size > MaxInMemorySize) {
-        val destination = TemporaryFile()
+        val destination = Files.createTempFile("template-manager", "tmp")
         val out: OutputStream = Files.newOutputStream(
-          destination.file.toPath,
+          destination,
           StandardOpenOption.WRITE,
           StandardOpenOption.CREATE,
           StandardOpenOption.TRUNCATE_EXISTING
@@ -133,9 +132,9 @@ package object templates {
 
     def apply(data: Array[Byte]): Content =
       if (data.length > MaxInMemorySize) {
-        val destination = TemporaryFile()
+        val destination = Files.createTempFile("template-manager", "tmp")
         Files.write(
-          destination.file.toPath,
+          destination,
           data,
           StandardOpenOption.WRITE,
           StandardOpenOption.CREATE,
@@ -147,13 +146,10 @@ package object templates {
         ByteArrayContent(data)
       }
 
-    def apply(temporaryFile: TemporaryFile): Content =
-      apply(temporaryFile.file.toPath)
-
     def apply(path: Path): Content =
       if (Files.size(path) > MaxInMemorySize) {
-        val destination = TemporaryFile()
-        Files.copy(path, destination.file.toPath, StandardCopyOption.REPLACE_EXISTING)
+        val destination = Files.createTempFile("template-manager", "tmp")
+        Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING)
         PathContent(destination)
       } else {
         ByteArrayContent(Files.readAllBytes(path))
@@ -171,7 +167,7 @@ package object templates {
     private def clean(): Unit = this match {
       case _: ByteArrayContent =>
       case pc: PathContent =>
-        pc.temporaryFile.clean()
+        Files.delete(pc.path)
     }
 
     def mapUtf8(f: String => String): Content =
@@ -183,11 +179,11 @@ package object templates {
         ByteArrayContent(f(data))
 
       case pc: PathContent =>
-        val destination = TemporaryFile()
-        destination.file.mkdirs()
-        Files.write(destination.file.toPath,
+        val destination = Files.createTempFile("template-manager", "tmp")
+        Files.write(destination,
                     f(Files.readAllBytes(pc.path)),
                     StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING)
         PathContent(destination)
     }
@@ -228,11 +224,9 @@ package object templates {
     }
   }
 
-  case class PathContent(temporaryFile: TemporaryFile) extends Content {
-    def path: Path = temporaryFile.file.toPath
-  }
+  case class PathContent(path: Path) extends Content
 
-  case class UploadedFile(path: String, contents: Content) {
+  case class UploadedFile(path: String, contents: Content, mimetypeStr: Option[String]) {
 
     def byteArrayContents: Array[Byte] = contents.toByteArray
 

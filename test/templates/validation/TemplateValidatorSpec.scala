@@ -5,12 +5,12 @@ import cats.data.Validated.{Invalid, Valid}
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.s3.S3Client
 import org.scalatest.{FlatSpec, Matchers}
-import play.api.libs.MimeTypes
 import templates._
 
 class TemplateValidatorSpec extends FlatSpec with Matchers {
 
-  def generateUploadedFile(path: String, contents: String) = UploadedFile(path, Content(contents))
+  def generateUploadedFile(path: String, contents: String, mimeType: Option[String] = Some("text/html")) =
+    UploadedFile(path, Content(contents), mimeType)
 
   object S3ClientStub extends S3Client {
     override def getUTF8TextFileContent(key: String): Option[String] = fail("Not expected to be invoked")
@@ -300,12 +300,13 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     val uploadedFiles = List(
       generateUploadedFile(
         "email/body.html",
-        "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"assets/something/another.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">"
+        "<img src=\"assets/smiley.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"assets/something/another.gif\" alt=\"Smiley face\" height=\"42\" width=\"42\">",
+        Some("text/html")
       ),
-      generateUploadedFile("email/subject.txt", "fsfdsfs"),
-      generateUploadedFile("email/assets/smiley.gif", "fsfdsfs"),
-      generateUploadedFile("email/assets/something/another.gif", "fsfdsfs"),
-      generateUploadedFile("print/assets/something/anotherAnother.tiff", "yo")
+      generateUploadedFile("email/subject.txt", "fsfdsfs", Some("text/plain")),
+      generateUploadedFile("email/assets/smiley.gif", "fsfdsfs", Some("image/gif")),
+      generateUploadedFile("email/assets/something/another.gif", "fsfdsfs", Some("image/gif")),
+      generateUploadedFile("print/assets/something/anotherAnother.tiff", "yo", Some("image/tiff"))
     )
 
     val result =

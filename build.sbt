@@ -2,13 +2,13 @@ import sbt._
 import sbt.Keys._
 
 organization := "com.ovoenergy"
-scalaVersion := "2.11.11"
+scalaVersion := "2.12.4"
 
 resolvers += Resolver.bintrayRepo("ovotech", "maven")
 
 libraryDependencies ++= Seq(
   ws,
-  "com.ovoenergy" %% "comms-kafka-messages" % "1.36",
+  "com.ovoenergy" %% "comms-kafka-messages" % "1.40",
   "io.circe" %% "circe-core" % "0.7.0",
   "io.circe" %% "circe-generic-extras" % "0.7.0",
   "io.circe" %% "circe-parser" % "0.7.0",
@@ -17,15 +17,15 @@ libraryDependencies ++= Seq(
   "com.gu" %% "scanamo" % "0.9.1",
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
-  "com.gu" %% "play-googleauth" % "0.6.0",
-  "com.ovoenergy" %% "comms-templates" % "0.12",
+  "com.gu" %% "play-googleauth" % "0.7.0",
+  "com.ovoenergy" %% "comms-templates" % "0.14",
   "org.webjars" % "bootstrap" % "3.3.4",
-  "com.squareup.okhttp3" % "okhttp" % "3.5.0",
+  "com.squareup.okhttp3" % "okhttp" % "3.9.0",
   "com.sksamuel.scrimage" %% "scrimage-core" % "3.0.0-alpha4",
   "com.sksamuel.scrimage" %% "scrimage-io-extra" % "3.0.0-alpha4",
   "com.sksamuel.scrimage" %% "scrimage-filters" % "3.0.0-alpha4",
   "net.ruippeixotog" %% "scala-scraper" % "2.0.0",
-  "org.scalatest" %% "scalatest" % "2.2.6" %  Test,
+  "org.scalatest" %% "scalatest" % "3.0.3" %  Test,
   "com.github.alexarchambault"  %% "scalacheck-shapeless_1.13" % "1.1.4" %   Test,
   "org.scalacheck" %% "scalacheck" % "1.13.4" % Test
 )
@@ -75,3 +75,4 @@ scalafmtAll := {
 (compile in Compile) := (compile in Compile).dependsOn(scalafmtAll).value
 
 commsPackagingHeapSize := 512
+commsPackagingMaxMetaspaceSize := 256
