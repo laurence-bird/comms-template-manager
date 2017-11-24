@@ -386,7 +386,7 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     templateVersions.find(_.commName == "INVALID-PRINT-COMM") shouldBe None
     templateSummaries.find(_.commName == "INVALID-PRINT-COMM") shouldBe None
     val resultBody = result.body().string()
-    resultBody should include("<li>Missing expected address placeholder address.county</li>")
+    resultBody should include("<li>Missing expected address placeholder address.town</li>")
     resultBody should include("<li>Script included in print/body.html is not allowed</li>")
   }
 

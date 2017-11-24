@@ -27,9 +27,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
     val printTemplateFile = List(UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None))
     val result            = PrintTemplateValidation.validatePrintFiles(printTemplateFile)
 
-    result shouldBe Invalid(
-      NonEmptyList.of("Missing expected address placeholder address.town",
-                      "Missing expected address placeholder address.county"))
+    result shouldBe Invalid(NonEmptyList.of("Missing expected address placeholder address.town"))
   }
 
   it should "Error if the address box is missing" in {
