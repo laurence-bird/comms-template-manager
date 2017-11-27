@@ -34,23 +34,23 @@ sealed trait DocRaptorError {
 
 case class BadRequest(errorDetails: String) extends DocRaptorError {
   val shouldRetry = true
-  val httpError = "Bad Request"
+  val httpError   = "Bad Request"
 }
 case class UnknownError(errorDetails: String) extends DocRaptorError {
   val shouldRetry = false
-  val httpError = "Unnkown error"
+  val httpError   = "Unnkown error"
 }
 case class Unauthorised(errorDetails: String) extends DocRaptorError {
   val shouldRetry = false
-  val httpError = "Unauthorised"
+  val httpError   = "Unauthorised"
 }
 case class Forbidden(errorDetails: String) extends DocRaptorError {
   val shouldRetry = true
-  val httpError = "Forbidden"
+  val httpError   = "Forbidden"
 }
 case class UnprocessableEntity(errorDetails: String) extends DocRaptorError {
   val shouldRetry = false
-  val httpError = "Unprocessable Entity"
+  val httpError   = "Unprocessable Entity"
 }
 
 object DocRaptorClient {
@@ -58,8 +58,8 @@ object DocRaptorClient {
   def renderPdf(printContext: PrintContext,
                 renderedPrintHtml: RenderedPrintHtml): Either[DocRaptorError, RenderedPrintPdf] = {
 
-    val docRaptorConfig: DocRaptorConfig = printContext.docRaptorConfig
-    val retryConfig: Retry.RetryConfig = printContext.retryConfig
+    val docRaptorConfig: DocRaptorConfig     = printContext.docRaptorConfig
+    val retryConfig: Retry.RetryConfig       = printContext.retryConfig
     val httpClient: Request => Try[Response] = printContext.httpClient
 
     val req: DocRaptorRequest = DocRaptorRequest(

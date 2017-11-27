@@ -13,15 +13,15 @@ class DocRaptorClientSpec extends FlatSpec with Matchers with EitherValues with 
 
   val docRaptorConfig =
     DocRaptorConfig("yolo", "http://www.laurencelikestesting.com", true, Retry.RetryConfig(1, Retry.retryImmediately))
-  val retryConfig = RetryConfig(1, Retry.retryImmediately)
+  val retryConfig       = RetryConfig(1, Retry.retryImmediately)
   val renderedPrintHtml = RenderedPrintHtml("<html><h>Here is a template</h><body>Laurence says Hi</body></html>")
 
   it should "Return a RenderedPrintHtml for a successful response from DocRaptor" in {
-    val response = "My cool pdf body".getBytes("UTF-8")
+    val response   = "My cool pdf body".getBytes("UTF-8")
     val httpClient = httpClientWithResponse(200, response)
 
     val printContext = PrintContext(docRaptorConfig, null, retryConfig, null, httpClient)
-    val renderedPdf = DocRaptorClient.renderPdf(printContext, renderedPrintHtml)
+    val renderedPdf  = DocRaptorClient.renderPdf(printContext, renderedPrintHtml)
 
     renderedPdf shouldBe 'right
     renderedPdf.right.value.pdfBody should contain theSameElementsAs response
@@ -38,8 +38,8 @@ class DocRaptorClientSpec extends FlatSpec with Matchers with EitherValues with 
     )
 
     httpCodesAndExpectedResponses.foreach { codeAndResponse =>
-      val httpClient = httpClientWithResponse(codeAndResponse._1, errorResponse.getBytes())
-      val printContext = PrintContext(docRaptorConfig, null, retryConfig, null, httpClient)
+      val httpClient        = httpClientWithResponse(codeAndResponse._1, errorResponse.getBytes())
+      val printContext      = PrintContext(docRaptorConfig, null, retryConfig, null, httpClient)
       val renderedPdfEither = DocRaptorClient.renderPdf(printContext, renderedPrintHtml)
       renderedPdfEither.left.value shouldBe codeAndResponse._2
     }
@@ -47,8 +47,8 @@ class DocRaptorClientSpec extends FlatSpec with Matchers with EitherValues with 
 
   it should "Not retry calls for the appropriate error codes" in {
     val noRetryStatusCodes = Seq(401, 422, 500)
-    val bodyContent = "Its broken!".getBytes()
-    val retryConfig = RetryConfig(5, Retry.retryImmediately)
+    val bodyContent        = "Its broken!".getBytes()
+    val retryConfig        = RetryConfig(5, Retry.retryImmediately)
     noRetryStatusCodes.foreach { code =>
       var totalCalls = 0
 
@@ -66,8 +66,8 @@ class DocRaptorClientSpec extends FlatSpec with Matchers with EitherValues with 
 
   it should "Retry for the appropriate error codes" in {
     val validRetryStatusCodes = Seq(400, 403)
-    val bodyContent = "Docraptor is down".getBytes()
-    val retryConfig = RetryConfig(5, Retry.retryImmediately)
+    val bodyContent           = "Docraptor is down".getBytes()
+    val retryConfig           = RetryConfig(5, Retry.retryImmediately)
 
     validRetryStatusCodes.foreach { code =>
       var totalCalls = 0
@@ -89,7 +89,7 @@ class DocRaptorClientSpec extends FlatSpec with Matchers with EitherValues with 
       """{"document_content":"<html><h>Here is a template</h><body>Laurence says Hi</body></html>","test":true,"type":"pdf","prince_options":{"profile":"PDF/X-1a:2003"},"javascript":true}"""
 
     val httpClientWithJsonAssertion = (req: Request) => {
-      val out = new ByteArrayOutputStream
+      val out    = new ByteArrayOutputStream
       val buffer = Okio.buffer(Okio.sink(out))
       req.body().writeTo(buffer)
       buffer.flush()
