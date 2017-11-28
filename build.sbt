@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
   "com.gu" %% "play-googleauth" % "0.7.0",
   "com.ovoenergy" %% "comms-templates" % "0.14",
   "org.webjars" % "bootstrap" % "3.3.4",
-  "com.squareup.okhttp3" % "okhttp" % "3.9.0",
+  "com.squareup.okhttp3" % "okhttp" % "3.4.2",
   "com.sksamuel.scrimage" %% "scrimage-core" % "3.0.0-alpha4",
   "com.sksamuel.scrimage" %% "scrimage-io-extra" % "3.0.0-alpha4",
   "com.sksamuel.scrimage" %% "scrimage-filters" % "3.0.0-alpha4",
