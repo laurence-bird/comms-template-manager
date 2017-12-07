@@ -1,39 +1,24 @@
-import aws.{AwsContextProvider, Interpreter}
 import aws.dynamo.Dynamo
 import aws.s3.AmazonS3ClientWrapper
+import aws.{AwsContextProvider, Interpreter}
 import com.amazonaws.regions.Regions
-import com.gu.googleauth.GoogleAuthConfig
 import com.gu.scanamo.Table
+import com.ovoenergy.comms.templates.s3.{AmazonS3ClientWrapper => TemplatesLibS3ClientWrapper}
+import components.Retry.RetryConfig
+import components.{ConfigUtil, GoogleAuthComponents, Retry}
 import controllers._
 import models.{TemplateSummary, TemplateVersion}
+import pagerduty.PagerDutyAlerter
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponentsFromContext
 import play.api.libs.ws.ahc.AhcWSComponents
-import play.api.routing.Router
-import router.Routes
-import aws.dynamo.DynamoFormats._
-import play.api.i18n.{DefaultLangs, DefaultMessagesApi, MessagesApi}
-import com.ovoenergy.comms.templates.s3.{AmazonS3ClientWrapper => TemplatesLibS3ClientWrapper}
-import pagerduty.PagerDutyAlerter
 import play.api.mvc.EssentialFilter
-
-import scala.concurrent.ExecutionContext
-import aws.s3.AmazonS3ClientWrapper
-import com.gu.googleauth.{AuthAction, UserIdentity}
-import components.{ConfigUtil, GoogleAuthComponents}
-import controllers.Auth.AuthRequest
-import controllers._
-import play.api.ApplicationLoader.Context
-import play.api.libs.ws.ahc.AhcWSComponents
-import play.api.mvc.{ActionBuilder, ActionFunction, AnyContent, Call}
-import play.api.mvc.Security.AuthenticatedBuilder
 import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Logger}
-import play.mvc.Http.Request
-import router.Routes
-
+import preview.ComposerClient
+import aws.dynamo.DynamoFormats._
 import scala.concurrent.ExecutionContext
-import scala.util.control.NonFatal
+import scala.concurrent.duration._
+import router.Routes
 
 class AppComponents(context: Context)
     extends BuiltInComponentsFromContext(context)
@@ -78,13 +63,18 @@ class AppComponents(context: Context)
   val commSearchUrl      = mandatoryConfig("auditLog.commSearchUrl")
   val libraroMetricsUrl  = mandatoryConfig("librato.metricsUrl")
 
+  val composerClient = new ComposerClient(wsClient, mandatoryConfig("composer.http.endpoint"))
+
   val mainController = new MainController(
     Authenticated,
     controllerComponents,
     interpreter,
     commPerformanceUrl,
     commSearchUrl,
-    libraroMetricsUrl
+    libraroMetricsUrl,
+    awsContext,
+    s3Client,
+    composerClient
   )
 
   val authController = new AuthController(googleAuthConfig, wsClient, groupsAuthConfig, controllerComponents)

@@ -20,6 +20,7 @@
                         <th>Published by</th>
                         <th>Published at</th>
                         <th>Download</th>
+                        <th>Preview</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -29,6 +30,7 @@
                         <td>@templateVersion.publishedBy</td>
                         <td>@templateVersion.publishedAt</td>
                         <td><a href="@routes.MainController.getTemplateVersion(templateVersion.commName, templateVersion.version)"><span class="glyphicon glyphicon-download"></span></a></td>
+                        <td><a href="@routes.MainController.getRequiredData(templateVersion.commName, templateVersion.version)"><span class="glyphicon glyphicon-eye-open"></span></a></td>
                     </tr>
                 }
                 </tbody>

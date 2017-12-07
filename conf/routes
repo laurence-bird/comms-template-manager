@@ -19,6 +19,9 @@ GET    /templates                       controllers.MainController.listTemplates
 GET    /publish/template           controllers.MainController.publishNewTemplateGet
 POST   /publish/template           controllers.MainController.publishNewTemplatePost
 
+GET    /preview/:commName/:version             controllers.MainController.getRequiredData(commName, version)
+POST   /preview/:commName/:version/print       controllers.MainController.getPreviewPrint(commName, version)
+
 GET    /publish/template/:commName     controllers.MainController.publishExistingTemplateGet(commName)
 POST   /publish/template/:commName     controllers.MainController.publishExistingTemplatePost(commName)
 

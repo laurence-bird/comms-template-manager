@@ -1,0 +1,21 @@
+@(commName: String, version: String, json: String)(implicit user: com.gu.googleauth.UserIdentity)
+
+@main {
+
+    <div class="page-header">
+        <h1>Required data for preview</h1>
+    </div>
+
+    @helper.form(action = routes.MainController.getPreviewPrint(commName, version)) {
+
+        <form>
+            <textarea rows="15" cols="100" id="templateData" name="templateData">@json</textarea>
+
+            <div class="col-lg-8">
+                <button type="submit" id="publish" class="btn btn-primary">Preview Print</button>
+            </div>
+        </form>
+
+    }
+
+}

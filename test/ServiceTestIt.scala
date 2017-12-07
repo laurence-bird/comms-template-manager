@@ -1,26 +1,32 @@
-import java.io.{ByteArrayInputStream, File, IOException}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, IOException}
+import java.nio.file.Files
 import java.time.Instant
+import java.util.Base64
 import java.util.concurrent.TimeUnit
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream}
 
+import akka.util.ByteString
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.model.AmazonDynamoDBException
 import com.amazonaws.services.s3.{AmazonS3Client, S3ClientOptions}
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
+import com.ovoenergy.comms.model.{CommManifest, CommType, Service, TemplateData}
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType._
 import com.gu.scanamo.{Scanamo, Table}
 import com.typesafe.config.{ConfigFactory, ConfigParseOptions, ConfigResolveOptions}
 import models.{TemplateSummary, TemplateVersion}
 import okhttp3._
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, Tag}
-import util.LocalDynamoDB
+import util.{LocalDynamoDB, MockServerFixture}
 import cats.syntax.either._
 import aws.dynamo.DynamoFormats._
+import com.google.common.io.Resources
+import org.mockserver.mock.Expectation
+import org.mockserver.model.{HttpRequest, HttpResponse}
 
 import scala.collection.JavaConverters._
 
-class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
+class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with BeforeAndAfterAll {
 
   object DockerComposeTag extends Tag("DockerComposeTag")
 
@@ -42,9 +48,14 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
   val templateVersionTable = Table[TemplateVersion](templateVersionsTableName)
   val templateSummaryTable = Table[TemplateSummary](templateSummaryTableName)
 
-  val httpClient = new OkHttpClient()
+  val httpClient = new OkHttpClient.Builder()
+    .connectTimeout(5, TimeUnit.SECONDS)
+    .readTimeout(30, TimeUnit.SECONDS)
+    .writeTimeout(30, TimeUnit.SECONDS)
+    .build()
 
   override def beforeAll() = {
+    super.beforeAll()
     initialiseS3Bucket()
     createDynamoTables()
     waitForAppToStart()
@@ -53,6 +64,7 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
   override def afterAll() = {
     dynamoClient.deleteTable(templateVersionsTableName)
     dynamoClient.deleteTable(templateSummaryTableName)
+    super.afterAll()
   }
 
   private def createDynamoTables() = {
@@ -388,6 +400,108 @@ class ServiceTestIt extends FlatSpec with Matchers with BeforeAndAfterAll {
     val resultBody = result.body().string()
     resultBody should include("<li>Missing expected address placeholder address.town</li>")
     resultBody should include("<li>Script included in print/body.html is not allowed</li>")
+  }
+
+  it should "return the previewed pdf from the composer" taggedAs DockerComposeTag in {
+
+    val commManifest: CommManifest = givenExistingTemplate()
+    val testPdfBytes               = givenPrintPreview(commManifest)
+
+    val result = makeRequest(
+      new Request.Builder()
+        .url(s"http://localhost:9000/preview/${commManifest.name}/${commManifest.version}/print")
+        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
+        .build()
+    )
+
+    result.isSuccessful shouldBe true
+    result.header("Content-Type") shouldBe "application/pdf"
+    ByteString(result.body().bytes()) shouldBe testPdfBytes
+  }
+
+  it should "return 404 when the template does not exist" taggedAs DockerComposeTag in {
+
+    val commManifest: CommManifest = givenNonExistingTemplate()
+    givenPrintPreview(commManifest)
+
+    val result = makeRequest(
+      new Request.Builder()
+        .url(s"http://localhost:9000/preview/${commManifest.name}/${commManifest.version}/print")
+        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
+        .build()
+    )
+
+    result.code() shouldBe 404
+  }
+
+  it should "return 404 when the composer return 404" taggedAs DockerComposeTag in {
+
+    val commManifest: CommManifest = givenExistingTemplate()
+    givenPrintPreviewForNonExistingPrintChannel(commManifest)
+
+    val result = makeRequest(
+      new Request.Builder()
+        .url(s"http://localhost:9000/preview/${commManifest.name}/${commManifest.version}/print")
+        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
+        .build()
+    )
+
+    result.code() shouldBe 404
+  }
+
+  private def givenExistingTemplate(): CommManifest = {
+    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service)
+    Scanamo.put(dynamoClient)(templateVersionsTableName)(templateVersion)
+
+    CommManifest(Service, templateVersion.commName, templateVersion.version)
+  }
+
+  private def givenNonExistingTemplate(): CommManifest = {
+    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service)
+    CommManifest(Service, templateVersion.commName, templateVersion.version)
+  }
+
+  private def givenPrintPreview(commManifest: CommManifest, printPreviewBytes: ByteString = givenTestPdf): ByteString = {
+
+    val testPdfAsBase64 = Base64.getEncoder.encodeToString(printPreviewBytes.toArray)
+
+    mockServerClient
+      .when(
+        HttpRequest
+          .request()
+          .withMethod("POST")
+          .withPath(s"/render/${commManifest.name}/${commManifest.version}/${commManifest.commType}/print")
+      )
+      .respond(
+        HttpResponse
+          .response()
+          .withBody(s"""{"renderedPrint": "$testPdfAsBase64"}""")
+      )
+
+    printPreviewBytes
+  }
+
+  private def givenPrintPreviewForNonExistingPrintChannel(commManifest: CommManifest): Unit = {
+
+    mockServerClient
+      .when(
+        HttpRequest
+          .request()
+          .withMethod("POST")
+          .withPath(s"/render/${commManifest.name}/${commManifest.version}/${commManifest.commType}/print")
+      )
+      .respond(
+        HttpResponse
+          .response()
+          .withStatusCode(404)
+          .withBody(s"""{"message": "Template not found"}""")
+      )
+
+  }
+
+  private def givenTestPdf: ByteString = {
+    val testPdfResource = getClass.getResource("/test.pdf")
+    ByteString(Resources.toByteArray(testPdfResource))
   }
 
   private def scan[A](table: Table[A]): List[A] = {

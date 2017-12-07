@@ -1,10 +1,19 @@
 version: '2'
 
 services:
+
+  mock-server:
+    image: jamesdbloom/mockserver:mockserver-3.12
+    ports:
+      - "1080:1080"
+      - "1090:1090"
+
   template-manager:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.eu-west-1.amazonaws.com/template-manager:0.1-SNAPSHOT
     depends_on:
       - dynamodb
+    command: |
+      -Dcomposer.http.endpoint=http://mock-server:1080
     environment:
       ENV: LOCAL
       LOCAL_DYNAMO: "http://dynamodb:8000"
@@ -14,6 +23,7 @@ services:
       - fakes3ssl:dev-ovo-comms-templates-raw.s3-eu-west-1.amazonaws.com
       - fakes3ssl:dev-ovo-comms-template-assets.s3-eu-west-1.amazonaws.com
       - fakes3ssl:ovo-comms-templates.s3-eu-west-1.amazonaws.com
+      - mock-server:mock-server
     ports:
       - "9000:9000"
     volumes:

@@ -8,11 +8,19 @@ import java.util.zip.{ZipEntry, ZipFile}
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import aws.Interpreter.ErrorsOr
-import cats.instances.either._
+import cats.data.NonEmptyList
 import cats.~>
+import cats.implicits._
+import com.amazonaws.services.s3.AmazonS3Client
 import com.gu.googleauth.UserIdentity
 import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
+import com.ovoenergy.comms.templates.cache.CachingStrategy
+import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
+import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
+import com.ovoenergy.comms.templates.retriever.{PartialsS3Retriever, TemplatesS3Retriever}
+import com.ovoenergy.comms.templates.s3.AmazonS3ClientWrapper
 import controllers.Auth.AuthRequest
+import http.PreviewForm
 import logic.{TemplateOp, TemplateOpA}
 import models.ZippedRawTemplate
 import org.apache.commons.compress.utils.IOUtils
@@ -22,26 +30,107 @@ import play.api.libs.Files.TemporaryFile
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc._
 import templates.{Content, UploadedFile}
-import play.api.http.FileMimeTypes
+import play.api.http.{FileMimeTypes, HttpChunk, HttpEntity}
+
 import scala.collection.JavaConversions._
+import io.circe._
+import io.circe.syntax._
+import play.api.libs.concurrent.Futures
+import preview._
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.util.control.NonFatal
+import play.api.libs.concurrent.Futures._
+import preview.ComposerClient.ComposerError
+import preview.ComposerClient.ComposerError.{TemplateNotFound, UnknownError}
 
 class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
                      override val controllerComponents: ControllerComponents,
                      interpreter: ~>[TemplateOpA, ErrorsOr],
                      commPerformanceUrl: String,
                      commSearchUrl: String,
-                     libratoMetricsUrl: String)
+                     libratoMetricsUrl: String,
+                     awsContext: aws.Context,
+                     amazonS3Client: AmazonS3Client,
+                     composerClient: ComposerClient)
     extends AbstractController(controllerComponents)
-    with I18nSupport {
+    with I18nSupport
+    with TemplateDataInstances {
 
   val log = LoggerFactory.getLogger("MainController")
 
-  val healthcheck = Action { Ok("OK") }
+  val healthcheck = Action {
+    Ok("OK")
+  }
 
   val index = Authenticated { request =>
     implicit val user = request.user
     Ok(views.html.index())
   }
+
+  val s3Client = new AmazonS3ClientWrapper(amazonS3Client, awsContext.s3TemplateFilesBucket)
+
+  val templateContext = TemplatesContext(
+    templatesRetriever = new TemplatesS3Retriever(s3Client),
+    parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client)),
+    cachingStrategy = CachingStrategy.noCache
+  )
+
+  def getPreviewPrint(commName: String, commVersion: String): Action[PreviewForm] =
+    Authenticated(parse.form(PreviewForm.previewPrintForm)).async { req =>
+      implicit val ec: ExecutionContext = controllerComponents.executionContext
+      val previewRequest                = req.body
+
+      val templateVersion = awsContext.dynamo.listVersions(commName).find(_.version == commVersion)
+
+      templateVersion
+        .fold(Future.successful(NotFound(s"Template $commName:$commVersion not found"))) { template =>
+          composerClient
+            .getRenderedPrintPdf(commName, commVersion, template.commType, previewRequest.templateData)
+            .map {
+              case Left(TemplateNotFound(message)) => NotFound(message)
+              case Left(UnknownError(message))     => ServiceUnavailable(message)
+              case Right(bytes)                    => Ok(bytes).as("application/pdf")
+            }
+        }
+        .recover {
+          case NonFatal(e) => ServiceUnavailable(e.getMessage)
+        }
+    }
+
+  def getRequiredData(commName: String, version: String) = Authenticated { request =>
+    implicit val user: UserIdentity = request.user
+
+    val getCommManifest: Either[NonEmptyList[String], CommManifest] = {
+      awsContext.dynamo.getTemplateSummary(commName).toRight(NonEmptyList.of("No template found")) match {
+        case Right(template) => Right(CommManifest(template.commType, template.commName, template.latestVersion))
+        case Left(error)     => Left(error)
+      }
+    }
+
+    val requiredFields: Either[NonEmptyList[String], Json] =
+      for {
+        commManifest <- getCommManifest
+        template     <- TemplatesRepo.getTemplate(templateContext, commManifest).toEither
+        requiredData <- template.requiredData.toEither
+        templateData <- TemplateDataGenerator
+          .generateTemplateData(requiredData)
+          .toRight(NonEmptyList.of("No mandatory fields"))
+      } yield {
+        templateData.asJson
+      }
+
+    requiredFields match {
+      case Left(errors) =>
+        NotFound(s"Failed to retrieve required data for template: $errors")
+      case Right(fields) =>
+        Ok(views.html.templateRequiredData(commName, version, fields.spaces4))
+
+    }
+  }
+
+  import cats.instances.either._
 
   def getTemplateVersion(commName: String, version: String) = Authenticated {
     TemplateOp.retrieveTemplate(CommManifest(Service, commName, version)).foldMap(interpreter) match {

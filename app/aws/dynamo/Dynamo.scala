@@ -57,6 +57,7 @@ class Dynamo(db: AmazonDynamoDB,
       .find(templateSummary => templateSummary.commName == commName)
   }
 
+  // FIXME this does not work in the real life as the version is not indexed.
   def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
     val query = templateVersionTable.get('commName -> commName and 'version -> version)
     Scanamo.exec(db)(query).flatMap(result => logIfError(result).toOption)
