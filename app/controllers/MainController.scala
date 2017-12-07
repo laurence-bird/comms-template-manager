@@ -5,6 +5,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.zip.{ZipEntry, ZipFile}
 
+import akka.NotUsed
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import aws.Interpreter.ErrorsOr
@@ -84,6 +85,10 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
       val templateVersion = awsContext.dynamo.listVersions(commName).find(_.version == commVersion)
 
+      def stream(bytes: ByteString, chunkSize: Int): Source[ByteString, NotUsed] = {
+        Source(bytes).grouped(chunkSize).flatMapConcat(bs => Source.single(ByteString(bs: _*)))
+      }
+
       templateVersion
         .fold(Future.successful(NotFound(s"Template $commName:$commVersion not found"))) { template =>
           composerClient
@@ -91,7 +96,8 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
             .map {
               case Left(TemplateNotFound(message)) => NotFound(message)
               case Left(UnknownError(message))     => ServiceUnavailable(message)
-              case Right(bytes)                    => Ok(bytes).as("application/pdf")
+              case Right(bytes) =>
+                Ok.chunked(stream(bytes, 1024)).as("application/pdf")
             }
         }
         .recover {
