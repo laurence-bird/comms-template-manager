@@ -16,8 +16,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 import io.circe.parser._
 import cats.syntax.either._
-
 import preview.ComposerClient.ComposerError.{TemplateNotFound, UnknownError}
+
+import scala.util.control.NonFatal
 
 class ComposerClient(wsClient: WSClient, composerApiEndpoint: String) extends CirceBodyWritablesReadables {
 
@@ -55,6 +56,11 @@ class ComposerClient(wsClient: WSClient, composerApiEndpoint: String) extends Ci
             .leftMap(e => UnknownError(e.getMessage))
             .fold(Left.apply, Left.apply)
 
+      }
+      .recover {
+        case NonFatal(e) =>
+          log.debug(s"""Composer preview request failed""", e)
+          Left(UnknownError(e.getMessage))
       }
   }
 
