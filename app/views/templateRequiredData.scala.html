@@ -6,7 +6,7 @@
         <h1>Required data for preview</h1>
     </div>
 
-    @helper.form(action = routes.MainController.getPreviewPrint(commName, version)) {
+    @helper.form(action = routes.MainController.getPreviewPrint(commName, version), args = 'target -> "_blank") {
 
         <form>
             <textarea rows="15" cols="100" id="templateData" name="templateData">@json</textarea>
