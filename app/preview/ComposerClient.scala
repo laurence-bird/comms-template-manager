@@ -31,21 +31,26 @@ class ComposerClient(wsClient: WSClient, composerApiEndpoint: String) extends Ci
 
     val requestUrl = s"$composerApiEndpoint/render/$commName/$commVersion/$commType/print"
 
+    log.debug(s"""Requesting the preview to composer composerRequestUrl="$requestUrl"""")
+
     wsClient
       .url(requestUrl)
       .post(PreviewRequest(templateData).asJson)
       .map {
         case response if response.status == 200 =>
+          log.debug(s"""Composer preview response succeeded composerResponseStatus=${response.status}""")
           decode[PreviewResponse](response.body)
             .leftMap(e => UnknownError(e.getMessage))
             .map(_.renderedPrint)
 
         case response if response.status == 404 =>
+          log.debug(s"""Composer preview response failed composerResponseStatus=${response.status}""")
           decode[TemplateNotFound](response.body)
             .leftMap(e => UnknownError(e.getMessage))
             .fold(Left.apply, Left.apply)
 
         case response =>
+          log.debug(s"""Composer preview response failed composerResponseStatus=${response.status}""")
           decode[UnknownError](response.body)
             .leftMap(e => UnknownError(e.getMessage))
             .fold(Left.apply, Left.apply)

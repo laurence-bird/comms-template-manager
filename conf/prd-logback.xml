@@ -18,9 +18,13 @@
             </layout>
         </encoder>
     </appender>
+
     <logger name="akka" level="INFO"/>
     <logger name="org.apache" level="WARN"/>
     <logger name="requestLogger" level="INFO"/>
+
+    <logger name="preview.ComposerClient" level="DEBUG" />
+
     <root level="INFO">
         <appender-ref ref="LogzioLogbackAppender"/>
         <appender-ref ref="GELF UDP APPENDER"/>
