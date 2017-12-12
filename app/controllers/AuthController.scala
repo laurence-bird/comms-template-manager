@@ -34,7 +34,7 @@ class AuthController(val authConfig: GoogleAuthConfig,
     val error = request.flash.get("error")
     Ok(views.html.authError(error))
   }
-  override val defaultRedirectTarget = routes.MainController.index()
+  override val defaultRedirectTarget = routes.MainController.listTemplates()
   override val failureRedirectTarget = routes.AuthController.authError()
 
 }

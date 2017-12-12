@@ -25,15 +25,19 @@
       <div class="container-fluid">
 
         <div class="navbar-header">
-          <a class="navbar-brand" href="@routes.MainController.index">Templates</a>
+          <a class="navbar-brand" href="https://audit-log.ovo-comms.co.uk/">Ovo Comms</a>
         </div>
 
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li><a href="@routes.MainController.index">Home</a></li>
-            <li><a href="@routes.MainController.listTemplates()">Existing Templates</a></li>
+            <li><a href="https://audit-log.ovo-comms.co.uk/">Home</a></li>
+            <li><a href="https://audit-log.ovo-comms.co.uk/comms/search">Search Comms</a></li>
+            <li><a href="https://audit-log.ovo-comms.co.uk/cancellations/search">Search Cancellation Requests</a></li>
+            <li><a href="https://audit-log.ovo-comms.co.uk/stats/comms">Comm Performance Stats</a></li>
+            <li><a href="@routes.MainController.listTemplates()">List Templates</a></li>
             <li><a href="@routes.MainController.publishNewTemplateGet()">Publish New Template</a></li>
-            <li><a href="@routes.MainController.operationalMetrics(None, None)">Operational Metrics</a></li>
+            <li><a href="@routes.MainController.operationalMetrics(None, None)">Metrics</a></li>
+            <li><a href="https://ovotech.github.io/comms-platform/">Docs</a></li>
           </ul>
 
           <p class="navbar-text navbar-right">Logged in as @user.fullName</p>
