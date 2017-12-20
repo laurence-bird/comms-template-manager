@@ -3,6 +3,7 @@
 # ~~~~
 
 GET     /                           controllers.MainController.listTemplates
+GET     /index                      controllers.MainController.index
 
 GET     /public/*file               controllers.Assets.at(path="/public", file)
 
