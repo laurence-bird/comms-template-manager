@@ -2,7 +2,8 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-GET     /                           controllers.MainController.index
+GET     /                           controllers.MainController.listTemplates
+GET     /index                      controllers.MainController.index
 
 GET     /public/*file               controllers.Assets.at(path="/public", file)
 

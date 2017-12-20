@@ -99,7 +99,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
         Thread.sleep(1000L)
 
         try {
-          val response = makeRequest(new Request.Builder().url("http://localhost:9000/").build())
+          val response = makeRequest(new Request.Builder().url("http://localhost:9000/index").build())
           response.code shouldBe 200
         } catch {
           case _: Exception => loop(attempts - 1)
