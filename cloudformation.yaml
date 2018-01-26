@@ -159,7 +159,6 @@ Resources:
           Value: ovo-comms-logs
         - Key: access_logs.s3.prefix
           Value: !Sub "template-manager/${Environment}/loadbalancer"
-      Name: !Sub "template-manager-${Environment}"
       Scheme: internet-facing
       SecurityGroups:
         - Ref: LoadBalancerSecurityGroup
@@ -169,13 +168,14 @@ Resources:
         - Key: Environment
           Value:
             Ref: Environment
+        - Key: Service
+          Value: template-manager
 
   ECSTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckPath: '/healthcheck'
       HealthCheckProtocol: HTTP
-      Name: !Sub "template-manager-${Environment}"
       Port: 80
       Protocol: HTTP
       TargetGroupAttributes:
