@@ -1,5 +1,5 @@
 addSbtPlugin("com.typesafe.play" % "sbt-plugin"         % "2.6.7")
-addSbtPlugin("com.tapad"         % "sbt-docker-compose" % "1.0.19")
+addSbtPlugin("com.tapad"         % "sbt-docker-compose" % "1.0.34")
 resolvers += Resolver.bintrayIvyRepo("ovotech", "sbt-plugins")
 addSbtPlugin("com.ovoenergy" % "sbt-comms-packaging" % "0.0.14")
 addSbtPlugin("com.localytics" % "sbt-dynamodb" % "1.5.3")
