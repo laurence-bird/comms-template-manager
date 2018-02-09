@@ -57,7 +57,10 @@ jobs:
             - target/resolution-cache
             # TODO docker image cache?
       - run: sbt test
-      - run: sbt dockerComposeTest
+      - run:
+          name: Run servicetest
+          command: "sbt dockerComposeTest"
+          no_output_timeout: 20m
 
       - store_artifacts:
           path: /home/circleci/comms-template-manager/target/integration-test-logs
