@@ -134,6 +134,10 @@ Resources:
         - IpProtocol: tcp
           FromPort: '443'
           ToPort: '443'
+          CidrIp: 80.169.147.205/32 # London Paddington
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
           CidrIp: 84.246.176.192/27 # BCP site
 
       SecurityGroupEgress:
