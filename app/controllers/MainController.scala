@@ -17,7 +17,7 @@ import com.gu.googleauth.UserIdentity
 import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
 import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
-import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
+import com.ovoenergy.comms.templates.parsing.handlebars.{HandlebarsParsing, Validators}
 import com.ovoenergy.comms.templates.retriever.{PartialsS3Retriever, TemplatesS3Retriever}
 import com.ovoenergy.comms.templates.s3.AmazonS3ClientWrapper
 import controllers.Auth.AuthRequest
@@ -72,9 +72,9 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   val s3Client = new AmazonS3ClientWrapper(amazonS3Client, awsContext.s3TemplateFilesBucket)
 
-  val templateContext = TemplatesContext(
+  val printPreviewTemplateContext = TemplatesContext(
     templatesRetriever = new TemplatesS3Retriever(s3Client),
-    parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client)),
+    parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client), Set(Validators.Profile, Validators.Recipient)),
     cachingStrategy = CachingStrategy.noCache
   )
 
@@ -118,7 +118,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     val requiredFields: Either[NonEmptyList[String], Json] =
       for {
         commManifest <- getCommManifest
-        template     <- TemplatesRepo.getTemplate(templateContext, commManifest).toEither
+        template     <- TemplatesRepo.getTemplate(printPreviewTemplateContext, commManifest).toEither
         requiredData <- template.requiredData.toEither
         templateData <- TemplateDataGenerator
           .generateTemplateData(requiredData)
