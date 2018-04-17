@@ -36,14 +36,15 @@ object PrintTemplateValidation {
         val initialState: TemplateErrors[Boolean] = Valid(true)
 
         // Fold through expected address fields, accumulating errors if field(s) are missing
-        expectedAddressFields.foldLeft(initialState) { (accumulator, expectedAddressPlaceholder) =>
-          val result = {
-            if (addr.text.contains(s"{{$expectedAddressPlaceholder}}"))
-              Valid(true)
-            else Invalid(NonEmptyList.of(s"Missing expected address placeholder $expectedAddressPlaceholder"))
-          }
+        expectedAddressFields.foldLeft(initialState) {
+          (accumulator: TemplateErrors[Boolean], expectedAddressPlaceholder) =>
+            val result: TemplateErrors[Boolean] = {
+              if (addr.text.contains(s"{{$expectedAddressPlaceholder}}"))
+                Valid(true)
+              else Invalid(NonEmptyList.of(s"Missing expected address placeholder $expectedAddressPlaceholder"))
+            }
 
-          (accumulator |@| result).map { case (_, _) => true }
+            (accumulator, result).mapN { case (_, _) => true }
         }
       }
       .getOrElse(Invalid(NonEmptyList.of(s"Could not find expected address element with id $addressBoxId")))
@@ -120,7 +121,7 @@ object PrintTemplateValidation {
             s"Asset ${printTemplateFile.path} has an invalid colour space, only CMYK colours are supported for print"))
     }
 
-    (isSupportedFileType |@| isSupportedColourSpace).map {
+    (isSupportedFileType, isSupportedColourSpace).mapN {
       case (_, _) => printTemplateFile
     }
   }
@@ -162,10 +163,11 @@ object PrintTemplateValidation {
 
         case htmlFile if htmlFile.fileType == HtmlBody => {
           val htmlStr = htmlFile.utf8Content
-          (validateAddressBox(htmlStr) |@| validateHtmlColourSpace(htmlStr, printTemplateFile) |@| validateNoJsIncluded(
-            htmlStr,
-            printTemplateFile) |@| validateExternalStylesheets(htmlStr))
-            .map {
+          (validateAddressBox(htmlStr),
+           validateHtmlColourSpace(htmlStr, printTemplateFile),
+           validateNoJsIncluded(htmlStr, printTemplateFile),
+           validateExternalStylesheets(htmlStr))
+            .mapN {
               case (_, _, _, _) => printTemplateFile
             }
         }
@@ -194,6 +196,6 @@ object PrintTemplateValidation {
         validatePrintFileFile(printChannelFile)
       case otherFile => Valid(otherFile)
     }
-    res.traverseU(identity)
+    res.sequence
   }
 }

@@ -20,7 +20,7 @@ object AssetProcessing {
     import cats.instances.list._
     val (assetFiles, nonAssetFiles) = uploadedFiles.partition(_.fileType == Asset)
     val processedTemplateFiles: Validated[NonEmptyList[String], List[UploadedTemplateFile]] = nonAssetFiles
-      .traverseU(templateFile => {
+      .traverse(templateFile => {
         replaceAssetReferences(region, assetsS3Bucket, templateFile.channel, commManifest, templateFile.contents)
           .map(contents => templateFile.copy(contents = contents))
       })

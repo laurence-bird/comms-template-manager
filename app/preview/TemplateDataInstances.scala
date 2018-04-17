@@ -30,7 +30,7 @@ trait TemplateDataInstances {
         s => Right(TemplateData.fromString(s)),
         xs => {
           xs.map(_.as[TemplateData])
-            .sequenceU
+            .sequence
             .map(TemplateData.fromSeq)
         },
         obj => {
@@ -40,7 +40,7 @@ trait TemplateDataInstances {
                 value.as[TemplateData].map(key -> _)
             }
             .toVector
-            .sequenceU
+            .sequence
             .map(x => TemplateData.fromMap(x.toMap))
         }
       )

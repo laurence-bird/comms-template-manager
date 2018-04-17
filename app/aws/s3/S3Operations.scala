@@ -19,7 +19,7 @@ object S3Operations {
     val prefix   = buildPrefix(commManifest)
     val fileKeys = s3ClientWrapper.listFiles(bucketName, prefix).right
     fileKeys.flatMap { keys =>
-      val result = keys.toList.traverseU { absKey =>
+      val result = keys.toList.traverse { absKey =>
         val file = s3ClientWrapper.downloadFile(bucketName, absKey).right
 
         val pair: Either[String, (String, Array[Byte])] = file map { f =>
