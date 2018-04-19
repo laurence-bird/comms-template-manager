@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 
 import cats.{Apply, Traverse}
-import cats.data.{NonEmptyList, Validated}
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import cats.data.Validated.{Invalid, Valid}
 import com.ovoenergy.comms.model.Print
 import templates.AssetProcessing.ProcessedFiles
@@ -85,12 +85,11 @@ object Injector {
           case Print => inject(printInjections)(template)
           case _     => Valid(template)
       })
-    }.traverseU(identity)
+    }.toList.sequence
 
     updatedTemplates match {
       case Valid(templates) => Right(ProcessedFiles(templates, processedFiles.assetFiles))
       case Invalid(errors)  => Left(errors)
     }
-
   }
 }

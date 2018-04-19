@@ -60,10 +60,10 @@ object TemplateOp {
     import cats.instances.list._
     for {
       processedFiles <- processTemplateAssets(commManifest, uploadedFiles)
-      assetsUploadResults <- processedFiles.assetFiles.traverseU(file =>
+      assetsUploadResults <- processedFiles.assetFiles.traverse(file =>
         uploadTemplateAssetFileToS3(commManifest, file, publishedBy))
       furtherProcessedFiles <- injectChannelSpecificStuff(processedFiles)
-      templateFilesUploadResults <- furtherProcessedFiles.templateFiles.traverseU(file =>
+      templateFilesUploadResults <- furtherProcessedFiles.templateFiles.traverse(file =>
         uploadProcessedTemplateFileToS3(commManifest, file, publishedBy))
     } yield assetsUploadResults ++ templateFilesUploadResults
   }
@@ -73,7 +73,7 @@ object TemplateOp {
                             publishedBy: String): TemplateOp[List[String]] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    uploadedFiles.traverseU(file => uploadRawTemplateFileToS3(commManifest, file, publishedBy))
+    uploadedFiles.traverse(file => uploadRawTemplateFileToS3(commManifest, file, publishedBy))
   }
 
   def processTemplateAssets(commManifest: CommManifest,

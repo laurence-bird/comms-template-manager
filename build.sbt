@@ -6,7 +6,7 @@ scalaVersion := "2.12.4"
 
 resolvers += Resolver.bintrayRepo("ovotech", "maven")
 
-val circeVersion = "0.7.0"
+val circeVersion = "0.9.1"
 
 libraryDependencies ++= Seq(
   ws,
@@ -16,12 +16,12 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-generic-extras"      % circeVersion,
   "io.circe" %% "circe-parser"              % circeVersion,
   "io.circe" %% "circe-generic"             % circeVersion,
-  "org.typelevel" %% "cats-core" % "0.9.0",
-  "com.gu" %% "scanamo" % "0.9.1",
+  "org.typelevel" %% "cats-core" % "1.0.0",
+  "com.gu" %% "scanamo" % "1.0.0-M3",
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
   "com.gu" %% "play-googleauth" % "0.7.0",
-  "com.ovoenergy" %% "comms-templates" % "0.15",
+  "com.ovoenergy" %% "comms-templates" % "0.17",
   "org.webjars" % "bootstrap" % "3.3.4",
   "com.squareup.okhttp3" % "okhttp" % "3.4.2",
   "com.sksamuel.scrimage" %% "scrimage-core" % "3.0.0-alpha4",
@@ -66,7 +66,7 @@ testWithDynamo := Def.sequential(
   test in Test,
   stopDynamoDBLocal
 ).value
-
+scalacOptions += "-Ypartial-unification"
 includeFilter in (Assets, LessKeys.less) := "*.less"
 
 val scalafmtAll = taskKey[Unit]("Run scalafmt in non-interactive mode with no arguments")
