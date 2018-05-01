@@ -1,6 +1,10 @@
 package logic
 
-import com.ovoenergy.comms.model.CommManifest
+import cats.Id
+import cats.data.NonEmptyList
+import com.ovoenergy.comms.model.{Channel, CommManifest}
+import com.ovoenergy.comms.templates.TemplatesContext
+import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic.TemplateOp.TemplateFiles
 import models.{TemplateSummary, TemplateVersion}
 import templates.AssetProcessing.ProcessedFiles
@@ -43,6 +47,9 @@ case class ValidateTemplate(commManifest: CommManifest, uploadedFiles: List[Uplo
 
 case class ValidateTemplateDoesNotExist(commManifest: CommManifest) extends TemplateOpA[Unit]
 
-case class UploadTemplateToDynamo(commManifest: CommManifest, publishedBy: String) extends TemplateOpA[Unit]
+case class UploadTemplateToDynamo(commManifest: CommManifest, publishedBy: String, channels: List[Channel])
+    extends TemplateOpA[Unit]
 
 case class GetNextTemplateSummary(commName: String) extends TemplateOpA[TemplateSummary]
+
+case class GetChannels(commManifest: CommManifest, context: TemplatesContext) extends TemplateOpA[List[Channel]]

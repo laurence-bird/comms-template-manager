@@ -1,9 +1,15 @@
 package logic
 
+import aws.Interpreter.ErrorsOr
+import cats.Id
+import cats.data.NonEmptyList
 import cats.free.Free
 import cats.free.Free._
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
+import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
+import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
+import play.api.Logger
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
 
@@ -30,26 +36,33 @@ object TemplateOp {
 
   def validateAndUploadExistingTemplate(commName: String,
                                         uploadedFiles: List[UploadedFile],
-                                        publishedBy: String): TemplateOp[TemplateSummary] = {
+                                        publishedBy: String,
+                                        context: TemplatesContext): TemplateOp[TemplateSummary] = {
     for {
       nextVersion <- getNextTemplateSummary(commName)
       commManifest = CommManifest(nextVersion.commType, commName, nextVersion.latestVersion)
       templateFiles <- validateTemplate(commManifest, uploadedFiles)
-      _             <- writeTemplateToDynamo(commManifest, publishedBy)
       _             <- uploadProcessedTemplateToS3(commManifest, templateFiles, publishedBy)
       _             <- uploadRawTemplateToS3(commManifest, templateFiles, publishedBy)
+      templates     <- getChannels(commManifest, context)
+      _             <- writeTemplateToDynamo(commManifest, publishedBy, templates)
     } yield nextVersion
   }
 
   def validateAndUploadNewTemplate(commManifest: CommManifest,
                                    uploadedFiles: List[UploadedFile],
-                                   publishedBy: String): TemplateOp[List[String]] = {
+                                   publishedBy: String,
+                                   context: TemplatesContext): TemplateOp[List[String]] = {
     for {
-      _                      <- validateTemplateDoesNotExist(commManifest)
-      templateFiles          <- validateTemplate(commManifest, uploadedFiles)
-      _                      <- writeTemplateToDynamo(commManifest, publishedBy)
+      _             <- validateTemplateDoesNotExist(commManifest)
+      templateFiles <- validateTemplate(commManifest, uploadedFiles)
+      _ = Logger.info(s"Validated templates")
       processedUploadResults <- uploadProcessedTemplateToS3(commManifest, templateFiles, publishedBy)
       rawUploadResults       <- uploadRawTemplateToS3(commManifest, templateFiles, publishedBy)
+      _ = Logger.info(s"Uploaded templates")
+      channels <- getChannels(commManifest, context)
+      _ = Logger.info(s"Retrieved channels: $channels")
+      _ <- writeTemplateToDynamo(commManifest, publishedBy, channels)
     } yield rawUploadResults ++ processedUploadResults
   }
 
@@ -76,6 +89,10 @@ object TemplateOp {
     uploadedFiles.traverse(file => uploadRawTemplateFileToS3(commManifest, file, publishedBy))
   }
 
+  def getChannels(commManifest: CommManifest, context: TemplatesContext): TemplateOp[List[Channel]] = {
+    liftF(GetChannels(commManifest, context))
+  }
+
   def processTemplateAssets(commManifest: CommManifest,
                             uploadedFiles: List[UploadedTemplateFile]): TemplateOp[ProcessedFiles] = {
     liftF(ProcessTemplateAssets(commManifest, uploadedFiles))
@@ -89,8 +106,8 @@ object TemplateOp {
     liftF(GetNextTemplateSummary(commName))
   }
 
-  def writeTemplateToDynamo(commManifest: CommManifest, publishedBy: String) = {
-    liftF(UploadTemplateToDynamo(commManifest, publishedBy))
+  def writeTemplateToDynamo(commManifest: CommManifest, publishedBy: String, channels: List[Channel]) = {
+    liftF(UploadTemplateToDynamo(commManifest, publishedBy, channels))
   }
 
   def uploadRawTemplateFileToS3(commManifest: CommManifest,

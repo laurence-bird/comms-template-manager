@@ -8,7 +8,7 @@ import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType._
 import com.gu.scanamo.{Scanamo, Table}
 import com.ovoenergy.comms.model.CommType._
 import aws.dynamo.DynamoFormats._
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, Service}
 import models.{TemplateSummary, TemplateVersion}
 
 class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
@@ -29,9 +29,9 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     LocalDynamoDB.createTable(client)("template-summary")('commName    -> S)
 
     val templateVersions = Seq(
-      TemplateVersion("comm1", "1.0", Instant.now, "laurence", Service),
-      TemplateVersion("comm2", "1.0", Instant.now, "laurence", Service),
-      TemplateVersion("comm2", "2.0", Instant.now, "chris", Service)
+      TemplateVersion("comm1", "1.0", Instant.now, "laurence", Service, List[Channel]()),
+      TemplateVersion("comm2", "1.0", Instant.now, "laurence", Service, List[Channel]()),
+      TemplateVersion("comm2", "2.0", Instant.now, "chris", Service, List[Channel]())
     )
 
     val templateSummarries = Seq(
@@ -89,20 +89,20 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "error when writing a new version that is not the newest" in {
     dynamo
-      .writeNewVersion(CommManifest(Service, "comm2", "1.5"), publishedBy)
+      .writeNewVersion(CommManifest(Service, "comm2", "1.5"), publishedBy, List[Channel]())
       .left
       .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
   }
 
   it should "error when writing a new version that already exists" in {
     dynamo
-      .writeNewVersion(CommManifest(Service, "comm2", "2.0"), publishedBy)
+      .writeNewVersion(CommManifest(Service, "comm2", "2.0"), publishedBy, List[Channel]())
       .left
       .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
   }
 
   it should "write new version" in {
-    dynamo.writeNewVersion(CommManifest(Service, "comm2", "2.5"), publishedBy) shouldBe Right(())
+    dynamo.writeNewVersion(CommManifest(Service, "comm2", "2.5"), publishedBy, List[Channel]()) shouldBe Right(())
     val summaries = dynamo.listTemplateSummaries
     summaries should contain(TemplateSummary("comm2", Service, "2.5"))
 

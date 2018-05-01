@@ -10,7 +10,7 @@ import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.model.AmazonDynamoDBException
 import com.amazonaws.services.s3.{AmazonS3Client, S3ClientOptions}
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service, TemplateData}
+import com.ovoenergy.comms.model._
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType._
 import com.gu.scanamo.{Scanamo, Table}
 import com.typesafe.config.{ConfigFactory, ConfigParseOptions, ConfigResolveOptions}
@@ -37,6 +37,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   val rawTemplatesBucket        = config.getString("aws.s3.buckets.rawTemplates")
   val templatesBucket           = config.getString("aws.s3.buckets.templates")
   val assetsBucket              = config.getString("aws.s3.buckets.assets")
+  val partialsBucket            = config.getString("aws.s3.buckets.partials")
   val dynamoUrl                 = "http://localhost:8000"
   val dynamoClient              = LocalDynamoDB.client(dynamoUrl)
   val templateVersionsTableName = config.getString("aws.dynamo.tables.templateVersionTable")
@@ -179,6 +180,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
       .build()
     val result = makeRequest(request)
 
+    result.code() shouldBe 200
     val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
@@ -189,7 +191,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
 
     val templateSummaries = scan(templateSummaryTable)
     val templateVersions  = scan(templateVersionTable)
-
+    println(s"Versions \n: ${templateVersions}")
     val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM").get
     templateVersionResult.version shouldBe "1.0"
     templateVersionResult.publishedBy shouldBe "dummy.email"
@@ -450,14 +452,14 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def givenExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service)
+    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service, List[Channel]())
     Scanamo.put(dynamoClient)(templateVersionsTableName)(templateVersion)
 
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 
   private def givenNonExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service)
+    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service, List[Channel]())
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 

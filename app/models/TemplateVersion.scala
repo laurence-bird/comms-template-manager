@@ -4,7 +4,7 @@ import java.time.Instant
 
 import aws.Interpreter.ErrorsOr
 import cats.data.NonEmptyList
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -13,16 +13,18 @@ case class TemplateVersion(commName: String,
                            version: String,
                            publishedAt: Instant,
                            publishedBy: String,
-                           commType: CommType)
+                           commType: CommType,
+                           channels: List[Channel])
 
 object TemplateVersion {
-  def apply(commManifest: CommManifest, publishedBy: String): TemplateVersion = {
+  def apply(commManifest: CommManifest, publishedBy: String, channels: List[Channel]): TemplateVersion = {
     TemplateVersion(
       commManifest.name,
       commManifest.version,
       Instant.now(),
       publishedBy,
-      commManifest.commType
+      commManifest.commType,
+      channels
     )
   }
 }

@@ -6,7 +6,7 @@ import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
@@ -21,13 +21,14 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  //TODO - Not a conditional write as desired
-  def writeNewVersion(commManifest: CommManifest, publishedBy: String): Either[String, Unit] = {
+  //TODO - Not a conditional write as desiredn
+  def writeNewVersion(commManifest: CommManifest, publishedBy: String, channels: List[Channel]): Either[String, Unit] = {
 
     if (isNewestVersion(commManifest)) {
       val templateVersion = TemplateVersion(
         commManifest = commManifest,
-        publishedBy = publishedBy
+        publishedBy = publishedBy,
+        channels = channels
       )
       Scanamo.exec(db)(templateVersionTable.put(templateVersion))
       Logger.info(s"Written template version to persistence $templateVersion")

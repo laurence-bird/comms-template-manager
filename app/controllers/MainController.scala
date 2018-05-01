@@ -72,7 +72,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   val s3Client = new AmazonS3ClientWrapper(amazonS3Client, awsContext.s3TemplateFilesBucket)
 
-  val printPreviewTemplateContext = TemplatesContext(
+  val templateContext = TemplatesContext(
     templatesRetriever = new TemplatesS3Retriever(s3Client),
     parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client), Set(Validators.Profile, Validators.Recipient)),
     cachingStrategy = CachingStrategy.noCache
@@ -118,7 +118,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     val requiredFields: Either[NonEmptyList[String], Json] =
       for {
         commManifest <- getCommManifest
-        template     <- TemplatesRepo.getTemplate(printPreviewTemplateContext, commManifest).toEither
+        template     <- TemplatesRepo.getTemplate(templateContext, commManifest).toEither
         requiredData <- template.requiredData.toEither
         templateData <- TemplateDataGenerator
           .generateTemplateData(requiredData)
@@ -188,7 +188,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
       val uploadedFiles = extractUploadedFiles(templateFile)
       TemplateOp
-        .validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username)
+        .validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username, templateContext)
         .foldMap(interpreter) match {
         case Right(_) =>
           Ok(
@@ -216,7 +216,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           val uploadedFiles = extractUploadedFiles(templateFile)
 
           TemplateOp
-            .validateAndUploadExistingTemplate(commName, uploadedFiles, user.username)
+            .validateAndUploadExistingTemplate(commName, uploadedFiles, user.username, templateContext)
             .foldMap(interpreter) match {
             case Right(newVersion) =>
               Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
