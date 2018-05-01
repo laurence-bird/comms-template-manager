@@ -9,6 +9,7 @@ import com.ovoenergy.comms.model.Print
 import com.ovoenergy.comms.templates.model.template.files.print.PrintTemplateFiles
 import com.sksamuel.scrimage.{Image, ImageMetadata, Tag}
 import net.ruippeixotog.scalascraper.model.Element
+import play.api.Logger
 import templates.{Asset, HtmlBody, TemplateErrors, UploadedTemplateFile}
 
 import scala.util.Try
@@ -158,7 +159,6 @@ object PrintTemplateValidation {
 
     def validatePrintFileFile(
         printTemplateFile: UploadedTemplateFile): Validated[NonEmptyList[String], UploadedTemplateFile] = {
-
       printTemplateFile match {
 
         case htmlFile if htmlFile.fileType == HtmlBody => {

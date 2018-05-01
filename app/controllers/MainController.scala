@@ -36,6 +36,7 @@ import play.api.http.{FileMimeTypes, HttpChunk, HttpEntity}
 import scala.collection.JavaConversions._
 import io.circe._
 import io.circe.syntax._
+import play.api.Logger
 import play.api.libs.concurrent.Futures
 import preview._
 
@@ -94,14 +95,24 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           composerClient
             .getRenderedPrintPdf(commName, commVersion, template.commType, previewRequest.templateData)
             .map {
-              case Left(TemplateNotFound(message)) => NotFound(message)
-              case Left(UnknownError(message))     => ServiceUnavailable(message)
+              case Left(TemplateNotFound(message)) => {
+                Logger.error(
+                  s"Failed to render print preview for comm $commName v$commVersion as template could not be found: $message")
+                NotFound(message)
+              }
+              case Left(UnknownError(message)) => {
+                Logger.error(s"Unknown error rendering print preview for comm $commName v$commVersion: $message")
+                ServiceUnavailable(message)
+              }
               case Right(bytes) =>
                 Ok.chunked(stream(bytes, 1024)).as("application/pdf")
             }
         }
         .recover {
-          case NonFatal(e) => ServiceUnavailable(e.getMessage)
+          case NonFatal(e) => {
+            Logger.error(s"Error thrown rendering print preview for comm $commName v$commVersion", e)
+            ServiceUnavailable(e.getMessage)
+          }
         }
     }
 
@@ -129,6 +140,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
     requiredFields match {
       case Left(errors) =>
+        Logger.error(s"Failed to retrieve required data for template: ${errors.toList.mkString(", ")}")
         NotFound(s"Failed to retrieve required data for template: $errors")
       case Right(fields) =>
         Ok(views.html.templateRequiredData(commName, version, fields.spaces4))
@@ -153,7 +165,10 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
   def listTemplates = Authenticated { request =>
     implicit val user = request.user
     TemplateOp.listTemplateSummaries().foldMap(interpreter) match {
-      case Left(err)  => NotFound(s"Failed to retrieve templates: $err")
+      case Left(err) => {
+        Logger.error(s"Failed to list templates with errors: ${err.toList.mkString(", ")}")
+        NotFound(s"Failed to retrieve templates: $err")
+      }
       case Right(res) => Ok(views.html.templateList(res, commPerformanceUrl, commSearchUrl))
     }
   }
@@ -161,7 +176,10 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
   def listVersions(commName: String) = Authenticated { request =>
     implicit val user = request.user
     TemplateOp.retrieveAllTemplateVersions(commName).foldMap(interpreter) match {
-      case Left(errs)      => NotFound(errs.head)
+      case Left(errs) => {
+        Logger.error(s"Failed to list versions of comm $commName with errors: ${errs.toList.mkString(", ")}")
+        NotFound(errs.head)
+      }
       case Right(versions) => Ok(views.html.templateVersions(versions, commName))
     }
   }
@@ -185,7 +203,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
       templateFile <- multipartFormRequest.body.file("templateFile")
     } yield {
       val commManifest = CommManifest(CommType.CommTypeFromValue(commType.head), commName.head, "1.0")
-
+      Logger.info(s"Publishing new comm template, ${commName.head}")
       val uploadedFiles = extractUploadedFiles(templateFile)
       TemplateOp
         .validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username, templateContext)
@@ -197,6 +215,9 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
                                           Some(commName.head),
                                           Some(commType.head)))
         case Left(errors) =>
+          Logger.error(
+            s"Failed to publish comm ${commManifest.name}, version ${commManifest.version} with errors: ${errors.toList
+              .mkString(", ")}")
           Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
       }
 
@@ -221,6 +242,8 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
             case Right(newVersion) =>
               Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
             case Left(errors) =>
+              Logger.error(
+                s"Failed to publish new version of comm ${commName} with errors: ${errors.toList.mkString(", ")}")
               Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
           }
         }

@@ -37,7 +37,6 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   val rawTemplatesBucket        = config.getString("aws.s3.buckets.rawTemplates")
   val templatesBucket           = config.getString("aws.s3.buckets.templates")
   val assetsBucket              = config.getString("aws.s3.buckets.assets")
-  val partialsBucket            = config.getString("aws.s3.buckets.partials")
   val dynamoUrl                 = "http://localhost:8000"
   val dynamoClient              = LocalDynamoDB.client(dynamoUrl)
   val templateVersionsTableName = config.getString("aws.dynamo.tables.templateVersionTable")
@@ -102,6 +101,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
         try {
           val response = makeRequest(new Request.Builder().url("http://localhost:9000/index").build())
           response.code shouldBe 200
+          response.close()
         } catch {
           case _: Exception => loop(attempts - 1)
         }
@@ -129,8 +129,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     s3.putObject(rawTemplatesBucket,
                  "service/template-manager-service-test/0.1/email/body.txt",
                  "{{> header}} TEXT BODY {{amount}}")
-    s3.putObject("ovo-comms-templates", "service/fragments/email/html/header.html", "HTML HEADER")
-    s3.putObject("ovo-comms-templates", "service/fragments/email/html/footer.html", "HTML FOOTER")
+    s3.putObject(templatesBucket, "service/fragments/email/html/header.html", "HTML HEADER")
+    s3.putObject(templatesBucket, "service/fragments/email/html/footer.html", "HTML FOOTER")
 
     Thread.sleep(2000)
   }
@@ -184,7 +184,6 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
-
     assetsInBucket should contain("service/TEST-COMM/1.0/email/assets/canary.png")
     templatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
     rawTemplatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/assets/canary.png", "service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")

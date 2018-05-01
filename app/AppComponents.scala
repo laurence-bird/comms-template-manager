@@ -10,12 +10,13 @@ import controllers._
 import models.{TemplateSummary, TemplateVersion}
 import pagerduty.PagerDutyAlerter
 import play.api.ApplicationLoader.Context
-import play.api.BuiltInComponentsFromContext
+import play.api.{BuiltInComponentsFromContext, Logger}
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import preview.ComposerClient
 import aws.dynamo.DynamoFormats._
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import router.Routes

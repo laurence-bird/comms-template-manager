@@ -15,11 +15,7 @@ import templates.{AssetProcessing, Injector}
 import templates.validation.{PrintTemplateValidation, TemplateValidator}
 import com.ovoenergy.comms.templates
 import com.ovoenergy.comms.templates.TemplatesRepo
-import com.ovoenergy.comms.templates.model.template.processed.email.EmailTemplate
-import com.ovoenergy.comms.templates.model.template.processed.print.PrintTemplate
-import com.ovoenergy.comms.templates.model.template.processed.sms.SMSTemplate
 import play.api.Logger
-import scalaz.Id
 
 import scala.util.Right
 
@@ -84,6 +80,7 @@ object Interpreter {
                             uploadedFile.contentType)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
               case Left(error) => {
+                Logger.warn(s"Attempt to publish file by $publishedBy to $key failed: $error")
                 PagerDutyAlerter(s"Attempt to publish file by $publishedBy to $key failed", pagerDutyContext)
                 Left(NonEmptyList.of(error))
               }
@@ -154,11 +151,9 @@ object Interpreter {
             } yield latestTemplate.copy(latestVersion = nextVersion)
 
           case GetChannels(commManifest, templateContext) =>
-            val result = TemplatesRepo
+            TemplatesRepo
               .getTemplate(templateContext, commManifest)
-
-            Logger.info(s"Template result: ${result.toEither}")
-            result.toEither
+              .toEither
               .map((t: CommTemplate[Id]) => {
                 val email = t.email.fold[Option[Channel]](None)(_ => Some(Email))
                 val sms   = t.sms.fold[Option[Channel]](None)(_ => Some(SMS))

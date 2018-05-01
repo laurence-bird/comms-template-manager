@@ -54,15 +54,12 @@ object TemplateOp {
                                    publishedBy: String,
                                    context: TemplatesContext): TemplateOp[List[String]] = {
     for {
-      _             <- validateTemplateDoesNotExist(commManifest)
-      templateFiles <- validateTemplate(commManifest, uploadedFiles)
-      _ = Logger.info(s"Validated templates")
+      _                      <- validateTemplateDoesNotExist(commManifest)
+      templateFiles          <- validateTemplate(commManifest, uploadedFiles)
       processedUploadResults <- uploadProcessedTemplateToS3(commManifest, templateFiles, publishedBy)
       rawUploadResults       <- uploadRawTemplateToS3(commManifest, templateFiles, publishedBy)
-      _ = Logger.info(s"Uploaded templates")
-      channels <- getChannels(commManifest, context)
-      _ = Logger.info(s"Retrieved channels: $channels")
-      _ <- writeTemplateToDynamo(commManifest, publishedBy, channels)
+      channels               <- getChannels(commManifest, context)
+      _                      <- writeTemplateToDynamo(commManifest, publishedBy, channels)
     } yield rawUploadResults ++ processedUploadResults
   }
 
