@@ -2,9 +2,8 @@ package templates
 
 import cats.data.Validated.Valid
 import cats.data.{NonEmptyList, Validated}
-import cats.syntax.cartesian._
+import cats.implicits._
 import com.ovoenergy.comms.model._
-import com.ovoenergy.comms.templates.ErrorsOr
 import com.ovoenergy.comms.templates.model.FileFormat
 import com.ovoenergy.comms.templates.model.template.files.TemplateFile
 import com.ovoenergy.comms.templates.model.template.files.email.EmailTemplateFiles
@@ -37,8 +36,7 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
       val h =
         Validated.fromOption(htmlBody,
                              ifNone = NonEmptyList.of(s"No email html body file has been provided in template"))
-
-      (s |@| h).map {
+      (s, h).mapN {
         case (sub, html) =>
           EmailTemplateFiles(
             subject = sub,

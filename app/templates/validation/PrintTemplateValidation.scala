@@ -1,19 +1,13 @@
 package templates.validation
 
-import java.io.{ByteArrayInputStream, InputStream}
-
-import cats.data.{NonEmptyList, Validated, ValidatedNel}
+import cats.data.{NonEmptyList, Validated}
 import cats.data.Validated.{Invalid, Valid}
 import cats.implicits._
 import com.ovoenergy.comms.model.Print
-import com.ovoenergy.comms.templates.model.template.files.print.PrintTemplateFiles
-import com.sksamuel.scrimage.{Image, ImageMetadata, Tag}
+import com.sksamuel.scrimage.{Image, Tag}
 import net.ruippeixotog.scalascraper.model.Element
-import play.api.Logger
 import templates.{Asset, HtmlBody, TemplateErrors, UploadedTemplateFile}
-
 import scala.util.Try
-import scala.util.matching.Regex
 
 object PrintTemplateValidation {
 
