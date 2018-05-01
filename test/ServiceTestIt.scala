@@ -190,7 +190,6 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
 
     val templateSummaries = scan(templateSummaryTable)
     val templateVersions  = scan(templateVersionTable)
-    println(s"Versions \n: ${templateVersions}")
     val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM").get
     templateVersionResult.version shouldBe "1.0"
     templateVersionResult.publishedBy shouldBe "dummy.email"
@@ -451,14 +450,14 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def givenExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service, List[Channel]())
+    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service, Some(Nil))
     Scanamo.put(dynamoClient)(templateVersionsTableName)(templateVersion)
 
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 
   private def givenNonExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service, List[Channel]())
+    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service, Some(Nil))
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 

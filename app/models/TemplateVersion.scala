@@ -14,7 +14,7 @@ case class TemplateVersion(commName: String,
                            publishedAt: Instant,
                            publishedBy: String,
                            commType: CommType,
-                           channels: List[Channel])
+                           channels: Option[List[Channel]])
 
 object TemplateVersion {
   def apply(commManifest: CommManifest, publishedBy: String, channels: List[Channel]): TemplateVersion = {
@@ -24,7 +24,7 @@ object TemplateVersion {
       Instant.now(),
       publishedBy,
       commManifest.commType,
-      channels
+      Some(channels)
     )
   }
 }

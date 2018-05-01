@@ -24,7 +24,7 @@ class TemplateOpSpec extends FlatSpec with Matchers {
       publishedAt,
       "Mr Test",
       commManifest.commType,
-      List[Channel]()
+      Some(Nil)
     )
 
   val templateFileStream = "testing-is-fun".getBytes()

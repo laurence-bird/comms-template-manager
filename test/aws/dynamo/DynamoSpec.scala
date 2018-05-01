@@ -24,26 +24,44 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     Table[TemplateSummary](templateSummaryTable)
   )
 
+  case class LegacyTemplateVersion(commName: String,
+                                   version: String,
+                                   publishedAt: Instant,
+                                   publishedBy: String,
+                                   commType: CommType)
+
+  val templateVersions = Seq(
+    TemplateVersion("comm1", "1.0", Instant.now, "laurence", Service, Some(Nil)),
+    TemplateVersion("comm2", "1.0", Instant.now, "laurence", Service, Some(Nil)),
+    TemplateVersion("comm2", "2.0", Instant.now, "chris", Service, Some(Nil))
+  )
+
+  val legacyTemplateVersions = Seq(
+    LegacyTemplateVersion("legacyComm1", "1.0", Instant.now, "laurence", Service),
+    LegacyTemplateVersion("legacyComm2", "1.0", Instant.now, "laurence", Service),
+    LegacyTemplateVersion("legacyComm2", "2.0", Instant.now, "chris", Service)
+  )
+
+  val templateSummaries = Seq(
+    TemplateSummary("comm1", Service, "1.0"),
+    TemplateSummary("comm2", Service, "2.0"),
+    TemplateSummary("legacyComm1", Service, "1.0"),
+    TemplateSummary("legacyComm2", Service, "2.0")
+  )
+
   override def beforeAll(): Unit = {
     LocalDynamoDB.createTable(client)(templateVersionsTable)('commName -> S, 'version -> S)
     LocalDynamoDB.createTable(client)("template-summary")('commName    -> S)
 
-    val templateVersions = Seq(
-      TemplateVersion("comm1", "1.0", Instant.now, "laurence", Service, List[Channel]()),
-      TemplateVersion("comm2", "1.0", Instant.now, "laurence", Service, List[Channel]()),
-      TemplateVersion("comm2", "2.0", Instant.now, "chris", Service, List[Channel]())
-    )
-
-    val templateSummarries = Seq(
-      TemplateSummary("comm1", Service, "1.0"),
-      TemplateSummary("comm2", Service, "2.0")
-    )
-
-    templateSummarries.foreach { ts =>
+    templateSummaries.foreach { ts =>
       Scanamo.put(client)(templateSummaryTable)(ts)
     }
 
     templateVersions.foreach { t =>
+      Scanamo.put(client)(templateVersionsTable)(t)
+    }
+
+    legacyTemplateVersions.foreach { t =>
       Scanamo.put(client)(templateVersionsTable)(t)
     }
   }
@@ -70,15 +88,17 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "list all template summaries in the database" in {
     val result = dynamo.listTemplateSummaries
-    result.length shouldBe 2
-    result should contain allOf (
-      TemplateSummary("comm1", Service, "1.0"),
-      TemplateSummary("comm2", Service, "2.0")
-    )
+    result.length shouldBe 4
+    result should contain theSameElementsAs templateSummaries
   }
 
   it should "retrieve a specific template version" in {
     val result = dynamo.getTemplateVersion("comm2", "2.0")
+    result.map(_.publishedBy) shouldBe Some("chris")
+  }
+
+  it should "retrieve a legacy template version" in {
+    val result = dynamo.getTemplateVersion("legacyComm2", "2.0")
     result.map(_.publishedBy) shouldBe Some("chris")
   }
 
@@ -89,20 +109,20 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "error when writing a new version that is not the newest" in {
     dynamo
-      .writeNewVersion(CommManifest(Service, "comm2", "1.5"), publishedBy, List[Channel]())
+      .writeNewVersion(CommManifest(Service, "comm2", "1.5"), publishedBy, Nil)
       .left
       .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
   }
 
   it should "error when writing a new version that already exists" in {
     dynamo
-      .writeNewVersion(CommManifest(Service, "comm2", "2.0"), publishedBy, List[Channel]())
+      .writeNewVersion(CommManifest(Service, "comm2", "2.0"), publishedBy, Nil)
       .left
       .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
   }
 
   it should "write new version" in {
-    dynamo.writeNewVersion(CommManifest(Service, "comm2", "2.5"), publishedBy, List[Channel]()) shouldBe Right(())
+    dynamo.writeNewVersion(CommManifest(Service, "comm2", "2.5"), publishedBy, Nil) shouldBe Right(())
     val summaries = dynamo.listTemplateSummaries
     summaries should contain(TemplateSummary("comm2", Service, "2.5"))
 
