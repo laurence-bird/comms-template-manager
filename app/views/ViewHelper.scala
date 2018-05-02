@@ -2,6 +2,9 @@ package views
 
 import java.time.{Instant, LocalDate}
 
+import com.ovoenergy.comms.model.{Channel, Print}
+import models.TemplateVersion
+
 object ViewHelper {
 
   def formatDate(instant: Instant): String =
@@ -21,5 +24,16 @@ object ViewHelper {
 
   def commSearchLink(commName: String, commSearchUrl: String): String =
     s"$commSearchUrl?commName=$commName"
+
+  def containsPrintTemplates(templates: Seq[TemplateVersion]) = {
+    templates.foldLeft(false) { (acc, templateVersion) =>
+      containsPrintTemplate(templateVersion) && acc
+    }
+  }
+
+  def containsPrintTemplate(template: TemplateVersion) = {
+    template.channels
+      .exists(_.contains(Print))
+  }
 
 }
