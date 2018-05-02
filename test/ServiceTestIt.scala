@@ -10,7 +10,7 @@ import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.model.AmazonDynamoDBException
 import com.amazonaws.services.s3.{AmazonS3Client, S3ClientOptions}
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service, TemplateData}
+import com.ovoenergy.comms.model._
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType._
 import com.gu.scanamo.{Scanamo, Table}
 import com.typesafe.config.{ConfigFactory, ConfigParseOptions, ConfigResolveOptions}
@@ -101,6 +101,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
         try {
           val response = makeRequest(new Request.Builder().url("http://localhost:9000/index").build())
           response.code shouldBe 200
+          response.close()
         } catch {
           case _: Exception => loop(attempts - 1)
         }
@@ -128,8 +129,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     s3.putObject(rawTemplatesBucket,
                  "service/template-manager-service-test/0.1/email/body.txt",
                  "{{> header}} TEXT BODY {{amount}}")
-    s3.putObject("ovo-comms-templates", "service/fragments/email/html/header.html", "HTML HEADER")
-    s3.putObject("ovo-comms-templates", "service/fragments/email/html/footer.html", "HTML FOOTER")
+    s3.putObject(templatesBucket, "service/fragments/email/html/header.html", "HTML HEADER")
+    s3.putObject(templatesBucket, "service/fragments/email/html/footer.html", "HTML FOOTER")
 
     Thread.sleep(2000)
   }
@@ -179,17 +180,16 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
       .build()
     val result = makeRequest(request)
 
+    result.code() shouldBe 200
     val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
-
     assetsInBucket should contain("service/TEST-COMM/1.0/email/assets/canary.png")
     templatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
     rawTemplatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/assets/canary.png", "service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
 
-    val templateSummaries = scan(templateSummaryTable)
-    val templateVersions  = scan(templateVersionTable)
-
+    val templateSummaries                      = scan(templateSummaryTable)
+    val templateVersions                       = scan(templateVersionTable)
     val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM").get
     templateVersionResult.version shouldBe "1.0"
     templateVersionResult.publishedBy shouldBe "dummy.email"
@@ -450,14 +450,14 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def givenExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service)
+    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service, Some(Nil))
     Scanamo.put(dynamoClient)(templateVersionsTableName)(templateVersion)
 
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 
   private def givenNonExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service)
+    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service, Some(Nil))
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 

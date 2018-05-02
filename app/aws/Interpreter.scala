@@ -4,13 +4,18 @@ import java.nio.file.Files
 
 import aws.s3.{S3FileDetails, S3Operations}
 import cats.data.NonEmptyList
-import cats.~>
-import com.ovoenergy.comms.model.{CommManifest, CommType}
+import cats.{Id, ~>}
+import com.ovoenergy.comms.model._
+import templates.{UploadedTemplateFile => UploadedTemplate}
+import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic._
 import models.{TemplateSummary, TemplateVersion}
 import pagerduty.PagerDutyAlerter
 import templates.{AssetProcessing, Injector}
 import templates.validation.{PrintTemplateValidation, TemplateValidator}
+import com.ovoenergy.comms.templates
+import com.ovoenergy.comms.templates.TemplatesRepo
+import play.api.Logger
 
 import scala.util.Right
 
@@ -65,7 +70,7 @@ object Interpreter {
               case Right(success) => Right(success)
             }
 
-          case UploadTemplateAssetFileToS3(commManifest, uploadedFile: templates.UploadedTemplateFile, publishedBy) =>
+          case UploadTemplateAssetFileToS3(commManifest, uploadedFile: UploadedTemplate, publishedBy) =>
             val key =
               s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
             val s3File =
@@ -75,6 +80,7 @@ object Interpreter {
                             uploadedFile.contentType)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
               case Left(error) => {
+                Logger.warn(s"Attempt to publish file by $publishedBy to $key failed: $error")
                 PagerDutyAlerter(s"Attempt to publish file by $publishedBy to $key failed", pagerDutyContext)
                 Left(NonEmptyList.of(error))
               }
@@ -125,8 +131,8 @@ object Interpreter {
               Right(versions)
           }
 
-          case UploadTemplateToDynamo(commMannifest, publishedBy) =>
-            awsContext.dynamo.writeNewVersion(commMannifest, publishedBy) match {
+          case UploadTemplateToDynamo(commMannifest, publishedBy, channels) =>
+            awsContext.dynamo.writeNewVersion(commMannifest, publishedBy, channels) match {
               case Right(()) => Right(())
               case Left(error) => {
                 PagerDutyAlerter(
@@ -144,6 +150,16 @@ object Interpreter {
               nextVersion    <- TemplateSummary.nextVersion(latestTemplate.latestVersion).right
             } yield latestTemplate.copy(latestVersion = nextVersion)
 
+          case GetChannels(commManifest, templateContext) =>
+            TemplatesRepo
+              .getTemplate(templateContext, commManifest)
+              .toEither
+              .map((t: CommTemplate[Id]) => {
+                val email = t.email.fold[Option[Channel]](None)(_ => Some(Email))
+                val sms   = t.sms.fold[Option[Channel]](None)(_ => Some(SMS))
+                val print = t.print.fold[Option[Channel]](None)(_ => Some(Print))
+                List(email, sms, print).flatten
+              })
         }
       }
     }

@@ -3,7 +3,7 @@ package logic
 import java.time.Instant
 
 import cats._
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, Service}
 import models.{TemplateVersion, ZippedRawTemplate}
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -23,7 +23,8 @@ class TemplateOpSpec extends FlatSpec with Matchers {
       commManifest.version,
       publishedAt,
       "Mr Test",
-      commManifest.commType
+      commManifest.commType,
+      Some(Nil)
     )
 
   val templateFileStream = "testing-is-fun".getBytes()
