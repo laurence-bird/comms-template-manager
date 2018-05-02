@@ -10,7 +10,7 @@ val circeVersion = "0.9.1"
 
 libraryDependencies ++= Seq(
   ws,
-  "com.ovoenergy" %% "comms-kafka-messages" % "1.40",
+  "com.ovoenergy" %% "comms-kafka-messages" % "1.44",
   "io.circe" %% "circe-core"                % circeVersion,
   "io.circe" %% "circe-shapes"              % circeVersion,
   "io.circe" %% "circe-generic-extras"      % circeVersion,
@@ -20,8 +20,15 @@ libraryDependencies ++= Seq(
   "com.gu" %% "scanamo" % "1.0.0-M3",
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
-  "com.gu" %% "play-googleauth" % "0.7.0",
-  "com.ovoenergy" %% "comms-templates" % "0.17",
+  "com.gu" %% "play-googleauth" % "0.7.1",
+  "com.ovoenergy" %% "comms-templates" % "0.16",
+  // ^^   ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^
+  // ||   ||  ||  ||  ||  ||  ||  ||  ||  ||  ||  ||
+  //
+  // Updating to 0.17 will cause a breaking change to how
+  // addresses are reference in print templates. We need to
+  // arrange these template changes with the respective teams
+  // before bumping this!
   "org.webjars" % "bootstrap" % "3.3.4",
   "com.squareup.okhttp3" % "okhttp" % "3.4.2",
   "com.sksamuel.scrimage" %% "scrimage-core" % "3.0.0-alpha4",

@@ -188,8 +188,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
     rawTemplatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/assets/canary.png", "service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
 
-    val templateSummaries = scan(templateSummaryTable)
-    val templateVersions  = scan(templateVersionTable)
+    val templateSummaries                      = scan(templateSummaryTable)
+    val templateVersions                       = scan(templateVersionTable)
     val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM").get
     templateVersionResult.version shouldBe "1.0"
     templateVersionResult.publishedBy shouldBe "dummy.email"

@@ -51,7 +51,11 @@ class AppComponents(context: Context)
     region = region
   )
 
-  lazy val enableAuth = !isRunningInCompose // only disable auth if we are running the service tests
+  lazy val enableAuth = {
+    !(sys.env.get("DISABLE_AUTH").contains("true") | isRunningInCompose)
+  }
+
+  Logger.info(s"Auth enabled? ${enableAuth}")
 
   val pagerdutyCtxt = PagerDutyAlerter.Context(
     url = mandatoryConfig("pagerduty.url"),

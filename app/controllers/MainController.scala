@@ -17,7 +17,7 @@ import com.gu.googleauth.UserIdentity
 import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
 import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
-import com.ovoenergy.comms.templates.parsing.handlebars.{HandlebarsParsing, Validators}
+import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.{PartialsS3Retriever, TemplatesS3Retriever}
 import com.ovoenergy.comms.templates.s3.AmazonS3ClientWrapper
 import controllers.Auth.AuthRequest
@@ -75,7 +75,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   val templateContext = TemplatesContext(
     templatesRetriever = new TemplatesS3Retriever(s3Client),
-    parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client), Set(Validators.Profile, Validators.Recipient)),
+    parser = new HandlebarsParsing(new PartialsS3Retriever(s3Client)),
     cachingStrategy = CachingStrategy.noCache
   )
 
