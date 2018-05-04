@@ -40,9 +40,11 @@
                         <td>@templateVersion.publishedBy</td>
                         <td>@templateVersion.publishedAt</td>
                         <td><a href="@routes.MainController.getTemplateVersion(templateVersion.commName, templateVersion.version)"><span class="glyphicon glyphicon-download"></span></a></td>
-                        @if(containsPrintTemplate(templateVersion)){
-                            <td><a href="@routes.MainController.getRequiredData(templateVersion.commName, templateVersion.version)"><span class="glyphicon glyphicon-eye-open"></span></a></td>
-                        }
+                        <td>
+                            @if(containsPrintTemplate(templateVersion)){
+                                <a href="@routes.MainController.getRequiredData(templateVersion.commName, templateVersion.version)"><span class="glyphicon glyphicon-eye-open"></span></a>
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>
