@@ -27,7 +27,7 @@ object ViewHelper {
 
   def containsPrintTemplates(templates: Seq[TemplateVersion]) = {
     templates.foldLeft(false) { (acc, templateVersion) =>
-      containsPrintTemplate(templateVersion) && acc
+      containsPrintTemplate(templateVersion) || acc
     }
   }
 
