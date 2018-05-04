@@ -23,7 +23,13 @@
                         <th>Published at</th>
                         <th>Download</th>
                         @if(containsPrintTemplates(templateVersions)){
-                            <th>Preview</th>
+                            <th>
+                                <div class="previewHeader">
+                                    Preview
+                                        <span style="color:red">*</span>
+                                        <span class="tooltiptext">Preview is available only for Print channel!</span>
+                                </div>
+                            </th>
                         }
                     </tr>
                 </thead>
