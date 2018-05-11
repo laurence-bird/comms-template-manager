@@ -6,7 +6,7 @@ import com.ovoenergy.comms.model.{Channel, CommManifest}
 import com.ovoenergy.comms.templates.TemplatesContext
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic.TemplateOp.TemplateFiles
-import models.{TemplateSummary, TemplateVersion}
+import models.{TemplateSummaryLegacy, TemplateVersionLegacy}
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
 
@@ -14,13 +14,13 @@ sealed trait TemplateOpA[T]
 
 case class RetrieveTemplateFromS3(commManifest: CommManifest) extends TemplateOpA[TemplateFiles]
 
-case class RetrieveTemplateVersionFromDynamo(commManifest: CommManifest) extends TemplateOpA[TemplateVersion]
+case class RetrieveTemplateVersionFromDynamo(commManifest: CommManifest) extends TemplateOpA[TemplateVersionLegacy]
 
 case class CompressTemplates(templateFiles: TemplateFiles) extends TemplateOpA[Array[Byte]]
 
-case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq[TemplateVersion]]
+case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq[TemplateVersionLegacy]]
 
-case object ListTemplateSummaries extends TemplateOpA[Seq[TemplateSummary]]
+case object ListTemplateSummaries extends TemplateOpA[Seq[TemplateSummaryLegacy]]
 
 case class ProcessTemplateAssets(commManifest: CommManifest, uploadedFiles: List[UploadedTemplateFile])
     extends TemplateOpA[ProcessedFiles]
@@ -50,6 +50,6 @@ case class ValidateTemplateDoesNotExist(commManifest: CommManifest) extends Temp
 case class UploadTemplateToDynamo(commManifest: CommManifest, publishedBy: String, channels: List[Channel])
     extends TemplateOpA[Unit]
 
-case class GetNextTemplateSummary(commName: String) extends TemplateOpA[TemplateSummary]
+case class GetNextTemplateSummary(commName: String) extends TemplateOpA[TemplateSummaryLegacy]
 
 case class GetChannels(commManifest: CommManifest, context: TemplatesContext) extends TemplateOpA[List[Channel]]

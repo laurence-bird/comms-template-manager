@@ -3,7 +3,7 @@ package views
 import java.util.UUID
 
 import com.ovoenergy.comms.model._
-import models.TemplateVersion
+import models.TemplateVersionLegacy
 import org.scalatest.{FlatSpec, Matchers}
 
 class ViewHelperSpec extends FlatSpec with Matchers {

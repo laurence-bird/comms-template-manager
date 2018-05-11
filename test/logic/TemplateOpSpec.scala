@@ -4,7 +4,7 @@ import java.time.Instant
 
 import cats._
 import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, Service}
-import models.{TemplateVersion, ZippedRawTemplate}
+import models.{TemplateVersionLegacy, ZippedRawTemplate}
 import org.scalatest.{FlatSpec, Matchers}
 
 class TemplateOpSpec extends FlatSpec with Matchers {

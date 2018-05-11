@@ -7,14 +7,14 @@ import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
 import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
-import models.{TemplateSummary, TemplateVersion}
+import models.{TemplateSummaryLegacy, TemplateVersionLegacy}
 import play.api.Logger
 
 class Dynamo(db: AmazonDynamoDB,
-             templateVersionTable: Table[TemplateVersion],
-             templateSummaryTable: Table[TemplateSummary]) {
+             templateVersionTable: Table[TemplateVersionLegacy],
+             templateSummaryTable: Table[TemplateSummaryLegacy]) {
 
-  def listVersions(commName: String): Seq[TemplateVersion] = {
+  def listVersions(commName: String): Seq[TemplateVersionLegacy] = {
     val query = templateVersionTable.query('commName -> commName)
     Scanamo.exec(db)(query).flatMap { result =>
       logIfError(result).toOption
@@ -25,7 +25,7 @@ class Dynamo(db: AmazonDynamoDB,
   def writeNewVersion(commManifest: CommManifest, publishedBy: String, channels: List[Channel]): Either[String, Unit] = {
 
     if (isNewestVersion(commManifest)) {
-      val templateVersion = TemplateVersion(
+      val templateVersion = TemplateVersionLegacy(
         commManifest = commManifest,
         publishedBy = publishedBy,
         channels = channels
@@ -33,7 +33,7 @@ class Dynamo(db: AmazonDynamoDB,
       Scanamo.exec(db)(templateVersionTable.put(templateVersion))
       Logger.info(s"Written template version to persistence $templateVersion")
 
-      val templateSummary = TemplateSummary(
+      val templateSummary = TemplateSummaryLegacy(
         commManifest = commManifest
       )
       Scanamo.exec(db)(templateSummaryTable.put(templateSummary))
@@ -46,20 +46,20 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  def listTemplateSummaries: List[TemplateSummary] = {
+  def listTemplateSummaries: List[TemplateSummaryLegacy] = {
     val query = templateSummaryTable.scan()
     Scanamo.exec(db)(query).flatMap { result =>
       logIfError(result).toOption
     }
   }
 
-  def getTemplateSummary(commName: String): Option[TemplateSummary] = {
+  def getTemplateSummary(commName: String): Option[TemplateSummaryLegacy] = {
     listTemplateSummaries
       .find(templateSummary => templateSummary.commName == commName)
   }
 
   // FIXME this does not work in the real life as the version is not indexed.
-  def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
+  def getTemplateVersion(commName: String, version: String): Option[TemplateVersionLegacy] = {
     val query = templateVersionTable.get('commName -> commName and 'version -> version)
     Scanamo.exec(db)(query).flatMap(result => logIfError(result).toOption)
   }
@@ -73,7 +73,7 @@ class Dynamo(db: AmazonDynamoDB,
 
   private def isNewestVersion(commManifest: CommManifest): Boolean = {
     getTemplateSummary(commManifest.name)
-      .map(summary => TemplateSummary.versionCompare(commManifest.version.trim, summary.latestVersion.trim))
+      .map(summary => TemplateSummaryLegacy.versionCompare(commManifest.version.trim, summary.latestVersion.trim))
       .forall {
         case Right(comparison) => if (comparison > 0) true else false
         case Left(error) =>

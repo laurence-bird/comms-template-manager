@@ -9,7 +9,7 @@ import com.gu.scanamo.{Scanamo, Table}
 import com.ovoenergy.comms.model.CommType._
 import aws.dynamo.DynamoFormats._
 import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, Service}
-import models.{TemplateSummary, TemplateVersion}
+import models.{TemplateSummaryLegacy, TemplateVersionLegacy}
 
 class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
@@ -20,8 +20,8 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   val dynamo = new Dynamo(
     client,
-    Table[TemplateVersion](templateVersionsTable),
-    Table[TemplateSummary](templateSummaryTable)
+    Table[TemplateVersionLegacy](templateVersionsTable),
+    Table[TemplateSummaryLegacy](templateSummaryTable)
   )
 
   case class LegacyTemplateVersion(commName: String,

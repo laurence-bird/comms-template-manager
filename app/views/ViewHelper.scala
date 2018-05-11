@@ -3,7 +3,7 @@ package views
 import java.time.{Instant, LocalDate}
 
 import com.ovoenergy.comms.model.{Channel, Print}
-import models.TemplateVersion
+import models.TemplateVersionLegacy
 
 object ViewHelper {
 
@@ -25,13 +25,13 @@ object ViewHelper {
   def commSearchLink(commName: String, commSearchUrl: String): String =
     s"$commSearchUrl?commName=$commName"
 
-  def containsPrintTemplates(templates: Seq[TemplateVersion]) = {
+  def containsPrintTemplates(templates: Seq[TemplateVersionLegacy]) = {
     templates.foldLeft(false) { (acc, templateVersion) =>
       containsPrintTemplate(templateVersion) || acc
     }
   }
 
-  def containsPrintTemplate(template: TemplateVersion) = {
+  def containsPrintTemplate(template: TemplateVersionLegacy) = {
     template.channels
       .exists(_.contains(Print))
   }

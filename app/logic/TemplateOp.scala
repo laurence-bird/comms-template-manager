@@ -8,7 +8,7 @@ import cats.free.Free._
 import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
-import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
+import models.{TemplateSummaryLegacy, TemplateVersionLegacy, ZippedRawTemplate}
 import play.api.Logger
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
@@ -22,22 +22,22 @@ object TemplateOp {
   def retrieveTemplateFromS3(commManifest: CommManifest): TemplateOp[TemplateFiles] =
     liftF(RetrieveTemplateFromS3(commManifest))
 
-  def retrieveTemplateInfo(commManifest: CommManifest): TemplateOp[TemplateVersion] =
+  def retrieveTemplateInfo(commManifest: CommManifest): TemplateOp[TemplateVersionLegacy] =
     liftF(RetrieveTemplateVersionFromDynamo(commManifest))
 
-  def retrieveAllTemplateVersions(commName: String): TemplateOp[Seq[TemplateVersion]] =
+  def retrieveAllTemplateVersions(commName: String): TemplateOp[Seq[TemplateVersionLegacy]] =
     liftF(RetrieveAllTemplateVersions(commName))
 
   def compressTemplatesToZipFile(templateFiles: TemplateFiles): TemplateOp[Array[Byte]] =
     liftF(CompressTemplates(templateFiles))
 
-  def listTemplateSummaries(): TemplateOp[Seq[TemplateSummary]] =
+  def listTemplateSummaries(): TemplateOp[Seq[TemplateSummaryLegacy]] =
     liftF(ListTemplateSummaries)
 
   def validateAndUploadExistingTemplate(commName: String,
                                         uploadedFiles: List[UploadedFile],
                                         publishedBy: String,
-                                        context: TemplatesContext): TemplateOp[TemplateSummary] = {
+                                        context: TemplatesContext): TemplateOp[TemplateSummaryLegacy] = {
     for {
       nextVersion <- getNextTemplateSummary(commName)
       commManifest = CommManifest(nextVersion.commType, commName, nextVersion.latestVersion)
@@ -99,7 +99,7 @@ object TemplateOp {
     liftF(InjectChannelSpecificScript(processedFiles))
   }
 
-  def getNextTemplateSummary(commName: String): TemplateOp[TemplateSummary] = {
+  def getNextTemplateSummary(commName: String): TemplateOp[TemplateSummaryLegacy] = {
     liftF(GetNextTemplateSummary(commName))
   }
 

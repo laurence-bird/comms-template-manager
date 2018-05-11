@@ -9,7 +9,7 @@ import com.ovoenergy.comms.model._
 import templates.{UploadedTemplateFile => UploadedTemplate}
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic._
-import models.{TemplateSummary, TemplateVersion}
+import models.{TemplateSummaryLegacy, TemplateVersionLegacy}
 import pagerduty.PagerDutyAlerter
 import templates.{AssetProcessing, Injector}
 import templates.validation.{PrintTemplateValidation, TemplateValidator}
@@ -143,11 +143,11 @@ object Interpreter {
             }
 
           case GetNextTemplateSummary(commName) =>
-            val latestVersion: ErrorsOr[TemplateSummary] =
+            val latestVersion: ErrorsOr[TemplateSummaryLegacy] =
               awsContext.dynamo.getTemplateSummary(commName).toRight(NonEmptyList.of("No template found"))
             for {
               latestTemplate <- latestVersion.right
-              nextVersion    <- TemplateSummary.nextVersion(latestTemplate.latestVersion).right
+              nextVersion    <- TemplateSummaryLegacy.nextVersion(latestTemplate.latestVersion).right
             } yield latestTemplate.copy(latestVersion = nextVersion)
 
           case GetChannels(commManifest, templateContext) =>

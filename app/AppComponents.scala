@@ -7,7 +7,7 @@ import com.ovoenergy.comms.templates.s3.{AmazonS3ClientWrapper => TemplatesLibS3
 import components.Retry.RetryConfig
 import components.{ConfigUtil, GoogleAuthComponents, Retry}
 import controllers._
-import models.{TemplateSummary, TemplateVersion}
+import models.{TemplateSummaryLegacy, TemplateVersionLegacy}
 import pagerduty.PagerDutyAlerter
 import play.api.ApplicationLoader.Context
 import play.api.{BuiltInComponentsFromContext, Logger}
@@ -37,8 +37,8 @@ class AppComponents(context: Context)
 
   val dynamo = new Dynamo(
     dynamoClient,
-    Table[TemplateVersion](mandatoryConfig("aws.dynamo.tables.templateVersionTable")),
-    Table[TemplateSummary](mandatoryConfig("aws.dynamo.tables.templateSummaryTable"))
+    Table[TemplateVersionLegacy](mandatoryConfig("aws.dynamo.tables.templateVersionTable")),
+    Table[TemplateSummaryLegacy](mandatoryConfig("aws.dynamo.tables.templateSummaryTable"))
   )
 
   val awsContext = aws.Context(
