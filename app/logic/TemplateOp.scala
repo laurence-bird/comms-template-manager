@@ -8,7 +8,7 @@ import cats.free.Free._
 import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
-import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
+import models.{Brand, TemplateSummary, TemplateVersion, ZippedRawTemplate}
 import play.api.Logger
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
@@ -50,6 +50,7 @@ object TemplateOp {
   }
 
   def validateAndUploadNewTemplate(commManifest: CommManifest,
+                                   brand: Brand,
                                    uploadedFiles: List[UploadedFile],
                                    publishedBy: String,
                                    context: TemplatesContext): TemplateOp[List[String]] = {

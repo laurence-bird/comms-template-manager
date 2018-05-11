@@ -23,7 +23,7 @@ import com.ovoenergy.comms.templates.s3.AmazonS3ClientWrapper
 import controllers.Auth.AuthRequest
 import http.PreviewForm
 import logic.{TemplateOp, TemplateOpA}
-import models.ZippedRawTemplate
+import models.{Brand, ZippedRawTemplate}
 import org.apache.commons.compress.utils.IOUtils
 import org.slf4j.LoggerFactory
 import play.api.i18n.I18nSupport
@@ -186,7 +186,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   def publishNewTemplateGet = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None))
+    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None, Brand.values))
   }
 
   def publishExistingTemplateGet(commName: String) = Authenticated { implicit request =>
@@ -194,37 +194,52 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     Ok(views.html.publishExistingTemplate("inprogress", List[String](), commName))
   }
 
-  def publishNewTemplatePost = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
-    implicit val user: UserIdentity = multipartFormRequest.user
+  def publishNewTemplatePost = Authenticated(parse.multipartFormData) {
+    implicit multipartFormRequest: AuthRequest[MultipartFormData[TemporaryFile]] =>
+      implicit val user: UserIdentity                           = multipartFormRequest.user
+      implicit def commTypeToString(commType: CommType): String = commType.getClass.getName
 
-    val result = for {
-      commName     <- multipartFormRequest.body.dataParts.get("commName")
-      commType     <- multipartFormRequest.body.dataParts.get("commType")
-      templateFile <- multipartFormRequest.body.file("templateFile")
-    } yield {
-      val commManifest = CommManifest(CommType.CommTypeFromValue(commType.head), commName.head, "1.0")
-      Logger.info(s"Publishing new comm template, ${commName.head}")
-      val uploadedFiles = extractUploadedFiles(templateFile)
-      TemplateOp
-        .validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username, templateContext)
-        .foldMap(interpreter) match {
-        case Right(_) =>
-          Ok(
-            views.html.publishNewTemplate("ok",
-                                          List(s"Template published: $commManifest"),
-                                          Some(commName.head),
-                                          Some(commType.head)))
-        case Left(errors) =>
-          Logger.error(
-            s"Failed to publish comm ${commManifest.name}, version ${commManifest.version} with errors: ${errors.toList
-              .mkString(", ")}")
-          Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
+      def getDataPart[A](part: String, f: String => Option[A]) =
+        multipartFormRequest.body.dataParts
+          .get(part)
+          .flatMap(_.headOption)
+          .flatMap(f)
+
+      val result = for {
+        commName     <- getDataPart("commName", Some(_))
+        commType     <- getDataPart("commType", CommType.fromString)
+        brand        <- getDataPart("brand", Brand.fromString)
+        templateFile <- multipartFormRequest.body.file("templateFile")
+      } yield {
+
+        val commManifest = CommManifest(commType, commName, "1.0")
+        Logger.info(s"Publishing new comm template, $commManifest")
+
+        val uploadedFiles = extractUploadedFiles(templateFile)
+
+        TemplateOp
+          .validateAndUploadNewTemplate(commManifest, brand, uploadedFiles, user.username, templateContext)
+          .foldMap(interpreter) match {
+          case Right(_) =>
+            Ok(
+              views.html.publishNewTemplate("ok",
+                                            List(s"Template published: $commManifest"),
+                                            Some(commName),
+                                            Some(commType),
+                                            Brand.values))
+          case Left(errors) =>
+            Logger.error(
+              s"Failed to publish comm ${commManifest.name}, version ${commManifest.version} with errors: ${errors.toList
+                .mkString(", ")}")
+            Ok(
+              views.html
+                .publishNewTemplate("error", errors.toList, Some(commName), Some(commType), Brand.values))
+        }
+
       }
-
-    }
-    result.getOrElse {
-      Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
-    }
+      result.getOrElse {
+        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None, Brand.values))
+      }
   }
 
   def publishExistingTemplatePost(commName: String) = Authenticated(parse.multipartFormData) {

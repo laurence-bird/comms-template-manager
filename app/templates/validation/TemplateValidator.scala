@@ -18,6 +18,7 @@ import templates.{TemplateBuilder, TemplateErrors, UploadedFile, UploadedTemplat
 object TemplateValidator {
 
   private val assetTemplateReferenceRegex = "(?:'|\")(?: *)(assets/[^(\"')]+)(?: *)(?:'|\")".r
+
   def validateTemplate(
       channelSpecificValidator: List[UploadedTemplateFile] => TemplateErrors[List[UploadedTemplateFile]])(
       s3Client: S3Client,
