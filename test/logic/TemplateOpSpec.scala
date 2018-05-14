@@ -18,7 +18,7 @@ class TemplateOpSpec extends FlatSpec with Matchers {
   val publishedAt = Instant.now()
 
   def genTemplateVersion(commManifest: CommManifest) =
-    TemplateVersion(
+    TemplateVersionLegacy(
       commManifest.name,
       commManifest.version,
       publishedAt,

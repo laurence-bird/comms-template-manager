@@ -11,7 +11,7 @@ class ViewHelperSpec extends FlatSpec with Matchers {
   def randomString() = UUID.randomUUID().toString
 
   def buildTemplateVersion(channel: List[Channel]) = {
-    TemplateVersion(CommManifest(Service, randomString(), randomString()), randomString(), channel)
+    TemplateVersionLegacy(CommManifest(Service, randomString(), randomString()), randomString(), channel)
   }
 
   behavior of "ViewHelper"

@@ -33,3 +33,33 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+
+  TemplateSummaryTIDTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: templateId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: templateId
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  TemplateVersionTIDTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: templateId
+        AttributeType: S
+      - AttributeName: publishedAt
+        AttributeType: N
+      KeySchema:
+      - AttributeName: templateId
+        KeyType: HASH
+      - AttributeName: publishedAt
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5

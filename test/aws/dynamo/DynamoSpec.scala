@@ -9,7 +9,7 @@ import com.gu.scanamo.{Scanamo, Table}
 import com.ovoenergy.comms.model.CommType._
 import aws.dynamo.DynamoFormats._
 import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, Service}
-import models.{TemplateSummaryLegacy, TemplateVersionLegacy}
+import models.{TemplateSummary, TemplateSummaryLegacy, TemplateVersion, TemplateVersionLegacy}
 
 class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
@@ -31,9 +31,9 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
                                    commType: CommType)
 
   val templateVersions = Seq(
-    TemplateVersion("comm1", "1.0", Instant.now, "laurence", Service, Some(Nil)),
-    TemplateVersion("comm2", "1.0", Instant.now, "laurence", Service, Some(Nil)),
-    TemplateVersion("comm2", "2.0", Instant.now, "chris", Service, Some(Nil))
+    TemplateVersionLegacy("comm1", "1.0", Instant.now, "laurence", Service, Some(Nil)),
+    TemplateVersionLegacy("comm2", "1.0", Instant.now, "laurence", Service, Some(Nil)),
+    TemplateVersionLegacy("comm2", "2.0", Instant.now, "chris", Service, Some(Nil))
   )
 
   val legacyTemplateVersions = Seq(
@@ -43,10 +43,10 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   )
 
   val templateSummaries = Seq(
-    TemplateSummary("comm1", Service, "1.0"),
-    TemplateSummary("comm2", Service, "2.0"),
-    TemplateSummary("legacyComm1", Service, "1.0"),
-    TemplateSummary("legacyComm2", Service, "2.0")
+    TemplateSummaryLegacy("comm1", Service, "1.0"),
+    TemplateSummaryLegacy("comm2", Service, "2.0"),
+    TemplateSummaryLegacy("legacyComm1", Service, "1.0"),
+    TemplateSummaryLegacy("legacyComm2", Service, "2.0")
   )
 
   override def beforeAll(): Unit = {
@@ -124,7 +124,7 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "write new version" in {
     dynamo.writeNewVersion(CommManifest(Service, "comm2", "2.5"), publishedBy, Nil) shouldBe Right(())
     val summaries = dynamo.listTemplateSummaries
-    summaries should contain(TemplateSummary("comm2", Service, "2.5"))
+    summaries should contain(TemplateSummaryLegacy("comm2", Service, "2.5"))
 
     val versions = dynamo.listVersions("comm2")
     versions.length shouldBe 3
