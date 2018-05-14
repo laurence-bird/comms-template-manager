@@ -4,7 +4,7 @@ object Dependencies {
 
   object OvoEnergy {
     val commsKafkaMessages =   "com.ovoenergy" %% "comms-kafka-messages" % "1.66"
-    val commsTemplates = "com.ovoenergy" %% "comms-templates" % "0.21-SNAPSHOT"
+    val commsTemplates = "com.ovoenergy" %% "comms-templates" % "0.21"
   }
 
   object Circe {
