@@ -21,6 +21,8 @@ import util.{LocalDynamoDB, MockServerFixture}
 import cats.syntax.either._
 import aws.dynamo.DynamoFormats._
 import com.google.common.io.Resources
+import com.ovoenergy.comms.templates.s3.S3Prefix
+import com.ovoenergy.comms.templates.util.Hash
 import org.mockserver.mock.Expectation
 import org.mockserver.model.{HttpRequest, HttpResponse}
 
@@ -111,6 +113,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     loop(20)
   }
 
+  val prefix      = getPrefix("template-manager-service-test", "0.1")
+
   private def initialiseS3Bucket() = {
     val s3clientOptions = S3ClientOptions.builder().setPathStyleAccess(true).disableChunkedEncoding().build()
 
@@ -120,17 +124,11 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     s3.createBucket(assetsBucket)
     s3.createBucket(templatesBucket)
 
-    s3.putObject(rawTemplatesBucket,
-                 "service/template-manager-service-test/0.1/email/subject.txt",
-                 "SUBJECT {{profile.firstName}}")
-    s3.putObject(rawTemplatesBucket,
-                 "service/template-manager-service-test/0.1/email/body.html",
-                 "{{> header}} HTML BODY {{amount}}")
-    s3.putObject(rawTemplatesBucket,
-                 "service/template-manager-service-test/0.1/email/body.txt",
-                 "{{> header}} TEXT BODY {{amount}}")
-    s3.putObject(templatesBucket, "service/fragments/email/html/header.html", "HTML HEADER")
-    s3.putObject(templatesBucket, "service/fragments/email/html/footer.html", "HTML FOOTER")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/subject.txt", "SUBJECT {{profile.firstName}}")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.html", "{{> header}} HTML BODY {{amount}}")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.txt", "{{> header}} TEXT BODY {{amount}}")
+    s3.putObject(templatesBucket, "fragments/email/html/header.html", "HTML HEADER")
+    s3.putObject(templatesBucket, "fragments/email/html/footer.html", "HTML FOOTER")
 
     Thread.sleep(2000)
   }
@@ -184,9 +182,11 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
-    assetsInBucket should contain("service/TEST-COMM/1.0/email/assets/canary.png")
-    templatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
-    rawTemplatesInBucket should contain allOf ("service/TEST-COMM/1.0/email/assets/canary.png", "service/TEST-COMM/1.0/email/body.html", "service/TEST-COMM/1.0/email/subject.txt", "service/TEST-COMM/1.0/sms/body.txt")
+    val prefix               = getPrefix("TEST-COMM", "1.0")
+
+    assetsInBucket should contain(s"$prefix/email/assets/canary.png")
+    templatesInBucket should contain allOf (s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
+    rawTemplatesInBucket should contain allOf (s"$prefix/email/assets/canary.png", s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
 
     val templateSummaries                      = scan(templateSummaryTable)
     val templateVersions                       = scan(templateVersionTable)
@@ -235,9 +235,11 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
 
-    assetsInBucket should contain(s"service/$commName/2.0/email/assets/canary.png")
-    templatesInBucket should contain allOf (s"service/$commName/2.0/email/body.html", s"service/$commName/2.0/email/subject.txt")
-    rawTemplatesInBucket should contain allOf (s"service/$commName/2.0/email/assets/canary.png", s"service/$commName/2.0/email/body.html", s"service/$commName/2.0/email/subject.txt")
+    val prefix = getPrefix(commName, "2.0")
+
+    assetsInBucket should contain(s"$prefix/email/assets/canary.png")
+    templatesInBucket should contain allOf (s"$prefix/email/body.html", s"$prefix/email/subject.txt")
+    rawTemplatesInBucket should contain allOf (s"$prefix/email/assets/canary.png", s"$prefix/email/body.html", s"$prefix/email/subject.txt")
 
     val templateSummaries = scan(templateSummaryTable).filter(_.commName == commName)
     val templateVersions  = scan(templateVersionTable)
@@ -356,9 +358,10 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
     val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
 
-    assetsInBucket should contain("service/TEST-COMM-PRINT/1.0/email/assets/canary.png")
-    templatesInBucket should contain allOf ("service/TEST-COMM-PRINT/1.0/email/body.html", "service/TEST-COMM-PRINT/1.0/email/subject.txt", "service/TEST-COMM-PRINT/1.0/sms/body.txt")
-    rawTemplatesInBucket should contain allOf ("service/TEST-COMM-PRINT/1.0/email/assets/canary.png", "service/TEST-COMM-PRINT/1.0/email/body.html", "service/TEST-COMM-PRINT/1.0/email/subject.txt", "service/TEST-COMM-PRINT/1.0/sms/body.txt")
+    val prefix = getPrefix("TEST-COMM-PRINT", "1.0")
+    assetsInBucket should contain(s"$prefix/email/assets/canary.png")
+    templatesInBucket should contain allOf (s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
+    rawTemplatesInBucket should contain allOf (s"$prefix/email/assets/canary.png", s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
 
     val templateSummaries = scan(templateSummaryTable)
     val templateVersions  = scan(templateVersionTable)
@@ -510,5 +513,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def makeRequest(request: Request) = httpClient.newCall(request).execute()
+
+  private def getPrefix(commName: String, version: String) =
+    S3Prefix.fromTemplateManifest(TemplateManifest(Hash(commName), version))
 
 }

@@ -154,7 +154,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
   import cats.instances.either._
 
   def getTemplateVersion(commName: String, version: String) = Authenticated {
-    TemplateOp.retrieveTemplate(TemplateManifest(commName, version)).foldMap(interpreter) match {
+    TemplateOp.retrieveTemplate(TemplateManifest(Hash(commName), version)).foldMap(interpreter) match {
       case Left(err) => NotFound(s"Failed to retrieve template: $err")
       case Right(res: ZippedRawTemplate) =>
         val dataContent: Source[ByteString, _] =
@@ -229,10 +229,11 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           .foldMap(interpreter) match {
           case Right(_) =>
             Ok(
-              views.html.publishNewTemplate("ok",
-                                            List(s"Template published: $templateManifest"),
-                                            Some(commName),
-                                            Some(commType)))
+              views.html.publishNewTemplate(
+                "ok",
+                List(s"Template published: ${CommManifest(commType, commName, templateManifest.version)}"),
+                Some(commName),
+                Some(commType)))
           case Left(errors) =>
             Logger.error(
               s"Failed to publish comm ${commName}, version ${templateManifest.version} with errors: ${errors.toList

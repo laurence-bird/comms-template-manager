@@ -2,6 +2,7 @@ package templates
 
 import com.amazonaws.regions.Regions
 import com.ovoenergy.comms.model._
+import com.ovoenergy.comms.templates.s3.S3Prefix
 import com.ovoenergy.comms.templates.util.Hash
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -37,15 +38,21 @@ class AssetProcessingSpec extends FlatSpec with Matchers {
     val processedBodyHtml = UploadedTemplateFile(
       "email/body.html",
       Content(
-        "<html><head></head><body><img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/something/assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"></body></html>"),
+        s"""<html><head></head><body><img src="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/${S3Prefix
+          .fromTemplateManifest(manifest)}/email/assets/image.png" alt="Smiley face" height="42" width="42"><img src="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/${S3Prefix
+          .fromTemplateManifest(manifest)}/email/assets/something/assets/image.png" alt="Smiley face" height="42" width="42"></body></html>"""
+      ),
       Email,
       HtmlBody,
       None
     )
+
     val processedSubject = UploadedTemplateFile(
       "email/subject.txt",
       Content(
-        "fsfdsfs<img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/something/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\">"),
+        s"""fsfdsfs<img src="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/${S3Prefix
+          .fromTemplateManifest(manifest)}/email/assets/something/image.png" alt="Smiley face" height="42" width="42">"""
+      ),
       Email,
       Subject,
       None
@@ -101,15 +108,17 @@ class AssetProcessingSpec extends FlatSpec with Matchers {
     val expProcessedBodyHtml = UploadedTemplateFile(
       "email/body.html",
       Content(
-        "<html><head></head><body><img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"><img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/something/assets/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\"></body></html>"),
+        s"""<html><head></head><body><img src="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/${S3Prefix
+          .fromTemplateManifest(manifest)}/email/assets/image.png" alt="Smiley face" height="42" width="42"><img src="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/${S3Prefix
+          .fromTemplateManifest(manifest)}/email/assets/something/assets/image.png" alt="Smiley face" height="42" width="42"></body></html>"""),
       Email,
       HtmlBody,
       None
     )
     val expProcessedSubject = UploadedTemplateFile(
       "email/subject.txt",
-      Content(
-        "fsfdsfs<img src=\"https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/service/commName/1.0/email/assets/something/image.png\" alt=\"Smiley face\" height=\"42\" width=\"42\">"),
+      Content(s"""fsfdsfs<img src="https://s3-eu-west-1.amazonaws.com/dev-ovo-comms-template-assets/${S3Prefix
+        .fromTemplateManifest(manifest)}/email/assets/something/image.png" alt="Smiley face" height="42" width="42">"""),
       Email,
       Subject,
       None

@@ -14,8 +14,8 @@ class Dynamo(db: AmazonDynamoDB,
              templateVersionTable: Table[TemplateVersion],
              templateSummaryTable: Table[TemplateSummary]) {
 
-  def listVersions(templateId: String): Seq[TemplateVersion] = {
-    val query = templateVersionTable.query('templateId -> templateId)
+  def listVersions(commName: String): Seq[TemplateVersion] = {
+    val query = templateVersionTable.query('commName -> commName)
     Scanamo.exec(db)(query).flatMap { result =>
       logIfError(result).toOption
     }
@@ -28,7 +28,7 @@ class Dynamo(db: AmazonDynamoDB,
                       publishedBy: String,
                       channels: List[Channel]): Either[String, Unit] = {
 
-    if (isNewestVersion(templateManifest)) {
+    if (isNewestVersion(commName, templateManifest.version)) {
 
       val commManifest = CommManifest(commType, commName, templateManifest.version)
 
@@ -49,8 +49,8 @@ class Dynamo(db: AmazonDynamoDB,
 
       Right(())
     } else {
-      Left(s"There is a newer version (${getTemplateSummary(templateManifest.id)
-        .map(_.latestVersion)}) of comm (${templateManifest.id}) already, than being published (${templateManifest.version})")
+      Left(s"There is a newer version (${getTemplateSummary(commName)
+        .map(_.latestVersion)}) of comm (${commName}) already, than being published (${templateManifest.version})")
     }
   }
 
@@ -67,8 +67,8 @@ class Dynamo(db: AmazonDynamoDB,
   }
 
   // FIXME this does not work in the real life as the version is not indexed.
-  def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {
-    val query = templateVersionTable.get('templateId -> templateId and 'version -> version)
+  def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
+    val query = templateVersionTable.get('commName -> commName and 'version -> version)
     Scanamo.exec(db)(query).flatMap(result => logIfError(result).toOption)
   }
 
@@ -79,9 +79,10 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  private def isNewestVersion(templateManifest: TemplateManifest): Boolean = {
-    getTemplateSummary(templateManifest.id)
-      .map(summary => TemplateSummary.versionCompare(templateManifest.version.trim, summary.latestVersion.trim))
+  private def isNewestVersion(commName: String, version: String): Boolean = {
+
+    getTemplateSummary(commName)
+      .map(summary => TemplateSummary.versionCompare(version.trim, summary.latestVersion.trim))
       .forall {
         case Right(comparison) => if (comparison > 0) true else false
         case Left(error) =>
