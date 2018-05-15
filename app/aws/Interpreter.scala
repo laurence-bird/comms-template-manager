@@ -15,6 +15,7 @@ import templates.{AssetProcessing, Injector}
 import templates.validation.{PrintTemplateValidation, TemplateValidator}
 import com.ovoenergy.comms.templates
 import com.ovoenergy.comms.templates.TemplatesRepo
+import com.ovoenergy.comms.templates.s3.S3Prefix
 import play.api.Logger
 
 import scala.util.Right
@@ -27,19 +28,19 @@ object Interpreter {
     new (TemplateOpA ~> ErrorsOr) {
       override def apply[A](fa: TemplateOpA[A]): ErrorsOr[A] = {
         fa match {
-          case RetrieveTemplateFromS3(commManifest: CommManifest) =>
+          case RetrieveTemplateFromS3(templateManifest: TemplateManifest) =>
             S3Operations.downloadTemplateFiles(awsContext.s3ClientWrapper,
-                                               commManifest,
+                                               templateManifest,
                                                awsContext.s3RawTemplatesBucket) match {
               case Left(error)    => Left(NonEmptyList.of(error))
               case Right(success) => Right(success)
             }
 
-          case RetrieveTemplateVersionFromDynamo(commManifest) =>
+          case RetrieveTemplateVersionFromDynamo(templateManifest) =>
             awsContext.dynamo
-              .getTemplateVersion(commManifest.name, commManifest.version)
+              .getTemplateVersion(templateManifest.id, templateManifest.version)
               .map(r => Right(r))
-              .getOrElse(Left(s"Template ${commManifest.name} version ${commManifest.version} does not exist")) match {
+              .getOrElse(Left(s"Template ${templateManifest.id} version ${templateManifest.version} does not exist")) match {
               case Left(error)    => Left(NonEmptyList.of(error))
               case Right(success) => Right(success)
             }
@@ -54,9 +55,9 @@ object Interpreter {
               Right(templateSummaries)
           }
 
-          case UploadRawTemplateFileToS3(commManifest, uploadedFile, publishedBy) =>
+          case UploadRawTemplateFileToS3(templateManifest, uploadedFile, publishedBy) =>
             val key =
-              s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
+              s"${S3Prefix.fromTemplateManifest(templateManifest)}/${uploadedFile.path}"
             val s3File =
               S3FileDetails(uploadedFile.byteArrayContents,
                             key,
@@ -70,9 +71,9 @@ object Interpreter {
               case Right(success) => Right(success)
             }
 
-          case UploadTemplateAssetFileToS3(commManifest, uploadedFile: UploadedTemplate, publishedBy) =>
+          case UploadTemplateAssetFileToS3(templateManifest, uploadedFile: UploadedTemplate, publishedBy) =>
             val key =
-              s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
+              s"${S3Prefix.fromTemplateManifest(templateManifest)}/${uploadedFile.path}"
             val s3File =
               S3FileDetails(uploadedFile.byteArrayContents,
                             key,
@@ -91,9 +92,9 @@ object Interpreter {
             Injector.injectIntoTemplate(awsContext, processedFiles)
           }
 
-          case UploadProcessedTemplateFileToS3(commManifest, uploadedFile, publishedBy) =>
+          case UploadProcessedTemplateFileToS3(templateManifest, uploadedFile, publishedBy) =>
             val key =
-              s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}/${uploadedFile.path}"
+              s"${S3Prefix.fromTemplateManifest(templateManifest)}/${uploadedFile.path}"
             val s3File =
               S3FileDetails(uploadedFile.byteArrayContents, key, awsContext.s3TemplateFilesBucket)
             awsContext.s3ClientWrapper.uploadFile(s3File) match {
@@ -104,23 +105,23 @@ object Interpreter {
               case Right(success) => Right(success)
             }
 
-          case ProcessTemplateAssets(commManifest, uploadedFiles) =>
+          case ProcessTemplateAssets(templateManifest, uploadedFiles) =>
             AssetProcessing.processAssets(awsContext.region,
                                           awsContext.s3TemplateAssetsBucket,
-                                          commManifest,
+                                          templateManifest,
                                           uploadedFiles)
 
-          case ValidateTemplate(commManifest, uploadedFiles) =>
+          case ValidateTemplate(templateManifest, uploadedFiles) =>
             TemplateValidator.validateTemplate(PrintTemplateValidation.validatePrintFiles)(
               awsContext.templatesS3ClientWrapper,
-              commManifest,
+              templateManifest,
               uploadedFiles)
 
-          case ValidateTemplateDoesNotExist(commManifest) =>
-            if (awsContext.dynamo.listVersions(commManifest.name).isEmpty) {
+          case ValidateTemplateDoesNotExist(templateManifest, commName) =>
+            if (awsContext.dynamo.listVersions(templateManifest.id).isEmpty) {
               Right(())
             } else {
-              Left(NonEmptyList.of(s"A template called ${commManifest.name} already exists"))
+              Left(NonEmptyList.of(s"A template called ${commName} already exists"))
             }
 
           case RetrieveAllTemplateVersions(commName: String) => {
@@ -131,12 +132,12 @@ object Interpreter {
               Right(versions)
           }
 
-          case UploadTemplateToDynamo(commMannifest, publishedBy, channels) =>
-            awsContext.dynamo.writeNewVersion(commMannifest, publishedBy, channels) match {
+          case UploadTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels) =>
+            awsContext.dynamo.writeNewVersion(templateManifest, commName, commType, publishedBy, channels) match {
               case Right(()) => Right(())
               case Left(error) => {
                 PagerDutyAlerter(
-                  s"Attempt to publish template to dynamo by $publishedBy for ${commMannifest.name}, ${commMannifest.version} failed",
+                  s"Attempt to publish template to dynamo by $publishedBy for ${templateManifest.id}, ${templateManifest.version} failed",
                   pagerDutyContext)
                 Left(NonEmptyList.of(error))
               }

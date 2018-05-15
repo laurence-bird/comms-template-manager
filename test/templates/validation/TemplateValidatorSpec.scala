@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.s3.S3Client
+import com.ovoenergy.comms.templates.util.Hash
 import org.scalatest.{FlatSpec, Matchers}
 import templates._
 
@@ -20,7 +21,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
 
   object S3ClientStubWithPartial extends S3Client {
     override def getUTF8TextFileContent(key: String): Option[String] = {
-      if (key == "service/fragments/email/html/aValidPartial.html") Some("partial contents")
+      if (key == "fragments/email/html/aValidPartial.html") Some("partial contents")
       else None
     }
 
@@ -29,7 +30,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
 
   val happyPrintTemplateValidator = (templates: List[UploadedTemplateFile]) => Valid(templates)
 
-  val commManifest = CommManifest(Service, "canary", "snapshot")
+  val templateManifest = TemplateManifest(Hash("canary"), "snapshot")
 
   behavior of "TemplateValidator"
 
@@ -39,7 +40,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/subject.txt", "fsfdsfs"),
       generateUploadedFile("email/extra.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(
+    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles) shouldBe Left(
       NonEmptyList.of("email/extra.txt is not an expected template file"))
   }
 
@@ -49,7 +50,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.txt", "fsfdsfs"),
       generateUploadedFile("email/sender.txt", "Test <testing@test.com>")
     )
-    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles) shouldBe Left(
+    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles) shouldBe Left(
       NonEmptyList.of("No email subject file has been provided in template"))
   }
 
@@ -59,7 +60,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("template/email/subject.txt", "fsfdsfs")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .left
       .get
       .toList
@@ -74,7 +75,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/extra.txt", "fsdfsdf")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .left
       .get
       .toList
@@ -91,7 +92,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/image.png", "fsfdsfs"),
       generateUploadedFile("email/assets/something/image.png", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
+    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "not error if minimal fileset present for email template" in {
@@ -99,7 +100,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/body.html", "fsfdsfs"),
       generateUploadedFile("email/subject.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
+    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "not error if valid partial referenced" in {
@@ -108,7 +109,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/subject.txt", "{{something.else}}")
     )
     TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStubWithPartial,
-                                                                    commManifest,
+                                                                    templateManifest,
                                                                     uploadedFiles) shouldBe 'right
   }
 
@@ -118,7 +119,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/subject.txt", "{{something.else}}")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .left
       .get
       .toList
@@ -132,7 +133,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     )
     val result =
       TemplateValidator
-        .validateTemplate(happyPrintTemplateValidator)(S3ClientStubWithPartial, commManifest, uploadedFiles)
+        .validateTemplate(happyPrintTemplateValidator)(S3ClientStubWithPartial, templateManifest, uploadedFiles)
         .left
         .get
         .toList
@@ -148,7 +149,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/something/image.png", "fsfdsfs")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .left
       .get
       .toList
@@ -167,7 +168,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/smiley.gif", "fsfdsfs"),
       generateUploadedFile("email/assets/something/another.gif", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
+    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "error if no channel templates are present" in {
@@ -175,7 +176,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("email/assets/image.gif", "fsfdsfs")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .left
       .get
       .toList
@@ -186,7 +187,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     val uploadedFiles = List(
       generateUploadedFile("sms/body.txt", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
+    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "not error if valid email and SMS channel templates are present" in {
@@ -196,7 +197,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("sms/body.txt", "fsfdsfs")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .right
       .get
     for (i <- 0 to 2) {
@@ -219,7 +220,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("print/body.html", "blablabla")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .right
       .get
     for (i <- 0 to 3) {
@@ -241,7 +242,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("print/body.html", "Print template body")
     )
     TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStubWithPartial,
-                                                                    commManifest,
+                                                                    templateManifest,
                                                                     uploadedFiles) shouldBe 'right
   }
 
@@ -254,7 +255,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("print/assets/smiley.gif", "fsfdsfs"),
       generateUploadedFile("print/assets/something/another.gif", "fsfdsfs")
     )
-    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles) shouldBe 'right
+    TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles) shouldBe 'right
   }
 
   it should "error if non-existent print assets are referenced" in {
@@ -265,7 +266,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("print/assets/something/image.png", "fsfdsfs")
     )
     val result = TemplateValidator
-      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .left
       .get
       .toList
@@ -284,7 +285,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
       generateUploadedFile("print/assets/something/image.png", "fsfdsfs")
     )
     val result = TemplateValidator
-      .validateTemplate(unhappyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      .validateTemplate(unhappyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
       .left
       .get
       .toList
@@ -310,7 +311,7 @@ class TemplateValidatorSpec extends FlatSpec with Matchers {
     )
 
     val result =
-      TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, commManifest, uploadedFiles)
+      TemplateValidator.validateTemplate(happyPrintTemplateValidator)(S3ClientStub, templateManifest, uploadedFiles)
 
     result.right.get.flatMap(_.contentType) should contain theSameElementsAs Seq("text/html",
                                                                                  "text/plain",

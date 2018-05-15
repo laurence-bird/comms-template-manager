@@ -1,14 +1,14 @@
 package templates
 
 import com.amazonaws.regions.Regions
-import com.ovoenergy.comms.model.{Email, SMS}
-import com.ovoenergy.comms.model.{Channel, CommManifest, Service}
+import com.ovoenergy.comms.model._
+import com.ovoenergy.comms.templates.util.Hash
 import org.scalatest.{FlatSpec, Matchers}
 
 class AssetProcessingSpec extends FlatSpec with Matchers {
 
   val s3Bucket = "dev-ovo-comms-template-assets"
-  val manifest = CommManifest(Service, "commName", "1.0")
+  val manifest = TemplateManifest(Hash("commName"), "1.0")
   val region   = Regions.EU_WEST_1
 
   behavior of "Template AssetProcessing"

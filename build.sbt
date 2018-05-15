@@ -21,7 +21,7 @@ libraryDependencies ++= Seq(
   "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
   "me.moocar" % "logback-gelf" % "0.2",
   "com.gu" %% "play-googleauth" % "0.7.1",
-  "com.ovoenergy" %% "comms-templates" % "0.16",
+  "com.ovoenergy" %% "comms-templates" % "0.22",
   // ^^   ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^
   // ||   ||  ||  ||  ||  ||  ||  ||  ||  ||  ||  ||
   //

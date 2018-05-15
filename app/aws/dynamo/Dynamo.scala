@@ -6,7 +6,7 @@ import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
@@ -14,22 +14,30 @@ class Dynamo(db: AmazonDynamoDB,
              templateVersionTable: Table[TemplateVersion],
              templateSummaryTable: Table[TemplateSummary]) {
 
-  def listVersions(commName: String): Seq[TemplateVersion] = {
-    val query = templateVersionTable.query('commName -> commName)
+  def listVersions(templateId: String): Seq[TemplateVersion] = {
+    val query = templateVersionTable.query('templateId -> templateId)
     Scanamo.exec(db)(query).flatMap { result =>
       logIfError(result).toOption
     }
   }
 
   //TODO - Not a conditional write as desiredn
-  def writeNewVersion(commManifest: CommManifest, publishedBy: String, channels: List[Channel]): Either[String, Unit] = {
+  def writeNewVersion(templateManifest: TemplateManifest,
+                      commName: String,
+                      commType: CommType,
+                      publishedBy: String,
+                      channels: List[Channel]): Either[String, Unit] = {
 
-    if (isNewestVersion(commManifest)) {
+    if (isNewestVersion(templateManifest)) {
+
+      val commManifest = CommManifest(commType, commName, templateManifest.version)
+
       val templateVersion = TemplateVersion(
         commManifest = commManifest,
         publishedBy = publishedBy,
         channels = channels
       )
+
       Scanamo.exec(db)(templateVersionTable.put(templateVersion))
       Logger.info(s"Written template version to persistence $templateVersion")
 
@@ -41,8 +49,8 @@ class Dynamo(db: AmazonDynamoDB,
 
       Right(())
     } else {
-      Left(s"There is a newer version (${getTemplateSummary(commManifest.name)
-        .map(_.latestVersion)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
+      Left(s"There is a newer version (${getTemplateSummary(templateManifest.id)
+        .map(_.latestVersion)}) of comm (${templateManifest.id}) already, than being published (${templateManifest.version})")
     }
   }
 
@@ -59,8 +67,8 @@ class Dynamo(db: AmazonDynamoDB,
   }
 
   // FIXME this does not work in the real life as the version is not indexed.
-  def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
-    val query = templateVersionTable.get('commName -> commName and 'version -> version)
+  def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {
+    val query = templateVersionTable.get('templateId -> templateId and 'version -> version)
     Scanamo.exec(db)(query).flatMap(result => logIfError(result).toOption)
   }
 
@@ -71,9 +79,9 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  private def isNewestVersion(commManifest: CommManifest): Boolean = {
-    getTemplateSummary(commManifest.name)
-      .map(summary => TemplateSummary.versionCompare(commManifest.version.trim, summary.latestVersion.trim))
+  private def isNewestVersion(templateManifest: TemplateManifest): Boolean = {
+    getTemplateSummary(templateManifest.id)
+      .map(summary => TemplateSummary.versionCompare(templateManifest.version.trim, summary.latestVersion.trim))
       .forall {
         case Right(comparison) => if (comparison > 0) true else false
         case Left(error) =>

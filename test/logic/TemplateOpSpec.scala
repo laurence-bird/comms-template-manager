@@ -3,11 +3,16 @@ package logic
 import java.time.Instant
 
 import cats._
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, Service}
+import com.ovoenergy.comms.model._
 import models.{TemplateVersion, ZippedRawTemplate}
 import org.scalatest.{FlatSpec, Matchers}
+import com.ovoenergy.comms.templates.util.Hash
 
 class TemplateOpSpec extends FlatSpec with Matchers {
+
+  val commName = "testTemplate"
+
+  val commType = Service
 
   val templateFiles = Map(
     "emailBody" -> "My email body".getBytes,
@@ -17,13 +22,13 @@ class TemplateOpSpec extends FlatSpec with Matchers {
 
   val publishedAt = Instant.now()
 
-  def genTemplateVersion(commManifest: CommManifest) =
+  def genTemplateVersion(templateManifest: TemplateManifest) =
     TemplateVersion(
-      commManifest.name,
-      commManifest.version,
+      commName,
+      templateManifest.version,
       publishedAt,
       "Mr Test",
-      commManifest.commType,
+      commType,
       Some(Nil)
     )
 
@@ -40,9 +45,9 @@ class TemplateOpSpec extends FlatSpec with Matchers {
 
   it should "Retrieve a template" in {
 
-    val commManifest = CommManifest(Service, "testTemplate", "1.0")
+    val templateManifest = TemplateManifest(Hash(commName), "1.0")
 
-    val template       = TemplateOp.retrieveTemplate(commManifest).foldMap(testInterpreter)
+    val template       = TemplateOp.retrieveTemplate(templateManifest).foldMap(testInterpreter)
     val expectedResult = ZippedRawTemplate(templateFileStream)
 
     template shouldBe expectedResult

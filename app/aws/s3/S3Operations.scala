@@ -8,15 +8,16 @@ import cats.data.NonEmptyList
 import cats.instances.either._
 import cats.instances.list._
 import cats.syntax.traverse._
-import com.ovoenergy.comms.model.CommManifest
+import com.ovoenergy.comms.model.{CommManifest, TemplateManifest}
+import com.ovoenergy.comms.templates.s3.S3Prefix
 import logic.TemplateOp._
 
 object S3Operations {
 
   def downloadTemplateFiles(s3ClientWrapper: AmazonS3ClientWrapper,
-                            commManifest: CommManifest,
+                            templateManifest: TemplateManifest,
                             bucketName: String): Either[String, TemplateFiles] = {
-    val prefix   = buildPrefix(commManifest)
+    val prefix   = S3Prefix.fromTemplateManifest(templateManifest)
     val fileKeys = s3ClientWrapper.listFiles(bucketName, prefix).right
     fileKeys.flatMap { keys =>
       val result = keys.toList.traverse { absKey =>
@@ -30,10 +31,6 @@ object S3Operations {
       }
       result.right.map(_.toMap)
     }
-  }
-
-  private def buildPrefix(commManifest: CommManifest) = {
-    s"${commManifest.commType.toString.toLowerCase}/${commManifest.name}/${commManifest.version}"
   }
 
   type ByteArray = Array[Byte]
