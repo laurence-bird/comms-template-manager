@@ -113,7 +113,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     loop(20)
   }
 
-  val prefix      = getPrefix("template-manager-service-test", "0.1")
+  val prefix = getPrefix("template-manager-service-test", "0.1")
 
   private def initialiseS3Bucket() = {
     val s3clientOptions = S3ClientOptions.builder().setPathStyleAccess(true).disableChunkedEncoding().build()
