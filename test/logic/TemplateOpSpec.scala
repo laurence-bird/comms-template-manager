@@ -24,12 +24,11 @@ class TemplateOpSpec extends FlatSpec with Matchers {
 
   def genTemplateVersion(templateManifest: TemplateManifest) =
     TemplateVersion(
+      templateManifest,
       commName,
-      templateManifest.version,
-      publishedAt,
-      "Mr Test",
       commType,
-      Some(Nil)
+      "Mr Test",
+      List[Channel]()
     )
 
   val templateFileStream = "testing-is-fun".getBytes()

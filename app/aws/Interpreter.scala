@@ -16,6 +16,7 @@ import templates.validation.{PrintTemplateValidation, TemplateValidator}
 import com.ovoenergy.comms.templates
 import com.ovoenergy.comms.templates.TemplatesRepo
 import com.ovoenergy.comms.templates.s3.S3Prefix
+import models.Brand.Unbranded
 import play.api.Logger
 
 import scala.util.Right
@@ -124,16 +125,16 @@ object Interpreter {
               Left(NonEmptyList.of(s"A template called ${commName} already exists"))
             }
 
-          case RetrieveAllTemplateVersions(commName: String) => {
-            val versions = awsContext.dynamo.listVersions(commName)
+          case RetrieveAllTemplateVersions(templateId, commName) => {
+            val versions = awsContext.dynamo.listVersions(templateId)
             if (versions.isEmpty)
               Left(NonEmptyList.of(s"Failed to find any templates for comm $commName"))
             else
               Right(versions)
           }
 
-          case UploadTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels) =>
-            awsContext.dynamo.writeNewVersion(templateManifest, commName, commType, publishedBy, channels) match {
+          case UploadTemplateToDynamo(templateManifest, commName, commType, brand, publishedBy, channels) =>
+            awsContext.dynamo.writeNewVersion(templateManifest, commName, commType, brand, publishedBy, channels) match {
               case Right(()) => Right(())
               case Left(error) => {
                 PagerDutyAlerter(
@@ -143,9 +144,9 @@ object Interpreter {
               }
             }
 
-          case GetNextTemplateSummary(commName) =>
+          case GetNextTemplateSummary(templateId) =>
             val latestVersion: ErrorsOr[TemplateSummary] =
-              awsContext.dynamo.getTemplateSummary(commName).toRight(NonEmptyList.of("No template found"))
+              awsContext.dynamo.getTemplateSummary(templateId).toRight(NonEmptyList.of("No template found"))
             for {
               latestTemplate <- latestVersion.right
               nextVersion    <- TemplateSummary.nextVersion(latestTemplate.latestVersion).right

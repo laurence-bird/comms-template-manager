@@ -54,6 +54,8 @@ class AmazonS3ClientWrapper(client: AmazonS3Client) {
 
   // Returns keys of all the files in specified s3 bucket with the given prefix
   def listFiles(bucket: String, prefix: String): Either[String, Seq[String]] = {
+    println(s"Listing: $bucket/$prefix")
+    client.listObjects(bucket, prefix).getObjectSummaries.forEach(o => println(o.getKey))
     try {
       val request = new ListObjectsV2Request().withBucketName(bucket).withPrefix(prefix)
       val result  = client.listObjectsV2(request).getObjectSummaries.asScala.map(_.getKey)

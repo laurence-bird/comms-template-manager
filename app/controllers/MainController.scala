@@ -37,6 +37,7 @@ import play.api.http.{FileMimeTypes, HttpChunk, HttpEntity}
 import scala.collection.JavaConversions._
 import io.circe._
 import io.circe.syntax._
+import models.Brand.Unbranded
 import play.api.Logger
 import play.api.libs.concurrent.Futures
 import preview._
@@ -87,8 +88,9 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
       implicit val ec: ExecutionContext = controllerComponents.executionContext
       val previewRequest                = req.body
 
-      val templateVersion = awsContext.dynamo.listVersions(commName).find(_.version == commVersion)
+      val templateVersion = awsContext.dynamo.listVersions(Hash(commName)).find(_.version == commVersion)
 
+      println(s"Template version: $templateVersion")
       def stream(bytes: ByteString, chunkSize: Int): Source[ByteString, NotUsed] = {
         Source(bytes).grouped(chunkSize).flatMapConcat(bs => Source.single(ByteString(bs: _*)))
       }
@@ -123,7 +125,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     implicit val user: UserIdentity = request.user
 
     val getCommManifest: Either[NonEmptyList[String], CommManifest] = {
-      awsContext.dynamo.getTemplateSummary(commName).toRight(NonEmptyList.of("No template found")) match {
+      awsContext.dynamo.getTemplateSummary(Hash(commName)).toRight(NonEmptyList.of("No template found")) match {
         case Right(template) => Right(CommManifest(template.commType, template.commName, template.latestVersion))
         case Left(error)     => Left(error)
       }
@@ -178,7 +180,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   def listVersions(commName: String) = Authenticated { request =>
     implicit val user = request.user
-    TemplateOp.retrieveAllTemplateVersions(commName).foldMap(interpreter) match {
+    TemplateOp.retrieveAllTemplateVersions(Hash(commName), commName).foldMap(interpreter) match {
       case Left(errs) => {
         Logger.error(s"Failed to list versions of comm $commName with errors: ${errs.toList.mkString(", ")}")
         NotFound(errs.head)
@@ -223,6 +225,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           .validateAndUploadNewTemplate(templateManifest,
                                         commName,
                                         commType,
+                                        Unbranded,
                                         uploadedFiles,
                                         user.username,
                                         templateContext)
@@ -231,7 +234,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
             Ok(
               views.html.publishNewTemplate(
                 "ok",
-                List(s"Template published: ${CommManifest(commType, commName, templateManifest.version)}"),
+                List(s"Template published: ${templateManifest.id}, commType, commName, templateManifest.version)}"),
                 Some(commName),
                 Some(commType)))
           case Left(errors) =>

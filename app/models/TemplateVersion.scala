@@ -4,26 +4,32 @@ import java.time.Instant
 
 import aws.Interpreter.ErrorsOr
 import cats.data.NonEmptyList
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
 
 import scala.util.Try
 import scala.util.control.NonFatal
 
-case class TemplateVersion(commName: String,
+case class TemplateVersion(templateId: String,
                            version: String,
+                           commName: String,
+                           commType: CommType,
                            publishedAt: Instant,
                            publishedBy: String,
-                           commType: CommType,
                            channels: Option[List[Channel]])
 
 object TemplateVersion {
-  def apply(commManifest: CommManifest, publishedBy: String, channels: List[Channel]): TemplateVersion = {
+  def apply(templateManifest: TemplateManifest,
+            commName: String,
+            commType: CommType,
+            publishedBy: String,
+            channels: List[Channel]): TemplateVersion = {
     TemplateVersion(
-      commManifest.name,
-      commManifest.version,
+      templateManifest.id,
+      templateManifest.version,
+      commName,
+      commType,
       Instant.now(),
       publishedBy,
-      commManifest.commType,
       Some(channels)
     )
   }
@@ -31,16 +37,13 @@ object TemplateVersion {
 
 case class ZippedRawTemplate(templateFiles: Array[Byte])
 
-case class TemplateSummary(commName: String, commType: CommType, latestVersion: String)
+case class TemplateSummary(templateId: String,
+                           commName: String,
+                           brand: Brand,
+                           commType: CommType,
+                           latestVersion: String)
 
 object TemplateSummary {
-  def apply(commManifest: CommManifest): TemplateSummary = {
-    TemplateSummary(
-      commManifest.name,
-      commManifest.commType,
-      commManifest.version
-    )
-  }
 
   def nextVersion(version: String): ErrorsOr[String] = {
     try {

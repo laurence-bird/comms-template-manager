@@ -20,11 +20,13 @@ import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, Tag}
 import util.{LocalDynamoDB, MockServerFixture}
 import cats.syntax.either._
 import aws.dynamo.DynamoFormats._
+import com.amazonaws.services.s3.model.ObjectListing
 import com.google.common.io.Resources
 import com.ovoenergy.comms.templates.s3.S3Prefix
 import com.ovoenergy.comms.templates.util.Hash
 import org.mockserver.mock.Expectation
 import org.mockserver.model.{HttpRequest, HttpResponse}
+import play.api.Logger
 
 import scala.collection.JavaConverters._
 
@@ -58,7 +60,12 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
 
   override def beforeAll() = {
     super.beforeAll()
+    Logger.info(s"Bucketname: $rawTemplatesBucket")
     initialiseS3Bucket()
+    val x: ObjectListing = s3.listObjects(rawTemplatesBucket)
+    println("Content")
+    x.getObjectSummaries.asScala.foreach(a => Logger.info(a.getKey))
+    x.getObjectSummaries.asScala.foreach(a => println(a.getKey))
     createDynamoTables()
     waitForAppToStart()
   }
@@ -70,8 +77,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def createDynamoTables() = {
-    LocalDynamoDB.createTable(dynamoClient)(templateVersionsTableName)('commName -> S, 'publishedAt -> N)
-    LocalDynamoDB.createTable(dynamoClient)(templateSummaryTableName)('commName  -> S)
+    LocalDynamoDB.createTable(dynamoClient)(templateVersionsTableName)('templateId -> S, 'publishedAt -> N)
+    LocalDynamoDB.createTable(dynamoClient)(templateSummaryTableName)('templateId  -> S)
     waitUntilTableMade(50)
 
     def waitUntilTableMade(noAttemptsLeft: Int): (String, String) = {
@@ -124,13 +131,22 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     s3.createBucket(assetsBucket)
     s3.createBucket(templatesBucket)
 
-    s3.putObject(rawTemplatesBucket, s"$prefix/email/subject.txt", "SUBJECT {{profile.firstName}}")
-    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.html", "{{> header}} HTML BODY {{amount}}")
-    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.txt", "{{> header}} TEXT BODY {{amount}}")
-    s3.putObject(templatesBucket, "fragments/email/html/header.html", "HTML HEADER")
-    s3.putObject(templatesBucket, "fragments/email/html/footer.html", "HTML FOOTER")
+    Logger.info(s"$prefix/email/subject.txt")
+    Logger.info(s"$prefix/email/body.html")
+    Logger.info(s"$prefix/email/body.txt")
 
-    Thread.sleep(2000)
+    Logger.info(
+      s3.putObject(rawTemplatesBucket, s"$prefix/email/subject.txt", "SUBJECT {{profile.firstName}}").getVersionId)
+    Logger.info(
+      s3.putObject(rawTemplatesBucket, s"$prefix/email/body.html", "{{> header}} HTML BODY {{amount}}").getVersionId)
+    Logger.info(
+      s3.putObject(rawTemplatesBucket, s"$prefix/email/body.txt", "{{> header}} TEXT BODY {{amount}}").getVersionId)
+    Logger.info(s3.putObject(templatesBucket, "fragments/email/html/header.html", "HTML HEADER").getVersionId)
+    Logger.info(s3.putObject(templatesBucket, "fragments/email/html/footer.html", "HTML FOOTER").getVersionId)
+
+    Thread.sleep(12000)
+
+    Logger.info("Finished populating S3.")
   }
 
   it should "Download a raw template version, and compress the contents in a ZIP file with an appropriate name" taggedAs DockerComposeTag in {
@@ -200,7 +216,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateSummaryResult.latestVersion shouldBe "1.0"
     templateSummaryResult.commType shouldBe Service
 
-    result.body.string() should include("<ul><li>Template published: CommManifest(Service,TEST-COMM,1.0)</li></ul>")
+    result.body.string() should include(
+      s"<ul><li>Template published: TemplateSummary(${Hash("TEST-COMM")}TEST-COMM,Ovo,Service,1.0)</li></ul>")
   }
 
   it should "Allow publication of a valid new version of an existing template" taggedAs DockerComposeTag in {
@@ -453,14 +470,16 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def givenExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service, Some(Nil))
+    val templateVersion =
+      TemplateVersion(TemplateManifest(Hash("test-comm"), "12.0"), "test-comm", Service, "Phil", List[Channel]())
     Scanamo.put(dynamoClient)(templateVersionsTableName)(templateVersion)
 
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 
   private def givenNonExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service, Some(Nil))
+    val templateVersion =
+      TemplateVersion(TemplateManifest(Hash("test-comm"), "13.0"), "test-comm", Service, "Phil", List[Channel]())
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 

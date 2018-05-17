@@ -1,5 +1,6 @@
 import sbt._
 import sbt.Keys._
+import Dependencies._
 
 organization := "com.ovoenergy"
 scalaVersion := "2.12.4"
@@ -8,37 +9,64 @@ resolvers += Resolver.bintrayRepo("ovotech", "maven")
 
 val circeVersion = "0.9.1"
 
+//libraryDependencies ++= Seq(
+//  ws,
+//  "com.ovoenergy" %% "comms-kafka-messages" % "1.44",
+//  "io.circe" %% "circe-core"                % circeVersion,
+//  "io.circe" %% "circe-shapes"              % circeVersion,
+//  "io.circe" %% "circe-generic-extras"      % circeVersion,
+//  "io.circe" %% "circe-parser"              % circeVersion,
+//  "io.circe" %% "circe-generic"             % circeVersion,
+//  "org.typelevel" %% "cats-core" % "1.0.0",
+//  "com.gu" %% "scanamo" % "1.0.0-M3",
+//  "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
+//  "me.moocar" % "logback-gelf" % "0.2",
+//  "com.gu" %% "play-googleauth" % "0.7.1",
+//  "com.ovoenergy" %% "comms-templates" % "0.22",
+//  // ^^   ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^
+//  // ||   ||  ||  ||  ||  ||  ||  ||  ||  ||  ||  ||
+//  //
+//  // Updating to 0.17 will cause a breaking change to how
+//  // addresses are reference in print templates. We need to
+//  // arrange these template changes with the respective teams
+//  // before bumping this!
+//  "org.webjars" % "bootstrap" % "3.3.4",
+//  "com.squareup.okhttp3" % "okhttp" % "3.4.2",
+//  "com.sksamuel.scrimage" %% "scrimage-core" % "3.0.0-alpha4",
+//  "com.sksamuel.scrimage" %% "scrimage-io-extra" % "3.0.0-alpha4",
+//  "com.sksamuel.scrimage" %% "scrimage-filters" % "3.0.0-alpha4",
+//  "net.ruippeixotog" %% "scala-scraper" % "2.0.0",
+//  "org.scalatest" %% "scalatest" % "3.0.3" %  Test,
+//  "com.github.alexarchambault"  %% "scalacheck-shapeless_1.13" % "1.1.4" %   Test,
+//  "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
+//  "org.mock-server" % "mockserver-client-java" % "3.12" % Test
+//)
+
 libraryDependencies ++= Seq(
   ws,
-  "com.ovoenergy" %% "comms-kafka-messages" % "1.44",
-  "io.circe" %% "circe-core"                % circeVersion,
-  "io.circe" %% "circe-shapes"              % circeVersion,
-  "io.circe" %% "circe-generic-extras"      % circeVersion,
-  "io.circe" %% "circe-parser"              % circeVersion,
-  "io.circe" %% "circe-generic"             % circeVersion,
-  "org.typelevel" %% "cats-core" % "1.0.0",
-  "com.gu" %% "scanamo" % "1.0.0-M3",
-  "io.logz.logback" % "logzio-logback-appender" % "1.0.11",
-  "me.moocar" % "logback-gelf" % "0.2",
-  "com.gu" %% "play-googleauth" % "0.7.1",
-  "com.ovoenergy" %% "comms-templates" % "0.22",
-  // ^^   ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^  ^^
-  // ||   ||  ||  ||  ||  ||  ||  ||  ||  ||  ||  ||
-  //
-  // Updating to 0.17 will cause a breaking change to how
-  // addresses are reference in print templates. We need to
-  // arrange these template changes with the respective teams
-  // before bumping this!
-  "org.webjars" % "bootstrap" % "3.3.4",
-  "com.squareup.okhttp3" % "okhttp" % "3.4.2",
-  "com.sksamuel.scrimage" %% "scrimage-core" % "3.0.0-alpha4",
-  "com.sksamuel.scrimage" %% "scrimage-io-extra" % "3.0.0-alpha4",
-  "com.sksamuel.scrimage" %% "scrimage-filters" % "3.0.0-alpha4",
-  "net.ruippeixotog" %% "scala-scraper" % "2.0.0",
-  "org.scalatest" %% "scalatest" % "3.0.3" %  Test,
-  "com.github.alexarchambault"  %% "scalacheck-shapeless_1.13" % "1.1.4" %   Test,
-  "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
-  "org.mock-server" % "mockserver-client-java" % "3.12" % Test
+  OvoEnergy.commsKafkaMessages,
+  OvoEnergy.commsTemplates,
+  Circe.core,
+  Circe.shapes,
+  Circe.genericExtras,
+  Circe.parser,
+  Circe.generic,
+  Guardian.scanamo,
+  Guardian.playGoogleauth,
+  SkSamuel.core,
+  SkSamuel.ioExtra,
+  SkSamuel.filters,
+  catsCore,
+  logzIoLogback,
+  okHttp,
+  scalaScraper,
+  enumeratum,
+  logbackGelf,
+  bootstarp,
+  scalaTest,
+  scalaCheck,
+  mockserverClientJava,
+  scalaCheckShapeless
 )
 
 lazy val ipAddress: String = {
