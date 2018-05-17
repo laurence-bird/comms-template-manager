@@ -7,7 +7,7 @@ import cats.Apply
 import cats.data.Validated.{Invalid, Valid}
 import cats.data._
 import cats.implicits._
-import com.ovoenergy.comms.model.{CommManifest, Print}
+import com.ovoenergy.comms.model.TemplateManifest
 import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.PartialsS3Retriever
@@ -21,11 +21,11 @@ object TemplateValidator {
   def validateTemplate(
       channelSpecificValidator: List[UploadedTemplateFile] => TemplateErrors[List[UploadedTemplateFile]])(
       s3Client: S3Client,
-      commManifest: CommManifest,
+      templateManifest: TemplateManifest,
       uploadedFiles: List[UploadedFile]): ErrorsOr[List[UploadedTemplateFile]] = {
 
     val fileValidations            = validateIfAllFilesAreExpected(uploadedFiles).andThen(channelSpecificValidator)
-    val templateContentValidations = validateTemplateContents(s3Client, commManifest, uploadedFiles)
+    val templateContentValidations = validateTemplateContents(s3Client, templateManifest, uploadedFiles)
     val assetReferenceValidations  = validateAssetsExist(uploadedFiles)
     Apply[TemplateErrors]
       .map3(fileValidations, templateContentValidations, assetReferenceValidations) {
@@ -46,7 +46,7 @@ object TemplateValidator {
   }
 
   private def validateTemplateContents(s3Client: S3Client,
-                                       commManifest: CommManifest,
+                                       templateManifest: TemplateManifest,
                                        uploadedFiles: List[UploadedFile]): TemplateErrors[Unit] = {
     val uploadedTemplateFiles = UploadedFile
       .extractNonAssetFiles(uploadedFiles)
@@ -58,7 +58,7 @@ object TemplateValidator {
     )
 
     val validationResult = for {
-      template <- TemplatesRepo.getTemplate(templateContext, commManifest).toEither.right
+      template <- TemplatesRepo.getTemplate(templateContext, templateManifest).toEither.right
       result   <- template.requiredData.toEither.right
     } yield result
 

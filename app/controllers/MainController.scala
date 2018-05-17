@@ -14,12 +14,13 @@ import cats.~>
 import cats.implicits._
 import com.amazonaws.services.s3.AmazonS3Client
 import com.gu.googleauth.UserIdentity
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service}
+import com.ovoenergy.comms.model.{CommManifest, CommType, Service, TemplateManifest}
 import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.{PartialsS3Retriever, TemplatesS3Retriever}
 import com.ovoenergy.comms.templates.s3.AmazonS3ClientWrapper
+import com.ovoenergy.comms.templates.util.Hash
 import controllers.Auth.AuthRequest
 import http.PreviewForm
 import logic.{TemplateOp, TemplateOpA}
@@ -70,6 +71,8 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     implicit val user = request.user
     Ok(views.html.index())
   }
+
+  implicit def commTypeToString(commType: CommType): String = commType.getClass.getName
 
   val s3Client = new AmazonS3ClientWrapper(amazonS3Client, awsContext.s3TemplateFilesBucket)
 
@@ -151,7 +154,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
   import cats.instances.either._
 
   def getTemplateVersion(commName: String, version: String) = Authenticated {
-    TemplateOp.retrieveTemplate(CommManifest(Service, commName, version)).foldMap(interpreter) match {
+    TemplateOp.retrieveTemplate(TemplateManifest(Hash(commName), version)).foldMap(interpreter) match {
       case Left(err) => NotFound(s"Failed to retrieve template: $err")
       case Right(res: ZippedRawTemplate) =>
         val dataContent: Source[ByteString, _] =
@@ -194,37 +197,54 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     Ok(views.html.publishExistingTemplate("inprogress", List[String](), commName))
   }
 
-  def publishNewTemplatePost = Authenticated(parse.multipartFormData) { implicit multipartFormRequest =>
-    implicit val user: UserIdentity = multipartFormRequest.user
+  def getDataPart[A](part: String, f: String => Option[A])(
+      implicit multipartFormRequest: AuthRequest[MultipartFormData[TemporaryFile]]) =
+    multipartFormRequest.body.dataParts
+      .get(part)
+      .flatMap(_.headOption)
+      .flatMap(f)
 
-    val result = for {
-      commName     <- multipartFormRequest.body.dataParts.get("commName")
-      commType     <- multipartFormRequest.body.dataParts.get("commType")
-      templateFile <- multipartFormRequest.body.file("templateFile")
-    } yield {
-      val commManifest = CommManifest(CommType.CommTypeFromValue(commType.head), commName.head, "1.0")
-      Logger.info(s"Publishing new comm template, ${commName.head}")
-      val uploadedFiles = extractUploadedFiles(templateFile)
-      TemplateOp
-        .validateAndUploadNewTemplate(commManifest, uploadedFiles, user.username, templateContext)
-        .foldMap(interpreter) match {
-        case Right(_) =>
-          Ok(
-            views.html.publishNewTemplate("ok",
-                                          List(s"Template published: $commManifest"),
-                                          Some(commName.head),
-                                          Some(commType.head)))
-        case Left(errors) =>
-          Logger.error(
-            s"Failed to publish comm ${commManifest.name}, version ${commManifest.version} with errors: ${errors.toList
-              .mkString(", ")}")
-          Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName.head), Some(commType.head)))
+  def publishNewTemplatePost = Authenticated(parse.multipartFormData) {
+    implicit multipartFormRequest: AuthRequest[MultipartFormData[TemporaryFile]] =>
+      implicit val user: UserIdentity = multipartFormRequest.user
+
+      val result = for {
+        commName     <- getDataPart("commName", Some(_))
+        commType     <- getDataPart("commType", CommType.fromString)
+        templateFile <- multipartFormRequest.body.file("templateFile")
+      } yield {
+
+        val templateManifest = TemplateManifest(Hash(commName), "1.0")
+
+        Logger.info(s"Publishing new comm template, ${commName.head}")
+        val uploadedFiles = extractUploadedFiles(templateFile)
+
+        TemplateOp
+          .validateAndUploadNewTemplate(templateManifest,
+                                        commName,
+                                        commType,
+                                        uploadedFiles,
+                                        user.username,
+                                        templateContext)
+          .foldMap(interpreter) match {
+          case Right(_) =>
+            Ok(
+              views.html.publishNewTemplate(
+                "ok",
+                List(s"Template published: ${CommManifest(commType, commName, templateManifest.version)}"),
+                Some(commName),
+                Some(commType)))
+          case Left(errors) =>
+            Logger.error(
+              s"Failed to publish comm ${commName}, version ${templateManifest.version} with errors: ${errors.toList
+                .mkString(", ")}")
+            Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName), Some(commType)))
+        }
+
       }
-
-    }
-    result.getOrElse {
-      Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
-    }
+      result.getOrElse {
+        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
+      }
   }
 
   def publishExistingTemplatePost(commName: String) = Authenticated(parse.multipartFormData) {

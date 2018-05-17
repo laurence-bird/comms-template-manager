@@ -5,8 +5,9 @@ import cats.Id
 import cats.data.NonEmptyList
 import cats.free.Free
 import cats.free.Free._
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
+import com.ovoenergy.comms.templates.util.Hash
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
 import play.api.Logger
@@ -19,11 +20,11 @@ object TemplateOp {
 
   type TemplateFiles = Map[String, Array[Byte]]
 
-  def retrieveTemplateFromS3(commManifest: CommManifest): TemplateOp[TemplateFiles] =
-    liftF(RetrieveTemplateFromS3(commManifest))
+  def retrieveTemplateFromS3(templateManifest: TemplateManifest): TemplateOp[TemplateFiles] =
+    liftF(RetrieveTemplateFromS3(templateManifest))
 
-  def retrieveTemplateInfo(commManifest: CommManifest): TemplateOp[TemplateVersion] =
-    liftF(RetrieveTemplateVersionFromDynamo(commManifest))
+  def retrieveTemplateInfo(templateManifest: TemplateManifest): TemplateOp[TemplateVersion] =
+    liftF(RetrieveTemplateVersionFromDynamo(templateManifest))
 
   def retrieveAllTemplateVersions(commName: String): TemplateOp[Seq[TemplateVersion]] =
     liftF(RetrieveAllTemplateVersions(commName))
@@ -40,59 +41,61 @@ object TemplateOp {
                                         context: TemplatesContext): TemplateOp[TemplateSummary] = {
     for {
       nextVersion <- getNextTemplateSummary(commName)
-      commManifest = CommManifest(nextVersion.commType, commName, nextVersion.latestVersion)
-      templateFiles <- validateTemplate(commManifest, uploadedFiles)
-      _             <- uploadProcessedTemplateToS3(commManifest, templateFiles, publishedBy)
-      _             <- uploadRawTemplateToS3(commManifest, templateFiles, publishedBy)
-      templates     <- getChannels(commManifest, context)
-      _             <- writeTemplateToDynamo(commManifest, publishedBy, templates)
+      templateManifest = TemplateManifest(Hash(commName), nextVersion.latestVersion)
+      templateFiles <- validateTemplate(templateManifest, uploadedFiles)
+      _             <- uploadProcessedTemplateToS3(templateManifest, templateFiles, publishedBy)
+      _             <- uploadRawTemplateToS3(templateManifest, templateFiles, publishedBy)
+      templates     <- getChannels(templateManifest, context)
+      _             <- writeTemplateToDynamo(templateManifest, commName, nextVersion.commType, publishedBy, templates)
     } yield nextVersion
   }
 
-  def validateAndUploadNewTemplate(commManifest: CommManifest,
+  def validateAndUploadNewTemplate(templateManifest: TemplateManifest,
+                                   commName: String,
+                                   commType: CommType,
                                    uploadedFiles: List[UploadedFile],
                                    publishedBy: String,
                                    context: TemplatesContext): TemplateOp[List[String]] = {
     for {
-      _                      <- validateTemplateDoesNotExist(commManifest)
-      templateFiles          <- validateTemplate(commManifest, uploadedFiles)
-      processedUploadResults <- uploadProcessedTemplateToS3(commManifest, templateFiles, publishedBy)
-      rawUploadResults       <- uploadRawTemplateToS3(commManifest, templateFiles, publishedBy)
-      channels               <- getChannels(commManifest, context)
-      _                      <- writeTemplateToDynamo(commManifest, publishedBy, channels)
+      _                      <- validateTemplateDoesNotExist(templateManifest, commName)
+      templateFiles          <- validateTemplate(templateManifest, uploadedFiles)
+      processedUploadResults <- uploadProcessedTemplateToS3(templateManifest, templateFiles, publishedBy)
+      rawUploadResults       <- uploadRawTemplateToS3(templateManifest, templateFiles, publishedBy)
+      channels               <- getChannels(templateManifest, context)
+      _                      <- writeTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels)
     } yield rawUploadResults ++ processedUploadResults
   }
 
-  def uploadProcessedTemplateToS3(commManifest: CommManifest,
+  def uploadProcessedTemplateToS3(templateManifest: TemplateManifest,
                                   uploadedFiles: List[UploadedTemplateFile],
                                   publishedBy: String): TemplateOp[List[String]] = {
     import cats.syntax.traverse._
     import cats.instances.list._
     for {
-      processedFiles <- processTemplateAssets(commManifest, uploadedFiles)
+      processedFiles <- processTemplateAssets(templateManifest, uploadedFiles)
       assetsUploadResults <- processedFiles.assetFiles.traverse(file =>
-        uploadTemplateAssetFileToS3(commManifest, file, publishedBy))
+        uploadTemplateAssetFileToS3(templateManifest, file, publishedBy))
       furtherProcessedFiles <- injectChannelSpecificStuff(processedFiles)
       templateFilesUploadResults <- furtherProcessedFiles.templateFiles.traverse(file =>
-        uploadProcessedTemplateFileToS3(commManifest, file, publishedBy))
+        uploadProcessedTemplateFileToS3(templateManifest, file, publishedBy))
     } yield assetsUploadResults ++ templateFilesUploadResults
   }
 
-  def uploadRawTemplateToS3(commManifest: CommManifest,
+  def uploadRawTemplateToS3(templateManifest: TemplateManifest,
                             uploadedFiles: List[UploadedTemplateFile],
                             publishedBy: String): TemplateOp[List[String]] = {
     import cats.syntax.traverse._
     import cats.instances.list._
-    uploadedFiles.traverse(file => uploadRawTemplateFileToS3(commManifest, file, publishedBy))
+    uploadedFiles.traverse(file => uploadRawTemplateFileToS3(templateManifest, file, publishedBy))
   }
 
-  def getChannels(commManifest: CommManifest, context: TemplatesContext): TemplateOp[List[Channel]] = {
-    liftF(GetChannels(commManifest, context))
+  def getChannels(templateManifest: TemplateManifest, context: TemplatesContext): TemplateOp[List[Channel]] = {
+    liftF(GetChannels(templateManifest, context))
   }
 
-  def processTemplateAssets(commManifest: CommManifest,
+  def processTemplateAssets(templateManifest: TemplateManifest,
                             uploadedFiles: List[UploadedTemplateFile]): TemplateOp[ProcessedFiles] = {
-    liftF(ProcessTemplateAssets(commManifest, uploadedFiles))
+    liftF(ProcessTemplateAssets(templateManifest, uploadedFiles))
   }
 
   def injectChannelSpecificStuff(processedFiles: ProcessedFiles): TemplateOp[ProcessedFiles] = {
@@ -103,35 +106,39 @@ object TemplateOp {
     liftF(GetNextTemplateSummary(commName))
   }
 
-  def writeTemplateToDynamo(commManifest: CommManifest, publishedBy: String, channels: List[Channel]) = {
-    liftF(UploadTemplateToDynamo(commManifest, publishedBy, channels))
+  def writeTemplateToDynamo(templateManifest: TemplateManifest,
+                            commName: String,
+                            commType: CommType,
+                            publishedBy: String,
+                            channels: List[Channel]) = {
+    liftF(UploadTemplateToDynamo(templateManifest, commName: String, commType: CommType, publishedBy, channels))
   }
 
-  def uploadRawTemplateFileToS3(commManifest: CommManifest,
+  def uploadRawTemplateFileToS3(templateManifest: TemplateManifest,
                                 uploadedFile: UploadedTemplateFile,
                                 publishedBy: String): TemplateOp[String] =
-    liftF(UploadRawTemplateFileToS3(commManifest, uploadedFile, publishedBy))
+    liftF(UploadRawTemplateFileToS3(templateManifest, uploadedFile, publishedBy))
 
-  def uploadProcessedTemplateFileToS3(commManifest: CommManifest,
+  def uploadProcessedTemplateFileToS3(templateManifest: TemplateManifest,
                                       uploadedFile: UploadedTemplateFile,
                                       publishedBy: String): TemplateOp[String] =
-    liftF(UploadProcessedTemplateFileToS3(commManifest, uploadedFile, publishedBy))
+    liftF(UploadProcessedTemplateFileToS3(templateManifest, uploadedFile, publishedBy))
 
-  def uploadTemplateAssetFileToS3(commManifest: CommManifest,
+  def uploadTemplateAssetFileToS3(templateManifest: TemplateManifest,
                                   uploadedFile: UploadedTemplateFile,
                                   publishedBy: String): TemplateOp[String] =
-    liftF(UploadTemplateAssetFileToS3(commManifest, uploadedFile, publishedBy))
+    liftF(UploadTemplateAssetFileToS3(templateManifest, uploadedFile, publishedBy))
 
-  def validateTemplate(commManifest: CommManifest,
+  def validateTemplate(templateManifest: TemplateManifest,
                        uploadedFiles: List[UploadedFile]): TemplateOp[List[UploadedTemplateFile]] =
-    liftF(ValidateTemplate(commManifest, uploadedFiles))
+    liftF(ValidateTemplate(templateManifest, uploadedFiles))
 
-  def validateTemplateDoesNotExist(commManifest: CommManifest): TemplateOp[Unit] =
-    liftF(ValidateTemplateDoesNotExist(commManifest))
+  def validateTemplateDoesNotExist(templateManifest: TemplateManifest, commName: String): TemplateOp[Unit] =
+    liftF(ValidateTemplateDoesNotExist(templateManifest, commName))
 
-  def retrieveTemplate(commManifest: CommManifest): TemplateOp[ZippedRawTemplate] =
+  def retrieveTemplate(templateManifest: TemplateManifest): TemplateOp[ZippedRawTemplate] =
     for {
-      template   <- retrieveTemplateFromS3(commManifest)
+      template   <- retrieveTemplateFromS3(templateManifest)
       zippedFile <- compressTemplatesToZipFile(template)
     } yield ZippedRawTemplate(zippedFile)
 

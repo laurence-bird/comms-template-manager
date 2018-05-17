@@ -6,7 +6,7 @@ import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType}
+import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
@@ -22,14 +22,22 @@ class Dynamo(db: AmazonDynamoDB,
   }
 
   //TODO - Not a conditional write as desiredn
-  def writeNewVersion(commManifest: CommManifest, publishedBy: String, channels: List[Channel]): Either[String, Unit] = {
+  def writeNewVersion(templateManifest: TemplateManifest,
+                      commName: String,
+                      commType: CommType,
+                      publishedBy: String,
+                      channels: List[Channel]): Either[String, Unit] = {
 
-    if (isNewestVersion(commManifest)) {
+    if (isNewestVersion(commName, templateManifest.version)) {
+
+      val commManifest = CommManifest(commType, commName, templateManifest.version)
+
       val templateVersion = TemplateVersion(
         commManifest = commManifest,
         publishedBy = publishedBy,
         channels = channels
       )
+
       Scanamo.exec(db)(templateVersionTable.put(templateVersion))
       Logger.info(s"Written template version to persistence $templateVersion")
 
@@ -41,8 +49,8 @@ class Dynamo(db: AmazonDynamoDB,
 
       Right(())
     } else {
-      Left(s"There is a newer version (${getTemplateSummary(commManifest.name)
-        .map(_.latestVersion)}) of comm (${commManifest.name}) already, than being published (${commManifest.version})")
+      Left(s"There is a newer version (${getTemplateSummary(commName)
+        .map(_.latestVersion)}) of comm (${commName}) already, than being published (${templateManifest.version})")
     }
   }
 
@@ -71,9 +79,10 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  private def isNewestVersion(commManifest: CommManifest): Boolean = {
-    getTemplateSummary(commManifest.name)
-      .map(summary => TemplateSummary.versionCompare(commManifest.version.trim, summary.latestVersion.trim))
+  private def isNewestVersion(commName: String, version: String): Boolean = {
+
+    getTemplateSummary(commName)
+      .map(summary => TemplateSummary.versionCompare(version.trim, summary.latestVersion.trim))
       .forall {
         case Right(comparison) => if (comparison > 0) true else false
         case Left(error) =>

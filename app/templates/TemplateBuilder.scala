@@ -4,6 +4,7 @@ import cats.data.Validated.Valid
 import cats.data.{NonEmptyList, Validated}
 import cats.implicits._
 import com.ovoenergy.comms.model._
+import com.ovoenergy.comms.templates.extensions.CommManifestExtensions
 import com.ovoenergy.comms.templates.model.FileFormat
 import com.ovoenergy.comms.templates.model.template.files.TemplateFile
 import com.ovoenergy.comms.templates.model.template.files.email.EmailTemplateFiles
@@ -13,18 +14,18 @@ import com.ovoenergy.comms.templates.retriever.TemplatesRetriever
 
 class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetriever {
 
-  override def getEmailTemplate(commManifest: CommManifest): Option[TemplateErrors[EmailTemplateFiles]] = {
+  override def getEmailTemplate(templateManifest: TemplateManifest): Option[TemplateErrors[EmailTemplateFiles]] = {
     val subject: Option[TemplateFile] = files.collectFirst {
       case uploaded @ UploadedTemplateFile(_, _, Email, Subject, _) =>
-        TemplateFile(commManifest.commType, Email, FileFormat.Text, uploaded.utf8Content)
+        TemplateFile(Email, FileFormat.Text, uploaded.utf8Content)
     }
     val htmlBody: Option[TemplateFile] = files.collectFirst {
       case uploaded @ UploadedTemplateFile(_, _, Email, HtmlBody, _) =>
-        TemplateFile(commManifest.commType, Email, FileFormat.Html, uploaded.utf8Content)
+        TemplateFile(Email, FileFormat.Html, uploaded.utf8Content)
     }
     val textBody: Option[TemplateFile] = files.collectFirst {
       case uploaded @ UploadedTemplateFile(_, _, Email, TextBody, _) =>
-        TemplateFile(commManifest.commType, Email, FileFormat.Text, uploaded.utf8Content)
+        TemplateFile(Email, FileFormat.Text, uploaded.utf8Content)
     }
     val customSender: Option[String] = files.collectFirst {
       case uploaded @ UploadedTemplateFile(_, _, Email, Sender, _) => uploaded.utf8Content
@@ -53,19 +54,19 @@ class TemplateBuilder(files: List[UploadedTemplateFile]) extends TemplatesRetrie
     }
   }
 
-  override def getSMSTemplate(commManifest: CommManifest): Option[TemplateErrors[SMSTemplateFiles]] = {
+  override def getSMSTemplate(templateManifest: TemplateManifest): Option[TemplateErrors[SMSTemplateFiles]] = {
     val textBody: Option[TemplateFile] = files.collectFirst {
       case uploaded @ UploadedTemplateFile(_, _, SMS, TextBody, _) =>
-        TemplateFile(commManifest.commType, SMS, FileFormat.Text, uploaded.utf8Content)
+        TemplateFile(SMS, FileFormat.Text, uploaded.utf8Content)
     }
 
     textBody.map(tb => Valid(SMSTemplateFiles(textBody = tb)))
   }
 
-  override def getPrintTemplate(commManifest: CommManifest): Option[TemplateErrors[PrintTemplateFiles]] = {
+  override def getPrintTemplate(templateManifest: TemplateManifest): Option[TemplateErrors[PrintTemplateFiles]] = {
     val htmlBody: Option[TemplateFile] = files.collectFirst {
       case uploaded @ UploadedTemplateFile(_, _, Print, HtmlBody, _) =>
-        TemplateFile(commManifest.commType, Print, FileFormat.Html, uploaded.utf8Content)
+        TemplateFile(Print, FileFormat.Html, uploaded.utf8Content)
     }
 
     htmlBody.map(tb => Valid(PrintTemplateFiles(body = tb)))
