@@ -18,8 +18,7 @@ object S3Operations {
   def downloadTemplateFiles(s3ClientWrapper: AmazonS3ClientWrapper,
                             templateManifest: TemplateManifest,
                             bucketName: String): Either[String, TemplateFiles] = {
-    val prefix = S3Prefix.fromTemplateManifest(templateManifest)
-    println(s"Prefix: $prefix")
+    val prefix   = S3Prefix.fromTemplateManifest(templateManifest)
     val fileKeys = s3ClientWrapper.listFiles(bucketName, prefix).right
     fileKeys.flatMap { keys =>
       val result = keys.toList.traverse { absKey =>

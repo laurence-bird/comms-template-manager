@@ -50,7 +50,7 @@ case class ValidateTemplateDoesNotExist(templateManifest: TemplateManifest, comm
 case class UploadTemplateToDynamo(templateManifest: TemplateManifest,
                                   commName: String,
                                   commType: CommType,
-                                  brand: Brand,
+//                                  brand: Brand,
                                   publishedBy: String,
                                   channels: List[Channel])
     extends TemplateOpA[Unit]

@@ -60,12 +60,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
 
   override def beforeAll() = {
     super.beforeAll()
-    Logger.info(s"Bucketname: $rawTemplatesBucket")
     initialiseS3Bucket()
-    val x: ObjectListing = s3.listObjects(rawTemplatesBucket)
-    println("Content")
-    x.getObjectSummaries.asScala.foreach(a => Logger.info(a.getKey))
-    x.getObjectSummaries.asScala.foreach(a => println(a.getKey))
     createDynamoTables()
     waitForAppToStart()
   }
@@ -131,22 +126,13 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     s3.createBucket(assetsBucket)
     s3.createBucket(templatesBucket)
 
-    Logger.info(s"$prefix/email/subject.txt")
-    Logger.info(s"$prefix/email/body.html")
-    Logger.info(s"$prefix/email/body.txt")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/subject.txt", "SUBJECT {{profile.firstName}}")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.html", "{{> header}} HTML BODY {{amount}}")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.txt", "{{> header}} TEXT BODY {{amount}}")
+    s3.putObject(templatesBucket, "fragments/email/html/header.html", "HTML HEADER")
+    s3.putObject(templatesBucket, "fragments/email/html/footer.html", "HTML FOOTER")
 
-    Logger.info(
-      s3.putObject(rawTemplatesBucket, s"$prefix/email/subject.txt", "SUBJECT {{profile.firstName}}").getVersionId)
-    Logger.info(
-      s3.putObject(rawTemplatesBucket, s"$prefix/email/body.html", "{{> header}} HTML BODY {{amount}}").getVersionId)
-    Logger.info(
-      s3.putObject(rawTemplatesBucket, s"$prefix/email/body.txt", "{{> header}} TEXT BODY {{amount}}").getVersionId)
-    Logger.info(s3.putObject(templatesBucket, "fragments/email/html/header.html", "HTML HEADER").getVersionId)
-    Logger.info(s3.putObject(templatesBucket, "fragments/email/html/footer.html", "HTML FOOTER").getVersionId)
-
-    Thread.sleep(12000)
-
-    Logger.info("Finished populating S3.")
+    Thread.sleep(2000)
   }
 
   it should "Download a raw template version, and compress the contents in a ZIP file with an appropriate name" taggedAs DockerComposeTag in {
@@ -217,7 +203,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateSummaryResult.commType shouldBe Service
 
     result.body.string() should include(
-      s"<ul><li>Template published: TemplateSummary(${Hash("TEST-COMM")}TEST-COMM,Ovo,Service,1.0)</li></ul>")
+      s"<ul><li>Template published: ${Hash("TEST-COMM")}, Service, TEST-COMM, 1.0</li></ul>")
   }
 
   it should "Allow publication of a valid new version of an existing template" taggedAs DockerComposeTag in {
@@ -272,7 +258,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateSummaryResult.commType shouldBe Service
 
     result.body.string() should include(
-      "<ul><li>Template published: TemplateSummary(TEST-COMM-2,Service,2.0)</li></ul>")
+      s"<ul><li>Template published: TemplateSummary(l7zgjtz5d5oqa4vd54in2m4yxu,TEST-COMM-2,Service,2.0)</li></ul>")
   }
 
   it should "reject new publication of invalid templates with missing assets" taggedAs DockerComposeTag in {
@@ -393,7 +379,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateSummaryResult.commType shouldBe Service
 
     result.body.string() should include(
-      "<ul><li>Template published: CommManifest(Service,TEST-COMM-PRINT,1.0)</li></ul>")
+      s"<ul><li>Template published: ${Hash("TEST-COMM-PRINT")}, Service, TEST-COMM-PRINT, 1.0</li></ul>")
   }
 
   it should "reject new publication of invalid print templates with missing address field and script included" taggedAs DockerComposeTag in {

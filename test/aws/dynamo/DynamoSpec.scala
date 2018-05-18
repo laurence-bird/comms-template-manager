@@ -26,11 +26,11 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     Table[TemplateSummary](templateSummaryTable)
   )
 
-  case class LegacyTemplateVersion(commName: String,
-                                   version: String,
-                                   publishedAt: Instant,
-                                   publishedBy: String,
-                                   commType: CommType)
+//  case class LegacyTemplateVersion(commName: String,
+//                                   version: String,
+//                                   publishedAt: Instant,
+//                                   publishedBy: String,
+//                                   commType: CommType)
 
   val templateVersions = Seq(
     TemplateVersion(Hash("comm1"), "1.0", "comm1", Service, Instant.now, "laurence", Some(Nil)),
@@ -38,21 +38,21 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     TemplateVersion(Hash("comm2"), "2.0", "comm2", Service, Instant.now, "chris", Some(Nil))
   )
 
-  val legacyTemplateVersions = Seq(
-    LegacyTemplateVersion("legacyComm1", "1.0", Instant.now, "laurence", Service),
-    LegacyTemplateVersion("legacyComm2", "1.0", Instant.now, "laurence", Service),
-    LegacyTemplateVersion("legacyComm2", "2.0", Instant.now, "chris", Service)
-  )
+//  val legacyTemplateVersions = Seq(
+//    LegacyTemplateVersion("legacyComm1", "1.0", Instant.now, "laurence", Service),
+//    LegacyTemplateVersion("legacyComm2", "1.0", Instant.now, "laurence", Service),
+//    LegacyTemplateVersion("legacyComm2", "2.0", Instant.now, "chris", Service)
+//  )
 
   val templateSummaries = Seq(
-    TemplateSummary(Hash("comm1"), "comm1", Ovo, Service, "1.0"),
-    TemplateSummary(Hash("comm2"), "comm2", Ovo, Service, "2.0"),
-    TemplateSummary(Hash("legacyComm1"), "legacyComm1", Ovo, Service, "1.0"),
-    TemplateSummary(Hash("legacyComm2"), "legacyComm2", Ovo, Service, "2.0")
+    TemplateSummary(Hash("comm1"), "comm1", /*Ovo,*/ Service, "1.0"),
+    TemplateSummary(Hash("comm2"), "comm2", /*Ovo,*/ Service, "2.0"),
+    TemplateSummary(Hash("legacyComm1"), "legacyComm1", /*Ovo,*/ Service, "1.0"),
+    TemplateSummary(Hash("legacyComm2"), "legacyComm2", /*Ovo,*/ Service, "2.0")
   )
 
   override def beforeAll(): Unit = {
-    LocalDynamoDB.createTable(client)(templateVersionsTable)('templateId -> S, 'publishedAt -> N)
+    LocalDynamoDB.createTable(client)(templateVersionsTable)('templateId -> S, 'version -> S)
     LocalDynamoDB.createTable(client)(templateSummaryTable)('templateId  -> S)
 
     templateSummaries.foreach { ts =>
@@ -63,9 +63,9 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
       Scanamo.put(client)(templateVersionsTable)(t)
     }
 
-    legacyTemplateVersions.foreach { t =>
-      Scanamo.put(client)(templateVersionsTable)(t)
-    }
+//    legacyTemplateVersions.foreach { t =>
+//      Scanamo.put(client)(templateVersionsTable)(t)
+//    }
   }
 
   override def afterAll(): Unit = {
@@ -99,10 +99,10 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     result.map(_.publishedBy) shouldBe Some("chris")
   }
 
-  it should "retrieve a legacy template version" in {
-    val result = dynamo.getTemplateVersion(Hash("legacyComm2"), "2.0")
-    result.map(_.publishedBy) shouldBe Some("chris")
-  }
+//  it should "retrieve a legacy template version" in {
+//    val result = dynamo.getTemplateVersion(Hash("legacyComm2"), "2.0")
+//    result.map(_.publishedBy) shouldBe Some("chris")
+//  }
 
   it should "return a None if a template version doesn't exist" in {
     val result = dynamo.getTemplateVersion(Hash("comm2"), "yolo")
@@ -111,23 +111,23 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "error when writing a new version that is not the newest" in {
     dynamo
-      .writeNewVersion(TemplateManifest(Hash("comm2"), "1.5"), "comm2", Service, Ovo, publishedBy, Nil)
+      .writeNewVersion(TemplateManifest(Hash("comm2"), "1.5"), "comm2", Service, /*Ovo,*/ publishedBy, Nil)
       .left
-      .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (1.5)"
+      .get shouldBe s"There is a newer version (Some(2.0)) of comm (${Hash("comm2")}) already, than being published (1.5)"
   }
 
   it should "error when writing a new version that already exists" in {
     dynamo
-      .writeNewVersion(TemplateManifest(Hash("comm2"), "2.0"), "comm2", Service, Ovo, publishedBy, Nil)
+      .writeNewVersion(TemplateManifest(Hash("comm2"), "2.0"), "comm2", Service, /*Ovo,*/ publishedBy, Nil)
       .left
-      .get shouldBe "There is a newer version (Some(2.0)) of comm (comm2) already, than being published (2.0)"
+      .get shouldBe s"There is a newer version (Some(2.0)) of comm (${Hash("comm2")}) already, than being published (2.0)"
   }
 
   it should "write new version" in {
-    dynamo.writeNewVersion(TemplateManifest(Hash("comm2"), "2.5"), "comm2", Service, Ovo, publishedBy, Nil) shouldBe Right(
+    dynamo.writeNewVersion(TemplateManifest(Hash("comm2"), "2.5"), "comm2", Service, /*Ovo,*/ publishedBy, Nil) shouldBe Right(
       ())
     val summaries = dynamo.listTemplateSummaries
-    summaries should contain(TemplateSummary(Hash("comm2"), "comm2", Ovo, Service, "2.5"))
+    summaries should contain(TemplateSummary(Hash("comm2"), "comm2", /*Ovo,*/ Service, "2.5"))
 
     val versions = dynamo.listVersions(Hash("comm2"))
     versions.length shouldBe 3

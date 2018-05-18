@@ -39,7 +39,7 @@ case class ZippedRawTemplate(templateFiles: Array[Byte])
 
 case class TemplateSummary(templateId: String,
                            commName: String,
-                           brand: Brand,
+//                           brand: Brand,
                            commType: CommType,
                            latestVersion: String)
 

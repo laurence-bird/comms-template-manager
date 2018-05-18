@@ -37,7 +37,7 @@ import play.api.http.{FileMimeTypes, HttpChunk, HttpEntity}
 import scala.collection.JavaConversions._
 import io.circe._
 import io.circe.syntax._
-import models.Brand.Unbranded
+//import models.Brand.Unbranded
 import play.api.Logger
 import play.api.libs.concurrent.Futures
 import preview._
@@ -90,7 +90,6 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
       val templateVersion = awsContext.dynamo.listVersions(Hash(commName)).find(_.version == commVersion)
 
-      println(s"Template version: $templateVersion")
       def stream(bytes: ByteString, chunkSize: Int): Source[ByteString, NotUsed] = {
         Source(bytes).grouped(chunkSize).flatMapConcat(bs => Source.single(ByteString(bs: _*)))
       }
@@ -225,7 +224,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           .validateAndUploadNewTemplate(templateManifest,
                                         commName,
                                         commType,
-                                        Unbranded,
+//                                        Unbranded,
                                         uploadedFiles,
                                         user.username,
                                         templateContext)
@@ -234,7 +233,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
             Ok(
               views.html.publishNewTemplate(
                 "ok",
-                List(s"Template published: ${templateManifest.id}, commType, commName, templateManifest.version)}"),
+                List(s"Template published: ${templateManifest.id}, $commType, $commName, ${templateManifest.version}"),
                 Some(commName),
                 Some(commType)))
           case Left(errors) =>

@@ -133,8 +133,8 @@ object Interpreter {
               Right(versions)
           }
 
-          case UploadTemplateToDynamo(templateManifest, commName, commType, brand, publishedBy, channels) =>
-            awsContext.dynamo.writeNewVersion(templateManifest, commName, commType, brand, publishedBy, channels) match {
+          case UploadTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels) =>
+            awsContext.dynamo.writeNewVersion(templateManifest, commName, commType, publishedBy, channels) match {
               case Right(()) => Right(())
               case Left(error) => {
                 PagerDutyAlerter(

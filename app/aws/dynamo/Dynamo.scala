@@ -24,7 +24,7 @@ class Dynamo(db: AmazonDynamoDB,
   def writeNewVersion(templateManifest: TemplateManifest,
                       commName: String,
                       commType: CommType,
-                      brand: Brand,
+//                      brand: Brand,
                       publishedBy: String,
                       channels: List[Channel]): Either[String, Unit] = {
 
@@ -44,7 +44,7 @@ class Dynamo(db: AmazonDynamoDB,
       val templateSummary = TemplateSummary(
         templateManifest.id,
         commName,
-        brand,
+//        brand,
         commType,
         templateManifest.version
       )
@@ -65,12 +65,9 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  def getTemplateSummary(templateId: String): Option[TemplateSummary] = {
-    println(s"TemplateId: $templateId")
-    println(s"Summaries: ${listTemplateSummaries}")
+  def getTemplateSummary(templateId: String): Option[TemplateSummary] =
     listTemplateSummaries
       .find(templateSummary => templateSummary.templateId == templateId)
-  }
 
   // FIXME this does not work in the real life as the version is not indexed.
   def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {
