@@ -24,7 +24,6 @@ class Dynamo(db: AmazonDynamoDB,
   def writeNewVersion(templateManifest: TemplateManifest,
                       commName: String,
                       commType: CommType,
-//                      brand: Brand,
                       publishedBy: String,
                       channels: List[Channel]): Either[String, Unit] = {
 
@@ -44,7 +43,6 @@ class Dynamo(db: AmazonDynamoDB,
       val templateSummary = TemplateSummary(
         templateManifest.id,
         commName,
-//        brand,
         commType,
         templateManifest.version
       )

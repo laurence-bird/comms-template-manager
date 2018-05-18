@@ -7,11 +7,11 @@
         <h4>For details on how to construct a template see <a href="https://ovotech.github.io/comms-platform" target="_blank">here</a></h4>
     </div>
 
-    @*<div>*@
-        @*<h2><span class="label label-danger">Template uploading is temporarily disabled!</span></h2>*@
-    @*</div>*@
+    <div>
+        <h2><span class="label label-danger">Template uploading is temporarily disabled!</span></h2>
+    </div>
 
-    @*<div hidden>*@
+    <div hidden>
 
     @helper.form(action = routes.MainController.publishExistingTemplatePost(commName), 'enctype -> "multipart/form-data") {
 
@@ -44,7 +44,7 @@ Watch out on OSX to not include _MACOSX and .DS_Store files"
         </form>
     }
 
-    @*</div>*@
+    </div>
 
 
 

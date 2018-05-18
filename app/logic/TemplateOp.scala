@@ -46,19 +46,13 @@ object TemplateOp {
       _             <- uploadProcessedTemplateToS3(templateManifest, templateFiles, publishedBy)
       _             <- uploadRawTemplateToS3(templateManifest, templateFiles, publishedBy)
       templates     <- getChannels(templateManifest, context)
-      _ <- writeTemplateToDynamo(templateManifest,
-                                 commName,
-                                 nextVersion.commType,
-//                                 nextVersion.brand,
-                                 publishedBy,
-                                 templates)
+      _             <- writeTemplateToDynamo(templateManifest, commName, nextVersion.commType, publishedBy, templates)
     } yield nextVersion
   }
 
   def validateAndUploadNewTemplate(templateManifest: TemplateManifest,
                                    commName: String,
                                    commType: CommType,
-//                                   brand: Brand,
                                    uploadedFiles: List[UploadedFile],
                                    publishedBy: String,
                                    context: TemplatesContext): TemplateOp[List[String]] = {
@@ -115,7 +109,6 @@ object TemplateOp {
   def writeTemplateToDynamo(templateManifest: TemplateManifest,
                             commName: String,
                             commType: CommType,
-//                            brand: Brand,
                             publishedBy: String,
                             channels: List[Channel]) = {
     liftF(UploadTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels))

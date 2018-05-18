@@ -45,10 +45,10 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 //  )
 
   val templateSummaries = Seq(
-    TemplateSummary(Hash("comm1"), "comm1", /*Ovo,*/ Service, "1.0"),
-    TemplateSummary(Hash("comm2"), "comm2", /*Ovo,*/ Service, "2.0"),
-    TemplateSummary(Hash("legacyComm1"), "legacyComm1", /*Ovo,*/ Service, "1.0"),
-    TemplateSummary(Hash("legacyComm2"), "legacyComm2", /*Ovo,*/ Service, "2.0")
+    TemplateSummary(Hash("comm1"), "comm1", Service, "1.0"),
+    TemplateSummary(Hash("comm2"), "comm2", Service, "2.0"),
+    TemplateSummary(Hash("legacyComm1"), "legacyComm1", Service, "1.0"),
+    TemplateSummary(Hash("legacyComm2"), "legacyComm2", Service, "2.0")
   )
 
   override def beforeAll(): Unit = {
@@ -111,23 +111,23 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "error when writing a new version that is not the newest" in {
     dynamo
-      .writeNewVersion(TemplateManifest(Hash("comm2"), "1.5"), "comm2", Service, /*Ovo,*/ publishedBy, Nil)
+      .writeNewVersion(TemplateManifest(Hash("comm2"), "1.5"), "comm2", Service, publishedBy, Nil)
       .left
       .get shouldBe s"There is a newer version (Some(2.0)) of comm (${Hash("comm2")}) already, than being published (1.5)"
   }
 
   it should "error when writing a new version that already exists" in {
     dynamo
-      .writeNewVersion(TemplateManifest(Hash("comm2"), "2.0"), "comm2", Service, /*Ovo,*/ publishedBy, Nil)
+      .writeNewVersion(TemplateManifest(Hash("comm2"), "2.0"), "comm2", Service, publishedBy, Nil)
       .left
       .get shouldBe s"There is a newer version (Some(2.0)) of comm (${Hash("comm2")}) already, than being published (2.0)"
   }
 
   it should "write new version" in {
-    dynamo.writeNewVersion(TemplateManifest(Hash("comm2"), "2.5"), "comm2", Service, /*Ovo,*/ publishedBy, Nil) shouldBe Right(
+    dynamo.writeNewVersion(TemplateManifest(Hash("comm2"), "2.5"), "comm2", Service, publishedBy, Nil) shouldBe Right(
       ())
     val summaries = dynamo.listTemplateSummaries
-    summaries should contain(TemplateSummary(Hash("comm2"), "comm2", /*Ovo,*/ Service, "2.5"))
+    summaries should contain(TemplateSummary(Hash("comm2"), "comm2", Service, "2.5"))
 
     val versions = dynamo.listVersions(Hash("comm2"))
     versions.length shouldBe 3

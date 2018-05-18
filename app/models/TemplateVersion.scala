@@ -37,11 +37,7 @@ object TemplateVersion {
 
 case class ZippedRawTemplate(templateFiles: Array[Byte])
 
-case class TemplateSummary(templateId: String,
-                           commName: String,
-//                           brand: Brand,
-                           commType: CommType,
-                           latestVersion: String)
+case class TemplateSummary(templateId: String, commName: String, commType: CommType, latestVersion: String)
 
 object TemplateSummary {
 
