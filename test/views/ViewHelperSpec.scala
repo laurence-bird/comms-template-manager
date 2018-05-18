@@ -3,6 +3,7 @@ package views
 import java.util.UUID
 
 import com.ovoenergy.comms.model._
+import com.ovoenergy.comms.templates.util.Hash
 import models.TemplateVersion
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -11,7 +12,8 @@ class ViewHelperSpec extends FlatSpec with Matchers {
   def randomString() = UUID.randomUUID().toString
 
   def buildTemplateVersion(channel: List[Channel]) = {
-    TemplateVersion(CommManifest(Service, randomString(), randomString()), randomString(), channel)
+    val name = randomString()
+    TemplateVersion(TemplateManifest(Hash(name), randomString()), name, Service, randomString(), channel)
   }
 
   behavior of "ViewHelper"

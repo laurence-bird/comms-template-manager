@@ -20,11 +20,13 @@ import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, Tag}
 import util.{LocalDynamoDB, MockServerFixture}
 import cats.syntax.either._
 import aws.dynamo.DynamoFormats._
+import com.amazonaws.services.s3.model.ObjectListing
 import com.google.common.io.Resources
 import com.ovoenergy.comms.templates.s3.S3Prefix
 import com.ovoenergy.comms.templates.util.Hash
 import org.mockserver.mock.Expectation
 import org.mockserver.model.{HttpRequest, HttpResponse}
+import play.api.Logger
 
 import scala.collection.JavaConverters._
 
@@ -70,8 +72,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def createDynamoTables() = {
-    LocalDynamoDB.createTable(dynamoClient)(templateVersionsTableName)('commName -> S, 'publishedAt -> N)
-    LocalDynamoDB.createTable(dynamoClient)(templateSummaryTableName)('commName  -> S)
+    LocalDynamoDB.createTable(dynamoClient)(templateVersionsTableName)('templateId -> S, 'publishedAt -> N)
+    LocalDynamoDB.createTable(dynamoClient)(templateSummaryTableName)('templateId  -> S)
     waitUntilTableMade(50)
 
     def waitUntilTableMade(noAttemptsLeft: Int): (String, String) = {
@@ -200,7 +202,8 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateSummaryResult.latestVersion shouldBe "1.0"
     templateSummaryResult.commType shouldBe Service
 
-    result.body.string() should include("<ul><li>Template published: CommManifest(Service,TEST-COMM,1.0)</li></ul>")
+    result.body.string() should include(
+      s"<ul><li>Template published: ${Hash("TEST-COMM")}, Service, TEST-COMM, 1.0</li></ul>")
   }
 
   it should "Allow publication of a valid new version of an existing template" taggedAs DockerComposeTag in {
@@ -255,7 +258,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateSummaryResult.commType shouldBe Service
 
     result.body.string() should include(
-      "<ul><li>Template published: TemplateSummary(TEST-COMM-2,Service,2.0)</li></ul>")
+      s"<ul><li>Template published: TemplateSummary(l7zgjtz5d5oqa4vd54in2m4yxu,TEST-COMM-2,Service,2.0)</li></ul>")
   }
 
   it should "reject new publication of invalid templates with missing assets" taggedAs DockerComposeTag in {
@@ -376,7 +379,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateSummaryResult.commType shouldBe Service
 
     result.body.string() should include(
-      "<ul><li>Template published: CommManifest(Service,TEST-COMM-PRINT,1.0)</li></ul>")
+      s"<ul><li>Template published: ${Hash("TEST-COMM-PRINT")}, Service, TEST-COMM-PRINT, 1.0</li></ul>")
   }
 
   it should "reject new publication of invalid print templates with missing address field and script included" taggedAs DockerComposeTag in {
@@ -453,14 +456,16 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def givenExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "12.0", Instant.now, "Phil", Service, Some(Nil))
+    val templateVersion =
+      TemplateVersion(TemplateManifest(Hash("test-comm"), "12.0"), "test-comm", Service, "Phil", List[Channel]())
     Scanamo.put(dynamoClient)(templateVersionsTableName)(templateVersion)
 
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 
   private def givenNonExistingTemplate(): CommManifest = {
-    val templateVersion = TemplateVersion("test-comm", "13.0", Instant.now, "Phil", Service, Some(Nil))
+    val templateVersion =
+      TemplateVersion(TemplateManifest(Hash("test-comm"), "13.0"), "test-comm", Service, "Phil", List[Channel]())
     CommManifest(Service, templateVersion.commName, templateVersion.version)
   }
 
