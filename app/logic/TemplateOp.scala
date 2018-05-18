@@ -9,7 +9,7 @@ import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManif
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import com.ovoenergy.comms.templates.util.Hash
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
-import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
+import models.{Brand, TemplateSummary, TemplateVersion, ZippedRawTemplate}
 import play.api.Logger
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
@@ -26,8 +26,8 @@ object TemplateOp {
   def retrieveTemplateInfo(templateManifest: TemplateManifest): TemplateOp[TemplateVersion] =
     liftF(RetrieveTemplateVersionFromDynamo(templateManifest))
 
-  def retrieveAllTemplateVersions(commName: String): TemplateOp[Seq[TemplateVersion]] =
-    liftF(RetrieveAllTemplateVersions(commName))
+  def retrieveAllTemplateVersions(templateId: String, commName: String): TemplateOp[Seq[TemplateVersion]] =
+    liftF(RetrieveAllTemplateVersions(templateId, commName))
 
   def compressTemplatesToZipFile(templateFiles: TemplateFiles): TemplateOp[Array[Byte]] =
     liftF(CompressTemplates(templateFiles))
@@ -40,7 +40,7 @@ object TemplateOp {
                                         publishedBy: String,
                                         context: TemplatesContext): TemplateOp[TemplateSummary] = {
     for {
-      nextVersion <- getNextTemplateSummary(commName)
+      nextVersion <- getNextTemplateSummary(Hash(commName))
       templateManifest = TemplateManifest(Hash(commName), nextVersion.latestVersion)
       templateFiles <- validateTemplate(templateManifest, uploadedFiles)
       _             <- uploadProcessedTemplateToS3(templateManifest, templateFiles, publishedBy)
@@ -102,8 +102,8 @@ object TemplateOp {
     liftF(InjectChannelSpecificScript(processedFiles))
   }
 
-  def getNextTemplateSummary(commName: String): TemplateOp[TemplateSummary] = {
-    liftF(GetNextTemplateSummary(commName))
+  def getNextTemplateSummary(templateId: String): TemplateOp[TemplateSummary] = {
+    liftF(GetNextTemplateSummary(templateId))
   }
 
   def writeTemplateToDynamo(templateManifest: TemplateManifest,
@@ -111,7 +111,7 @@ object TemplateOp {
                             commType: CommType,
                             publishedBy: String,
                             channels: List[Channel]) = {
-    liftF(UploadTemplateToDynamo(templateManifest, commName: String, commType: CommType, publishedBy, channels))
+    liftF(UploadTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels))
   }
 
   def uploadRawTemplateFileToS3(templateManifest: TemplateManifest,

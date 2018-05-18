@@ -6,7 +6,7 @@ import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManif
 import com.ovoenergy.comms.templates.TemplatesContext
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic.TemplateOp.TemplateFiles
-import models.{TemplateSummary, TemplateVersion}
+import models.{Brand, TemplateSummary, TemplateVersion}
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
 
@@ -18,7 +18,7 @@ case class RetrieveTemplateVersionFromDynamo(templateManifest: TemplateManifest)
 
 case class CompressTemplates(templateFiles: TemplateFiles) extends TemplateOpA[Array[Byte]]
 
-case class RetrieveAllTemplateVersions(commName: String) extends TemplateOpA[Seq[TemplateVersion]]
+case class RetrieveAllTemplateVersions(templateId: String, commName: String) extends TemplateOpA[Seq[TemplateVersion]]
 
 case object ListTemplateSummaries extends TemplateOpA[Seq[TemplateSummary]]
 

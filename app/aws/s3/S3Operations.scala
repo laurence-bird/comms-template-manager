@@ -11,6 +11,7 @@ import cats.syntax.traverse._
 import com.ovoenergy.comms.model.{CommManifest, TemplateManifest}
 import com.ovoenergy.comms.templates.s3.S3Prefix
 import logic.TemplateOp._
+import play.api.Logger
 
 object S3Operations {
 

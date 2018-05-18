@@ -1,21 +1,20 @@
 package aws.dynamo
 
-import cats.syntax.either._
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
-import models.{TemplateSummary, TemplateVersion}
+import com.ovoenergy.comms.model.{Channel, CommType, TemplateManifest}
+import models.{Brand, TemplateSummary, TemplateVersion}
 import play.api.Logger
 
 class Dynamo(db: AmazonDynamoDB,
              templateVersionTable: Table[TemplateVersion],
              templateSummaryTable: Table[TemplateSummary]) {
 
-  def listVersions(commName: String): Seq[TemplateVersion] = {
-    val query = templateVersionTable.query('commName -> commName)
+  def listVersions(templateId: String): Seq[TemplateVersion] = {
+    val query = templateVersionTable.query('templateId -> templateId)
     Scanamo.exec(db)(query).flatMap { result =>
       logIfError(result).toOption
     }
@@ -28,29 +27,32 @@ class Dynamo(db: AmazonDynamoDB,
                       publishedBy: String,
                       channels: List[Channel]): Either[String, Unit] = {
 
-    if (isNewestVersion(commName, templateManifest.version)) {
-
-      val commManifest = CommManifest(commType, commName, templateManifest.version)
+    if (isNewestVersion(templateManifest)) {
 
       val templateVersion = TemplateVersion(
-        commManifest = commManifest,
-        publishedBy = publishedBy,
-        channels = channels
+        templateManifest,
+        commName,
+        commType,
+        publishedBy,
+        channels
       )
 
       Scanamo.exec(db)(templateVersionTable.put(templateVersion))
       Logger.info(s"Written template version to persistence $templateVersion")
 
       val templateSummary = TemplateSummary(
-        commManifest = commManifest
+        templateManifest.id,
+        commName,
+        commType,
+        templateManifest.version
       )
       Scanamo.exec(db)(templateSummaryTable.put(templateSummary))
       Logger.info(s"Written template summary to persistence $templateSummary")
 
       Right(())
     } else {
-      Left(s"There is a newer version (${getTemplateSummary(commName)
-        .map(_.latestVersion)}) of comm (${commName}) already, than being published (${templateManifest.version})")
+      Left(s"There is a newer version (${getTemplateSummary(templateManifest.id)
+        .map(_.latestVersion)}) of comm (${templateManifest.id}) already, than being published (${templateManifest.version})")
     }
   }
 
@@ -61,14 +63,13 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  def getTemplateSummary(commName: String): Option[TemplateSummary] = {
+  def getTemplateSummary(templateId: String): Option[TemplateSummary] =
     listTemplateSummaries
-      .find(templateSummary => templateSummary.commName == commName)
-  }
+      .find(templateSummary => templateSummary.templateId == templateId)
 
   // FIXME this does not work in the real life as the version is not indexed.
-  def getTemplateVersion(commName: String, version: String): Option[TemplateVersion] = {
-    val query = templateVersionTable.get('commName -> commName and 'version -> version)
+  def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {
+    val query = templateVersionTable.get('templateId -> templateId and 'version -> version)
     Scanamo.exec(db)(query).flatMap(result => logIfError(result).toOption)
   }
 
@@ -79,10 +80,9 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  private def isNewestVersion(commName: String, version: String): Boolean = {
-
-    getTemplateSummary(commName)
-      .map(summary => TemplateSummary.versionCompare(version.trim, summary.latestVersion.trim))
+  private def isNewestVersion(templateManifest: TemplateManifest): Boolean = {
+    getTemplateSummary(templateManifest.id)
+      .map(summary => TemplateSummary.versionCompare(templateManifest.version.trim, summary.latestVersion.trim))
       .forall {
         case Right(comparison) => if (comparison > 0) true else false
         case Left(error) =>
