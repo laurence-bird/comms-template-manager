@@ -224,7 +224,6 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           .validateAndUploadNewTemplate(templateManifest,
                                         commName,
                                         commType,
-//                                        Unbranded,
                                         uploadedFiles,
                                         user.username,
                                         templateContext)
