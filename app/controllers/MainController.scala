@@ -83,29 +83,35 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     cachingStrategy = CachingStrategy.noCache
   )
 
-  def getPreviewPrint(commName: String, commVersion: String): Action[PreviewForm] =
+  private def getCommName(templateId: String) =
+    awsContext.dynamo
+      .getTemplateSummary(templateId)
+      .map(_.commName)
+      .getOrElse("Unknown")
+
+  def getPreviewPrint(templateId: String, commVersion: String): Action[PreviewForm] =
     Authenticated(parse.form(PreviewForm.previewPrintForm)).async { req =>
       implicit val ec: ExecutionContext = controllerComponents.executionContext
       val previewRequest                = req.body
 
-      val templateVersion = awsContext.dynamo.listVersions(Hash(commName)).find(_.version == commVersion)
+      val templateVersion = awsContext.dynamo.listVersions(templateId).find(_.version == commVersion)
 
       def stream(bytes: ByteString, chunkSize: Int): Source[ByteString, NotUsed] = {
         Source(bytes).grouped(chunkSize).flatMapConcat(bs => Source.single(ByteString(bs: _*)))
       }
 
       templateVersion
-        .fold(Future.successful(NotFound(s"Template $commName:$commVersion not found"))) { template =>
+        .fold(Future.successful(NotFound(s"Template $templateId:$commVersion not found"))) { template =>
           composerClient
-            .getRenderedPrintPdf(commName, commVersion, template.commType, previewRequest.templateData)
+            .getRenderedPrintPdf(templateId, commVersion, template.commType, previewRequest.templateData)
             .map {
               case Left(TemplateNotFound(message)) => {
                 Logger.error(
-                  s"Failed to render print preview for comm $commName v$commVersion as template could not be found: $message")
+                  s"Failed to render print preview for template $templateId v$commVersion as template could not be found: $message")
                 NotFound(message)
               }
               case Left(UnknownError(message)) => {
-                Logger.error(s"Unknown error rendering print preview for comm $commName v$commVersion: $message")
+                Logger.error(s"Unknown error rendering print preview for template $templateId v$commVersion: $message")
                 ServiceUnavailable(message)
               }
               case Right(bytes) =>
@@ -114,26 +120,20 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
         }
         .recover {
           case NonFatal(e) => {
-            Logger.error(s"Error thrown rendering print preview for comm $commName v$commVersion", e)
+            Logger.error(s"Error thrown rendering print preview for template $templateId v$commVersion", e)
             ServiceUnavailable(e.getMessage)
           }
         }
     }
 
-  def getRequiredData(commName: String, version: String) = Authenticated { request =>
+  def getRequiredData(templateId: String, version: String) = Authenticated { request =>
     implicit val user: UserIdentity = request.user
 
-    val getCommManifest: Either[NonEmptyList[String], CommManifest] = {
-      awsContext.dynamo.getTemplateSummary(Hash(commName)).toRight(NonEmptyList.of("No template found")) match {
-        case Right(template) => Right(CommManifest(template.commType, template.commName, template.latestVersion))
-        case Left(error)     => Left(error)
-      }
-    }
+    val templateManifest = TemplateManifest(templateId, version)
 
     val requiredFields: Either[NonEmptyList[String], Json] =
       for {
-        commManifest <- getCommManifest
-        template     <- TemplatesRepo.getTemplate(templateContext, commManifest).toEither
+        template     <- TemplatesRepo.getTemplate(templateContext, templateManifest).toEither
         requiredData <- template.requiredData.toEither
         templateData <- TemplateDataGenerator
           .generateTemplateData(requiredData)
@@ -147,21 +147,21 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
         Logger.error(s"Failed to retrieve required data for template: ${errors.toList.mkString(", ")}")
         NotFound(s"Failed to retrieve required data for template: $errors")
       case Right(fields) =>
-        Ok(views.html.templateRequiredData(commName, version, fields.spaces4))
+        Ok(views.html.templateRequiredData(templateId, version, fields.spaces4))
 
     }
   }
 
   import cats.instances.either._
 
-  def getTemplateVersion(commName: String, version: String) = Authenticated {
-    TemplateOp.retrieveTemplate(TemplateManifest(Hash(commName), version)).foldMap(interpreter) match {
+  def getTemplateVersion(templateId: String, version: String) = Authenticated {
+    TemplateOp.retrieveTemplate(TemplateManifest(templateId, version)).foldMap(interpreter) match {
       case Left(err) => NotFound(s"Failed to retrieve template: $err")
       case Right(res: ZippedRawTemplate) =>
         val dataContent: Source[ByteString, _] =
           StreamConverters.fromInputStream(() => new ByteArrayInputStream(res.templateFiles))
         Ok.chunked(dataContent)
-          .withHeaders(("Content-Disposition", s"attachment; filename=$commName-$version.zip"))
+          .withHeaders(("Content-Disposition", s"attachment; filename=$templateId-$version.zip"))
           .as("application/zip")
     }
   }
@@ -177,9 +177,10 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     }
   }
 
-  def listVersions(commName: String) = Authenticated { request =>
+  def listVersions(templateId: String) = Authenticated { request =>
     implicit val user = request.user
-    TemplateOp.retrieveAllTemplateVersions(Hash(commName), commName).foldMap(interpreter) match {
+    val commName      = getCommName(templateId)
+    TemplateOp.retrieveAllTemplateVersions(templateId, commName).foldMap(interpreter) match {
       case Left(errs) => {
         Logger.error(s"Failed to list versions of comm $commName with errors: ${errs.toList.mkString(", ")}")
         NotFound(errs.head)
@@ -193,9 +194,9 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None))
   }
 
-  def publishExistingTemplateGet(commName: String) = Authenticated { implicit request =>
+  def publishExistingTemplateGet(templateId: String) = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.publishExistingTemplate("inprogress", List[String](), commName))
+    Ok(views.html.publishExistingTemplate("inprogress", List[String](), templateId, getCommName(templateId)))
   }
 
   def getDataPart[A](part: String, f: String => Option[A])(
@@ -248,9 +249,11 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
       }
   }
 
-  def publishExistingTemplatePost(commName: String) = Authenticated(parse.multipartFormData) {
+  def publishExistingTemplatePost(templateId: String) = Authenticated(parse.multipartFormData) {
     implicit multipartFormRequest =>
       implicit val user = multipartFormRequest.user
+
+      val commName = getCommName(templateId)
 
       multipartFormRequest.body
         .file("templateFile")
@@ -258,18 +261,22 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           val uploadedFiles = extractUploadedFiles(templateFile)
 
           TemplateOp
-            .validateAndUploadExistingTemplate(commName, uploadedFiles, user.username, templateContext)
+            .validateAndUploadExistingTemplate(templateId, commName, uploadedFiles, user.username, templateContext)
             .foldMap(interpreter) match {
             case Right(newVersion) =>
-              Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
+              Ok(
+                views.html
+                  .publishExistingTemplate("ok", List(s"Template published: $newVersion"), templateId, commName))
             case Left(errors) =>
               Logger.error(
                 s"Failed to publish new version of comm ${commName} with errors: ${errors.toList.mkString(", ")}")
-              Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
+              Ok(views.html.publishExistingTemplate("error", errors.toList, templateId, commName))
           }
         }
         .getOrElse {
-          Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
+          Ok(
+            views.html
+              .publishExistingTemplate("error", List("Unknown issue accessing zip file"), templateId, commName))
         }
   }
 

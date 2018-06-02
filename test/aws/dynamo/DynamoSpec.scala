@@ -10,7 +10,6 @@ import com.ovoenergy.comms.model.CommType._
 import aws.dynamo.DynamoFormats._
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.util.Hash
-import models.Brand.Ovo
 import models.{TemplateSummary, TemplateVersion}
 
 class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {

@@ -16,7 +16,6 @@ import templates.validation.{PrintTemplateValidation, TemplateValidator}
 import com.ovoenergy.comms.templates
 import com.ovoenergy.comms.templates.TemplatesRepo
 import com.ovoenergy.comms.templates.s3.S3Prefix
-import models.Brand.Unbranded
 import play.api.Logger
 
 import scala.util.Right

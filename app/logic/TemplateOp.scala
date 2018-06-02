@@ -9,7 +9,7 @@ import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManif
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import com.ovoenergy.comms.templates.util.Hash
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
-import models.{Brand, TemplateSummary, TemplateVersion, ZippedRawTemplate}
+import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
 import play.api.Logger
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
@@ -35,13 +35,14 @@ object TemplateOp {
   def listTemplateSummaries(): TemplateOp[Seq[TemplateSummary]] =
     liftF(ListTemplateSummaries)
 
-  def validateAndUploadExistingTemplate(commName: String,
+  def validateAndUploadExistingTemplate(templateId: String,
+                                        commName: String,
                                         uploadedFiles: List[UploadedFile],
                                         publishedBy: String,
                                         context: TemplatesContext): TemplateOp[TemplateSummary] = {
     for {
-      nextVersion <- getNextTemplateSummary(Hash(commName))
-      templateManifest = TemplateManifest(Hash(commName), nextVersion.latestVersion)
+      nextVersion <- getNextTemplateSummary(templateId)
+      templateManifest = TemplateManifest(templateId, nextVersion.latestVersion)
       templateFiles <- validateTemplate(templateManifest, uploadedFiles)
       _             <- uploadProcessedTemplateToS3(templateManifest, templateFiles, publishedBy)
       _             <- uploadRawTemplateToS3(templateManifest, templateFiles, publishedBy)

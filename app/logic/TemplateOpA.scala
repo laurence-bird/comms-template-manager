@@ -6,7 +6,7 @@ import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManif
 import com.ovoenergy.comms.templates.TemplatesContext
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic.TemplateOp.TemplateFiles
-import models.{Brand, TemplateSummary, TemplateVersion}
+import models.{TemplateSummary, TemplateVersion}
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
 

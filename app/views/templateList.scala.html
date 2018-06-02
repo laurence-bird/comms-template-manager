@@ -20,13 +20,13 @@
         <tbody>
         @for(template <- templates) {
         <tr>
-            <td class="text-center"><a href="@routes.MainController.listVersions(template.commName)">@template.commName</a></td>
+            <td class="text-center"><a href="@routes.MainController.listVersions(template.templateId)">@template.commName</a></td>
             <td class="text-center">@template.commType</td>
             <td class="text-center">@template.latestVersion</td>
             <td class="text-center"><a href="@commPerformanceLink(template.commName, commPerformanceUrl)" class="btn btn-primary"><span class="glyphicon glyphicon-tasks"></span></a></td>
             <td class="text-center"><a href="@routes.MainController.operationalMetrics(Some(template.commName), None)" class="btn btn-primary"><span class="glyphicon glyphicon-scale"></span></a></td>
             <td class="text-center"><a href="@commSearchLink(template.commName, commSearchUrl)" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></a></td>
-            <td class="text-center"><a href="@routes.MainController.publishExistingTemplateGet(template.commName)" class="btn btn-primary">
+            <td class="text-center"><a href="@routes.MainController.publishExistingTemplateGet(template.templateId)" class="btn btn-primary">
                 Publish new version
             </a></td>
         </tr>

@@ -11,19 +11,19 @@ GET     /healthcheck                controllers.MainController.healthcheck
 
 GET     /login                      controllers.AuthController.login
 GET     /oauth2callback             controllers.AuthController.oauth2Callback
-GET     /auth-error                 controllers.AuthController.authError
+GET     /auth-error                             controllers.AuthController.authError
 
-GET    /templates/:commName/:version    controllers.MainController.getTemplateVersion(commName, version)
-GET    /templates/:commName             controllers.MainController.listVersions(commName)
-GET    /templates                       controllers.MainController.listTemplates
+GET    /templates/:templateId/:version            controllers.MainController.getTemplateVersion(templateId, version)
+GET    /templates/:templateId                     controllers.MainController.listVersions(templateId)
+GET    /templates                                 controllers.MainController.listTemplates
 
-GET    /publish/template           controllers.MainController.publishNewTemplateGet
-POST   /publish/template           controllers.MainController.publishNewTemplatePost
+GET    /publish/template                          controllers.MainController.publishNewTemplateGet
+POST   /publish/template                          controllers.MainController.publishNewTemplatePost
 
-GET    /preview/:commName/:version             controllers.MainController.getRequiredData(commName, version)
-POST   /preview/:commName/:version/print       controllers.MainController.getPreviewPrint(commName, version)
+GET    /preview/:templateId/:version              controllers.MainController.getRequiredData(templateId, version)
+POST   /preview/:templateId/:version/print        controllers.MainController.getPreviewPrint(templateId, version)
 
-GET    /publish/template/:commName     controllers.MainController.publishExistingTemplateGet(commName)
-POST   /publish/template/:commName     controllers.MainController.publishExistingTemplatePost(commName)
+GET    /publish/template/:templateId              controllers.MainController.publishExistingTemplateGet(templateId)
+POST   /publish/template/:templateId              controllers.MainController.publishExistingTemplatePost(templateId)
 
-GET    /metrics    controllers.MainController.operationalMetrics(commName: Option[String], channel: Option[String])
+GET    /metrics                                   controllers.MainController.operationalMetrics(commName: Option[String], channel: Option[String])

@@ -6,7 +6,7 @@ import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
 import com.ovoenergy.comms.model.{Channel, CommType, TemplateManifest}
-import models.{Brand, TemplateSummary, TemplateVersion}
+import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
 class Dynamo(db: AmazonDynamoDB,
