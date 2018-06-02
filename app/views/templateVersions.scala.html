@@ -1,14 +1,15 @@
 @import com.ovoenergy.comms.model.Print
 @import views.ViewHelper._
-@(templateVersions: Seq[TemplateVersion], commName: String)(implicit user: com.gu.googleauth.UserIdentity)
+@(templateVersions: Seq[TemplateVersion], commName: String, templateId: String)(implicit user: com.gu.googleauth.UserIdentity)
 @main{
     <div class="page-header">
         <div class="row">
             <div class="col-md-9">
                 <h1>Template versions for '@commName'</h1>
+                <p>Template ID: <strong>@templateId</strong></p>
             </div>
             <div class="col-md-3">
-                <h1><a href="@routes.MainController.publishExistingTemplateGet(commName)" class="btn btn-primary">Publish new version</a></h1>
+                <h1><a href="@routes.MainController.publishExistingTemplateGet(templateId)" class="btn btn-primary">Publish new version</a></h1>
             </div>
         </div>
     </div>
@@ -26,8 +27,11 @@
                             <th>
                                 <div class="previewHeader">
                                     Preview
-                                        <span style="color:red">*</span>
-                                        <span class="tooltiptext">Preview is available only for Print channel!</span>
+                                        <a class="glyphicon glyphicon-info-sign"
+                                        data-toggle="tooltip"
+                                        data-placement="bottom"
+                                        data-original-title="Preview is available only for Print channel!">
+                                        </a>
                                 </div>
                             </th>
                         }

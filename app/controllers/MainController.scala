@@ -14,7 +14,7 @@ import cats.~>
 import cats.implicits._
 import com.amazonaws.services.s3.AmazonS3Client
 import com.gu.googleauth.UserIdentity
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service, TemplateManifest}
+import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
@@ -185,13 +185,13 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
         Logger.error(s"Failed to list versions of comm $commName with errors: ${errs.toList.mkString(", ")}")
         NotFound(errs.head)
       }
-      case Right(versions) => Ok(views.html.templateVersions(versions, commName))
+      case Right(versions) => Ok(views.html.templateVersions(versions, commName, templateId))
     }
   }
 
   def publishNewTemplateGet = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None))
+    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None, Brand.values))
   }
 
   def publishExistingTemplateGet(templateId: String) = Authenticated { implicit request =>
@@ -213,18 +213,22 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
       val result = for {
         commName     <- getDataPart("commName", Some(_))
         commType     <- getDataPart("commType", CommType.fromString)
+        brand        <- getDataPart("brand", Brand.fromString)
         templateFile <- multipartFormRequest.body.file("templateFile")
       } yield {
 
         val templateManifest = TemplateManifest(Hash(commName), "1.0")
 
-        Logger.info(s"Publishing new comm template, ${commName.head}")
+        Logger.info(s"Publishing new comm template, ${commName}")
         val uploadedFiles = extractUploadedFiles(templateFile)
+
+        Logger.info(s"FILES HAVE BEEN EXTRACTED")
 
         TemplateOp
           .validateAndUploadNewTemplate(templateManifest,
                                         commName,
                                         commType,
+                                        brand,
                                         uploadedFiles,
                                         user.username,
                                         templateContext)
@@ -233,19 +237,27 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
             Ok(
               views.html.publishNewTemplate(
                 "ok",
-                List(s"Template published: ${templateManifest.id}, $commType, $commName, ${templateManifest.version}"),
+                List(
+                  s"Template successfully published!",
+                  s"template ID: ${templateManifest.id}",
+                  s"template version: ${templateManifest.version}",
+                  s"commType: $commType",
+                  s"commName: $commName"
+                ),
                 Some(commName),
-                Some(commType)))
+                Some(commType),
+                Brand.values
+              ))
           case Left(errors) =>
             Logger.error(
               s"Failed to publish comm ${commName}, version ${templateManifest.version} with errors: ${errors.toList
                 .mkString(", ")}")
-            Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName), Some(commType)))
+            Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName), Some(commType), Brand.values))
         }
 
       }
       result.getOrElse {
-        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
+        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None, Brand.values))
       }
   }
 

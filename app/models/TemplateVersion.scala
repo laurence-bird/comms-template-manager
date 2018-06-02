@@ -4,7 +4,7 @@ import java.time.Instant
 
 import aws.Interpreter.ErrorsOr
 import cats.data.NonEmptyList
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
+import com.ovoenergy.comms.model._
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -37,7 +37,11 @@ object TemplateVersion {
 
 case class ZippedRawTemplate(templateFiles: Array[Byte])
 
-case class TemplateSummary(templateId: String, commName: String, commType: CommType, latestVersion: String)
+case class TemplateSummary(templateId: String,
+                           commName: String,
+                           commType: CommType,
+                           brand: Brand,
+                           latestVersion: String)
 
 object TemplateSummary {
 

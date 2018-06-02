@@ -5,7 +5,7 @@ import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
-import com.ovoenergy.comms.model.{Channel, CommType, TemplateManifest}
+import com.ovoenergy.comms.model.{Brand, Channel, CommType, TemplateManifest}
 import models.{TemplateSummary, TemplateVersion}
 import play.api.Logger
 
@@ -24,6 +24,7 @@ class Dynamo(db: AmazonDynamoDB,
   def writeNewVersion(templateManifest: TemplateManifest,
                       commName: String,
                       commType: CommType,
+                      brand: Brand,
                       publishedBy: String,
                       channels: List[Channel]): Either[String, Unit] = {
 
@@ -44,6 +45,7 @@ class Dynamo(db: AmazonDynamoDB,
         templateManifest.id,
         commName,
         commType,
+        brand,
         templateManifest.version
       )
       Scanamo.exec(db)(templateSummaryTable.put(templateSummary))
@@ -65,7 +67,15 @@ class Dynamo(db: AmazonDynamoDB,
 
   def getTemplateSummary(templateId: String): Option[TemplateSummary] =
     listTemplateSummaries
+      .map(x => {
+        Logger.info(">>>> " + x)
+        x
+      })
       .find(templateSummary => templateSummary.templateId == templateId)
+      .map(f => {
+        Logger.info(">>>>> found: " + f)
+        f
+      })
 
   // FIXME this does not work in the real life as the version is not indexed.
   def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {

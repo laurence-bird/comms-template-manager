@@ -2,7 +2,7 @@ package logic
 
 import cats.Id
 import cats.data.NonEmptyList
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
+import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.TemplatesContext
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic.TemplateOp.TemplateFiles
@@ -50,6 +50,7 @@ case class ValidateTemplateDoesNotExist(templateManifest: TemplateManifest, comm
 case class UploadTemplateToDynamo(templateManifest: TemplateManifest,
                                   commName: String,
                                   commType: CommType,
+                                  brand: Brand,
                                   publishedBy: String,
                                   channels: List[Channel])
     extends TemplateOpA[Unit]

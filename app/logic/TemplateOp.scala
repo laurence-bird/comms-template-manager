@@ -5,7 +5,7 @@ import cats.Id
 import cats.data.NonEmptyList
 import cats.free.Free
 import cats.free.Free._
-import com.ovoenergy.comms.model.{Channel, CommManifest, CommType, TemplateManifest}
+import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import com.ovoenergy.comms.templates.util.Hash
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
@@ -47,13 +47,19 @@ object TemplateOp {
       _             <- uploadProcessedTemplateToS3(templateManifest, templateFiles, publishedBy)
       _             <- uploadRawTemplateToS3(templateManifest, templateFiles, publishedBy)
       templates     <- getChannels(templateManifest, context)
-      _             <- writeTemplateToDynamo(templateManifest, commName, nextVersion.commType, publishedBy, templates)
+      _ <- writeTemplateToDynamo(templateManifest,
+                                 commName,
+                                 nextVersion.commType,
+                                 nextVersion.brand,
+                                 publishedBy,
+                                 templates)
     } yield nextVersion
   }
 
   def validateAndUploadNewTemplate(templateManifest: TemplateManifest,
                                    commName: String,
                                    commType: CommType,
+                                   brand: Brand,
                                    uploadedFiles: List[UploadedFile],
                                    publishedBy: String,
                                    context: TemplatesContext): TemplateOp[List[String]] = {
@@ -63,7 +69,7 @@ object TemplateOp {
       processedUploadResults <- uploadProcessedTemplateToS3(templateManifest, templateFiles, publishedBy)
       rawUploadResults       <- uploadRawTemplateToS3(templateManifest, templateFiles, publishedBy)
       channels               <- getChannels(templateManifest, context)
-      _                      <- writeTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels)
+      _                      <- writeTemplateToDynamo(templateManifest, commName, commType, brand, publishedBy, channels)
     } yield rawUploadResults ++ processedUploadResults
   }
 
@@ -110,9 +116,10 @@ object TemplateOp {
   def writeTemplateToDynamo(templateManifest: TemplateManifest,
                             commName: String,
                             commType: CommType,
+                            brand: Brand,
                             publishedBy: String,
                             channels: List[Channel]) = {
-    liftF(UploadTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels))
+    liftF(UploadTemplateToDynamo(templateManifest, commName, commType, brand, publishedBy, channels))
   }
 
   def uploadRawTemplateFileToS3(templateManifest: TemplateManifest,
