@@ -67,15 +67,7 @@ class Dynamo(db: AmazonDynamoDB,
 
   def getTemplateSummary(templateId: String): Option[TemplateSummary] =
     listTemplateSummaries
-      .map(x => {
-        Logger.info(">>>> " + x)
-        x
-      })
       .find(templateSummary => templateSummary.templateId == templateId)
-      .map(f => {
-        Logger.info(">>>>> found: " + f)
-        f
-      })
 
   // FIXME this does not work in the real life as the version is not indexed.
   def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {

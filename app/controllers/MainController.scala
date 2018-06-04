@@ -222,8 +222,6 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
         Logger.info(s"Publishing new comm template, ${commName}")
         val uploadedFiles = extractUploadedFiles(templateFile)
 
-        Logger.info(s"FILES HAVE BEEN EXTRACTED")
-
         TemplateOp
           .validateAndUploadNewTemplate(templateManifest,
                                         commName,
