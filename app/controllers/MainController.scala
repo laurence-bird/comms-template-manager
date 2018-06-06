@@ -233,20 +233,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
                                         templateContext)
           .foldMap(interpreter) match {
           case Right(_) =>
-            Ok(
-              views.html.publishNewTemplate(
-                "ok",
-                List(
-                  s"Template successfully published!",
-                  s"template ID: ${templateManifest.id}",
-                  s"template version: ${templateManifest.version}",
-                  s"commType: $commType",
-                  s"commName: $commName"
-                ),
-                Some(commName),
-                Some(commType),
-                Brand.values
-              ))
+            Redirect(routes.MainController.listVersions(templateManifest.id))
           case Left(errors) =>
             Logger.error(
               s"Failed to publish comm ${commName}, version ${templateManifest.version} with errors: ${errors.toList
