@@ -3,6 +3,7 @@ package controllers
 import java.io.ByteArrayInputStream
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
+import java.util.UUID
 import java.util.zip.{ZipEntry, ZipFile}
 
 import akka.NotUsed
@@ -217,7 +218,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
         templateFile <- multipartFormRequest.body.file("templateFile")
       } yield {
 
-        val templateManifest = TemplateManifest(Hash(commName), "1.0")
+        val templateManifest = TemplateManifest(UUID.randomUUID().toString, "1.0")
 
         Logger.info(s"Publishing new comm template, ${commName}")
         val uploadedFiles = extractUploadedFiles(templateFile)
