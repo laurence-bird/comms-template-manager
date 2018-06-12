@@ -12,12 +12,38 @@ import com.ovoenergy.comms.templates.model.template.metadata.{TemplateId, Templa
 import models.{TemplateSummaryOps, TemplateVersion}
 import play.api.Logger
 
-class Dynamo(db: AmazonDynamoDBAsync,
-             templateVersionTable: Table[TemplateVersion],
-             templateSummaryTable: Table[TemplateSummary])
-    extends TemplateMetadataDynamoFormats {
+case class TemplateSummaryTable(templateId: String,
+                                commName: String,
+                                commType: CommType,
+                                brand: Brand,
+                                latestVersion: String) {
+  def toTemplateSummary = TemplateSummary(
+    TemplateId(templateId),
+    commName,
+    commType,
+    brand,
+    latestVersion
+  )
+}
 
-  val templateMetadataContext = TemplateMetadataContext(db, templateSummaryTable.name)
+object TemplateSummaryTable {
+  def apply(templateSummary: TemplateSummary): TemplateSummaryTable = {
+    TemplateSummaryTable(
+      templateSummary.templateId.value,
+      templateSummary.commName,
+      templateSummary.commType,
+      templateSummary.brand,
+      templateSummary.latestVersion
+    )
+  }
+}
+
+class Dynamo(db: AmazonDynamoDBAsync, templateVersionTableName: String, templateSummaryTableName: String)
+    extends DynamoFormats {
+
+  val templateVersionTable    = Table[TemplateVersion](templateVersionTableName)
+  val templateSummaryTable    = Table[TemplateSummary](templateSummaryTableName)
+  val templateMetadataContext = TemplateMetadataContext(db, templateSummaryTableName)
 
   def listVersions(templateId: String): Seq[TemplateVersion] = {
     val query = templateVersionTable.query('templateId -> templateId)
@@ -54,6 +80,9 @@ class Dynamo(db: AmazonDynamoDBAsync,
         brand,
         templateManifest.version
       )
+
+      implicit val fmt = templateIdFormat
+
       Scanamo.exec(db)(templateSummaryTable.put(templateSummary))
       Logger.info(s"Written template summary to persistence $templateSummary")
 
@@ -66,9 +95,11 @@ class Dynamo(db: AmazonDynamoDBAsync,
 
   def listTemplateSummaries: List[TemplateSummary] = {
     val query = templateSummaryTable.scan()
-    Scanamo.exec(db)(query).flatMap { result =>
-      logIfError(result).toOption
-    }
+    Scanamo
+      .exec(db)(query)
+      .flatMap { result =>
+        logIfError(result).toOption
+      }
   }
 
   def getTemplateSummary(templateId: String): Option[TemplateSummary] = {

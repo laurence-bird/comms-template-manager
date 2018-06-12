@@ -5,17 +5,21 @@ import java.time.Instant
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import util.LocalDynamoDB
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType._
-import com.gu.scanamo.{Scanamo, Table}
+import com.gu.scanamo.Scanamo
 import com.ovoenergy.comms.model.CommType._
-import aws.dynamo.DynamoFormats._
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.TemplateMetadataDynamoFormats
 import com.ovoenergy.comms.templates.model.Brand.Ovo
 import com.ovoenergy.comms.templates.model.template.metadata.{TemplateId, TemplateSummary}
 import com.ovoenergy.comms.templates.util.Hash
-import models.{TemplateSummaryOps, TemplateVersion}
+import models.{TemplateVersion}
 
-class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll with TemplateMetadataDynamoFormats {
+class DynamoSpec
+    extends FlatSpec
+    with Matchers
+    with BeforeAndAfterAll
+    with TemplateMetadataDynamoFormats
+    with DynamoFormats {
 
   val client                = LocalDynamoDB.client()
   val templateVersionsTable = "template-version"
@@ -24,8 +28,8 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll with Temp
 
   val dynamo = new Dynamo(
     client,
-    Table[TemplateVersion](templateVersionsTable),
-    Table[TemplateSummary](templateSummaryTable)
+    templateVersionsTable,
+    templateSummaryTable
   )
 
   val templateVersions = Seq(

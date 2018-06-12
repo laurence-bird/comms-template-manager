@@ -18,6 +18,7 @@ import com.gu.googleauth.UserIdentity
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.cache.CachingStrategy
 import com.ovoenergy.comms.templates.model.Brand
+import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.{PartialsS3Retriever, TemplatesS3Retriever}
@@ -213,7 +214,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
       val result = for {
         commName     <- getDataPart("commName", Some(_))
         commType     <- getDataPart("commType", CommType.fromString)
-        brand        <- getDataPart("brand", Brand.fromString)
+        brand        <- getDataPart("brand", Brand.fromStringCaseInsensitive)
         templateFile <- multipartFormRequest.body.file("templateFile")
       } yield {
 
@@ -260,10 +261,17 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           TemplateOp
             .validateAndUploadExistingTemplate(templateId, commName, uploadedFiles, user.username, templateContext)
             .foldMap(interpreter) match {
-            case Right(newVersion) =>
+            case Right(newVersion: TemplateSummary) =>
               Ok(
                 views.html
-                  .publishExistingTemplate("ok", List(s"Template published: $newVersion"), templateId, commName))
+                  .publishExistingTemplate(
+                    "ok",
+                    List(
+                      s"Template published: commName: ${newVersion.commName}, commType: ${newVersion.commType}, version: ${newVersion.latestVersion}, templateId: ${newVersion.templateId.value}"),
+                    templateId,
+                    commName
+                  )
+              )
             case Left(errors) =>
               Logger.error(
                 s"Failed to publish new version of comm ${commName} with errors: ${errors.toList.mkString(", ")}")

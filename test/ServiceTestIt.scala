@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit
 import java.util.zip.{ZipEntry, ZipInputStream}
 
 import akka.util.ByteString
+import aws.dynamo.DynamoFormats
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.model.AmazonDynamoDBException
@@ -17,8 +18,8 @@ import okhttp3._
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, Tag}
 import util.{LocalDynamoDB, MockServerFixture}
 import cats.syntax.either._
-import aws.dynamo.DynamoFormats._
 import com.google.common.io.Resources
+import com.ovoenergy.comms.templates.TemplateMetadataDynamoFormats
 import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
 import com.ovoenergy.comms.templates.s3.S3Prefix
 import com.ovoenergy.comms.templates.util.Hash
@@ -26,7 +27,7 @@ import org.mockserver.model.{HttpRequest, HttpResponse}
 
 import scala.collection.JavaConverters._
 
-class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with BeforeAndAfterAll {
+class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with BeforeAndAfterAll with DynamoFormats {
 
   object DockerComposeTag extends Tag("DockerComposeTag")
 
@@ -68,7 +69,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
   }
 
   private def createDynamoTables() = {
-    LocalDynamoDB.createTable(dynamoClient)(templateVersionsTableName)('templateId -> S, 'publishedAt -> N)
+    LocalDynamoDB.createTable(dynamoClient)(templateVersionsTableName)('templateId -> S, 'version -> S)
     LocalDynamoDB.createTable(dynamoClient)(templateSummaryTableName)('templateId  -> S)
     waitUntilTableMade(50)
 
@@ -126,44 +127,6 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     Thread.sleep(2000)
   }
 
-  it should "Download a raw template version, and compress the contents in a ZIP file with an appropriate name" taggedAs DockerComposeTag in {
-
-    val result     = createNewTemplate("template-manager-service-test")
-    val resultStr  = result.body.string()
-    val templateId = getTemplateId(resultStr)
-
-    val prefix = getPrefix(templateId, "1.0")
-
-    s3.putObject(rawTemplatesBucket, s"$prefix/email/subject.txt", "SUBJECT {{profile.firstName}}")
-    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.html", "{{> header}} HTML BODY {{amount}}")
-    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.txt", "{{> header}} TEXT BODY {{amount}}")
-
-    val url = s"http://localhost:9000/templates/$templateId/1.0"
-
-    val request = new Request.Builder()
-      .url(url)
-      .build()
-
-    val response = makeRequest(request)
-    response.code shouldBe 200
-    response.body().contentType().toString shouldBe "application/zip"
-
-    val zipFileStream = new ZipInputStream(new ByteArrayInputStream(response.body.bytes()))
-
-    def getFileNames(is: ZipInputStream, fileNames: Seq[String]): Seq[String] = {
-      try {
-        val entry: ZipEntry = is.getNextEntry
-        getFileNames(is, fileNames :+ entry.getName)
-      } catch {
-        case e: Throwable => fileNames
-      }
-    }
-
-    val fileNames = getFileNames(zipFileStream, Nil)
-
-    fileNames should contain allOf ("email/body.html", "email/body.txt", "email/subject.txt")
-  }
-
   def createNewTemplate(commName: String, filePath: String = "valid-template.zip") = {
 
     val mediaType = MediaType.parse("application/zip")
@@ -219,11 +182,48 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateId
   }
 
+  it should "Download a raw template version, and compress the contents in a ZIP file with an appropriate name" taggedAs DockerComposeTag in {
+
+    val result     = createNewTemplate("template-manager-service-test")
+    val resultStr  = result.body.string()
+    val templateId = getTemplateId(resultStr)
+
+    val prefix = getPrefix(templateId, "1.0")
+
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/subject.txt", "SUBJECT {{profile.firstName}}")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.html", "{{> header}} HTML BODY {{amount}}")
+    s3.putObject(rawTemplatesBucket, s"$prefix/email/body.txt", "{{> header}} TEXT BODY {{amount}}")
+
+    val url = s"http://localhost:9000/templates/$templateId/1.0"
+
+    val request = new Request.Builder()
+      .url(url)
+      .build()
+
+    val response = makeRequest(request)
+    response.code shouldBe 200
+    response.body().contentType().toString shouldBe "application/zip"
+
+    val zipFileStream = new ZipInputStream(new ByteArrayInputStream(response.body.bytes()))
+
+    def getFileNames(is: ZipInputStream, fileNames: Seq[String]): Seq[String] = {
+      try {
+        val entry: ZipEntry = is.getNextEntry
+        getFileNames(is, fileNames :+ entry.getName)
+      } catch {
+        case e: Throwable => fileNames
+      }
+    }
+
+    val fileNames = getFileNames(zipFileStream, Nil)
+
+    fileNames should contain allOf ("email/body.html", "email/body.txt", "email/subject.txt")
+  }
+
   it should "Publish a new valid template, storing the assets and processed template files in the correct bucket" taggedAs DockerComposeTag in {
 
-    val result    = createNewTemplate("TEST-COMM")
-    val resultStr = result.body.string()
-    println(resultStr)
+    val result     = createNewTemplate("TEST-COMM")
+    val resultStr  = result.body.string()
     val templateId = getTemplateId(resultStr)
 
     result.code() shouldBe 200
@@ -251,197 +251,198 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     resultStr should include(s"<h1>Template versions for 'TEST-COMM'</h1>")
     resultStr should include(s"<p>Template ID: <strong>$templateId</strong></p>")
   }
-//
-//  it should "Allow publication of a valid new version of an existing template" taggedAs DockerComposeTag in {
-//    val commName  = "TEST-COMM-2"
-//    val mediaType = MediaType.parse("application/zip")
-//    val path      = getClass.getResource("/templates/valid-template.zip").getPath
-//
-//    val requestBody = new MultipartBody.Builder()
-//      .setType(MultipartBody.FORM)
-//      .addFormDataPart("commName", commName)
-//      .addFormDataPart("commType", "Service")
-//      .addFormDataPart("brand", "Ovo")
-//      .addFormDataPart("templateFile", "valid-template.zip", RequestBody.create(mediaType, new File(path)))
-//      .build()
-//
-//    val request1 = new Request.Builder()
-//      .url("http://localhost:9000/publish/template")
-//      .post(requestBody)
-//      .build()
-//
-//    val result1    = createNewTemplate(commName)
-//    val templateId = getTemplateId(result1.body().string())
-//
-//    result1.code shouldBe 200
-//
-//    val request2 = new Request.Builder()
-//      .url(s"http://localhost:9000/publish/template/$templateId")
-//      .post(requestBody)
-//      .build()
-//
-//    val result = makeRequest(request2)
-//
-//    val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
-//    val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
-//    val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
-//
-//    val prefix = getPrefix(templateId, "2.0")
-//
-//    assetsInBucket should contain(s"$prefix/email/assets/canary.png")
-//    templatesInBucket should contain allOf (s"$prefix/email/body.html", s"$prefix/email/subject.txt")
-//    rawTemplatesInBucket should contain allOf (s"$prefix/email/assets/canary.png", s"$prefix/email/body.html", s"$prefix/email/subject.txt")
-//
-//    val templateSummaries = scan(templateSummaryTable).filter(_.commName == commName)
-//    val templateVersions  = scan(templateVersionTable)
-//
-//    val templateVersionResult = templateVersions.filter(_.commName == commName)
-//
-//    templateVersionResult.length shouldBe 2
-//    templateVersionResult.map(_.version) should contain allOf ("1.0", "2.0")
-//
-//    templateSummaries.length shouldBe 1
-//    val templateSummaryResult = templateSummaries.find(_.commName == commName).get
-//    templateSummaryResult.latestVersion shouldBe "2.0"
-//    templateSummaryResult.commType shouldBe Service
-//
-//    result.body.string() should include(
-//      s"<li>Template published: TemplateSummary($templateId,TEST-COMM-2,Service,Ovo,2.0)</li>")
-//
-//  }
-//
-//  it should "reject new publication of invalid templates with missing assets" taggedAs DockerComposeTag in {
-//
-//    val result            = createNewTemplate("INVALID-TEST-COMM", "invalid-template.zip")
-//    val templateSummaries = scan(templateSummaryTable)
-//    val templateVersions  = scan(templateVersionTable)
-//
-//    templateVersions.find(_.commName == "INVALID-TEST-COMM") shouldBe None
-//    templateSummaries.find(_.commName == "INVALID-TEST-COMM") shouldBe None
-//
-//    result.body().string() should include(
-//      "<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
-//  }
-//
-//  it should "reject publication of a new version of a template for one which doesn't exist" taggedAs DockerComposeTag in {
-//    val commName          = "NON-EXISTING-COMM"
-//    val result            = createNewVersion(commName, "1234")
-//    val templateSummaries = scan(templateSummaryTable)
-//    val templateVersions  = scan(templateVersionTable)
-//
-//    templateVersions.find(_.commName == commName) shouldBe None
-//    templateSummaries.find(_.commName == commName) shouldBe None
-//
-//    result.body().string() should include("<ul><li>No template found</li></ul>")
-//  }
-//
-//  it should "reject publication of an invalid new version of a template" taggedAs DockerComposeTag in {
-//    val commName        = "TEST-COMM-3"
-//    val invalidFileName = "invalid-template.zip"
-//
-//    val response = createNewTemplate(commName)
-//    val result   = createNewVersion(commName, getTemplateId(response.body.string).right.get, invalidFileName)
-//
-//    val templateSummaries = scan(templateSummaryTable)
-//    val templateVersions  = scan(templateVersionTable)
-//
-//    templateVersions.find(_.commName == commName).size shouldBe 1
-//    templateSummaries.find(_.commName == commName).size shouldBe 1
-//
-//    result.body().string() should include(
-//      "<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
-//  }
-//
-//  it should "Publish a new valid template with print, storing the assets and processed template files in the correct bucket" taggedAs DockerComposeTag in {
-//
-//    val result               = createNewTemplate("TEST-COMM-PRINT", "valid-with-print.zip")
-//    val resultStr            = result.body.string
-//    val templateId           = getTemplateId(resultStr)
-//    val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
-//    val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
-//    val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
-//
-//    val prefix = getPrefix(templateId, "1.0")
-//    assetsInBucket should contain(s"$prefix/email/assets/canary.png")
-//    templatesInBucket should contain allOf (s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
-//    rawTemplatesInBucket should contain allOf (s"$prefix/email/assets/canary.png", s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
-//
-//    val templateSummaries = scan(templateSummaryTable)
-//    val templateVersions  = scan(templateVersionTable)
-//
-//    val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM-PRINT").get
-//    templateVersionResult.version shouldBe "1.0"
-//    templateVersionResult.publishedBy shouldBe "dummy.email"
-//    templateVersionResult.commType shouldBe Service
-//
-//    val templateSummaryResult = templateSummaries.find(_.commName == "TEST-COMM-PRINT").get
-//    templateSummaryResult.latestVersion shouldBe "1.0"
-//    templateSummaryResult.commType shouldBe Service
-//
-//    resultStr should include(s"<p>Template ID: <strong>$templateId</strong></p>")
-//  }
-//
-//  it should "reject new publication of invalid print templates with missing address field and script included" taggedAs DockerComposeTag in {
-//    val commName = "INVALID-PRINT-COMM"
-//    val fileName = "invalid-print-template.zip"
-//
-//    val result            = createNewTemplate(commName, fileName)
-//    val templateSummaries = scan(templateSummaryTable)
-//    val templateVersions  = scan(templateVersionTable)
-//
-//    templateVersions.find(_.commName == commName) shouldBe None
-//    templateSummaries.find(_.commName == commName) shouldBe None
-//    val resultBody = result.body().string()
-//    resultBody should include("<li>Missing expected address placeholder address.town</li>")
-//    resultBody should include("<li>Script included in print/body.html is not allowed</li>")
-//  }
-//
-//  it should "return the previewed pdf from the composer" taggedAs DockerComposeTag in {
-//
-//    val templateManifest = givenExistingTemplate()
-//    val testPdfBytes     = givenPrintPreview(templateManifest)
-//
-//    val result = makeRequest(
-//      new Request.Builder()
-//        .url(s"http://localhost:9000/preview/${templateManifest.id}/${templateManifest.version}/print")
-//        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
-//        .build()
-//    )
-//
-//    result.isSuccessful shouldBe true
-//    result.header("Content-Type") shouldBe "application/pdf"
-//    ByteString(result.body().bytes()) shouldBe testPdfBytes
-//  }
-//
-//  it should "return 404 when the template does not exist" taggedAs DockerComposeTag in {
-//
-//    val templateManifest = givenNonExistingTemplate()
-//    givenPrintPreview(templateManifest)
-//
-//    val result = makeRequest(
-//      new Request.Builder()
-//        .url(s"http://localhost:9000/preview/${templateManifest.id}/${templateManifest.version}/print")
-//        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
-//        .build()
-//    )
-//
-//    result.code() shouldBe 404
-//  }
-//
-//  it should "return 404 when the composer return 404" taggedAs DockerComposeTag in {
-//
-//    val templateManifest = givenExistingTemplate()
-//    givenPrintPreviewForNonExistingPrintChannel(templateManifest)
-//
-//    val result = makeRequest(
-//      new Request.Builder()
-//        .url(s"http://localhost:9000/preview/${templateManifest.id}/${templateManifest.version}/print")
-//        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
-//        .build()
-//    )
-//
-//    result.code() shouldBe 404
-//  }
+
+  it should "Allow publication of a valid new version of an existing template" taggedAs DockerComposeTag in {
+    val commName  = "TEST-COMM-2"
+    val commType  = "Service"
+    val mediaType = MediaType.parse("application/zip")
+    val path      = getClass.getResource("/templates/valid-template.zip").getPath
+
+    val requestBody = new MultipartBody.Builder()
+      .setType(MultipartBody.FORM)
+      .addFormDataPart("commName", commName)
+      .addFormDataPart("commType", commType)
+      .addFormDataPart("brand", "Ovo")
+      .addFormDataPart("templateFile", "valid-template.zip", RequestBody.create(mediaType, new File(path)))
+      .build()
+
+    val request1 = new Request.Builder()
+      .url("http://localhost:9000/publish/template")
+      .post(requestBody)
+      .build()
+
+    val result1    = createNewTemplate(commName)
+    val templateId = getTemplateId(result1.body().string())
+
+    result1.code shouldBe 200
+
+    val request2 = new Request.Builder()
+      .url(s"http://localhost:9000/publish/template/$templateId")
+      .post(requestBody)
+      .build()
+
+    val result = makeRequest(request2)
+
+    val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+
+    val prefix = getPrefix(templateId, "2.0")
+
+    assetsInBucket should contain(s"$prefix/email/assets/canary.png")
+    templatesInBucket should contain allOf (s"$prefix/email/body.html", s"$prefix/email/subject.txt")
+    rawTemplatesInBucket should contain allOf (s"$prefix/email/assets/canary.png", s"$prefix/email/body.html", s"$prefix/email/subject.txt")
+
+    val templateSummaries = scan(templateSummaryTable).filter(_.commName == commName)
+    val templateVersions  = scan(templateVersionTable)
+
+    val templateVersionResult = templateVersions.filter(_.commName == commName)
+
+    templateVersionResult.length shouldBe 2
+    templateVersionResult.map(_.version) should contain allOf ("1.0", "2.0")
+
+    templateSummaries.length shouldBe 1
+    val templateSummaryResult = templateSummaries.find(_.commName == commName).get
+    templateSummaryResult.latestVersion shouldBe "2.0"
+    templateSummaryResult.commType shouldBe Service
+
+    result.body.string() should include(
+      s"<li>Template published: commName: $commName, commType: $commType, version: 2.0, templateId: $templateId")
+
+  }
+
+  it should "reject new publication of invalid templates with missing assets" taggedAs DockerComposeTag in {
+
+    val result            = createNewTemplate("INVALID-TEST-COMM", "invalid-template.zip")
+    val templateSummaries = scan(templateSummaryTable)
+    val templateVersions  = scan(templateVersionTable)
+
+    templateVersions.find(_.commName == "INVALID-TEST-COMM") shouldBe None
+    templateSummaries.find(_.commName == "INVALID-TEST-COMM") shouldBe None
+
+    result.body().string() should include(
+      "<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
+  }
+
+  it should "reject publication of a new version of a template for one which doesn't exist" taggedAs DockerComposeTag in {
+    val commName          = "NON-EXISTING-COMM"
+    val result            = createNewVersion(commName, "1234")
+    val templateSummaries = scan(templateSummaryTable)
+    val templateVersions  = scan(templateVersionTable)
+
+    templateVersions.find(_.commName == commName) shouldBe None
+    templateSummaries.find(_.commName == commName) shouldBe None
+
+    result.body().string() should include("<ul><li>No template found</li></ul>")
+  }
+
+  it should "reject publication of an invalid new version of a template" taggedAs DockerComposeTag in {
+    val commName        = "TEST-COMM-3"
+    val invalidFileName = "invalid-template.zip"
+
+    val response = createNewTemplate(commName)
+    val result   = createNewVersion(commName, getTemplateId(response.body.string), invalidFileName)
+
+    val templateSummaries = scan(templateSummaryTable)
+    val templateVersions  = scan(templateVersionTable)
+
+    templateVersions.find(_.commName == commName).size shouldBe 1
+    templateSummaries.find(_.commName == commName).size shouldBe 1
+
+    result.body().string() should include(
+      "<ul><li>The file email/body.html contains the reference &#x27;assets/thisdoesntexist.png&#x27; to a non-existent asset file</li></ul>")
+  }
+
+  it should "Publish a new valid template with print, storing the assets and processed template files in the correct bucket" taggedAs DockerComposeTag in {
+
+    val result               = createNewTemplate("TEST-COMM-PRINT", "valid-with-print.zip")
+    val resultStr            = result.body.string
+    val templateId           = getTemplateId(resultStr)
+    val assetsInBucket       = s3.listObjectsV2(assetsBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val templatesInBucket    = s3.listObjectsV2(templatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+    val rawTemplatesInBucket = s3.listObjectsV2(rawTemplatesBucket).getObjectSummaries.asScala.map(_.getKey).toList
+
+    val prefix = getPrefix(templateId, "1.0")
+    assetsInBucket should contain(s"$prefix/email/assets/canary.png")
+    templatesInBucket should contain allOf (s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
+    rawTemplatesInBucket should contain allOf (s"$prefix/email/assets/canary.png", s"$prefix/email/body.html", s"$prefix/email/subject.txt", s"$prefix/sms/body.txt")
+
+    val templateSummaries = scan(templateSummaryTable)
+    val templateVersions  = scan(templateVersionTable)
+
+    val templateVersionResult: TemplateVersion = templateVersions.find(_.commName == "TEST-COMM-PRINT").get
+    templateVersionResult.version shouldBe "1.0"
+    templateVersionResult.publishedBy shouldBe "dummy.email"
+    templateVersionResult.commType shouldBe Service
+
+    val templateSummaryResult = templateSummaries.find(_.commName == "TEST-COMM-PRINT").get
+    templateSummaryResult.latestVersion shouldBe "1.0"
+    templateSummaryResult.commType shouldBe Service
+
+    resultStr should include(s"<p>Template ID: <strong>$templateId</strong></p>")
+  }
+
+  it should "reject new publication of invalid print templates with missing address field and script included" taggedAs DockerComposeTag in {
+    val commName = "INVALID-PRINT-COMM"
+    val fileName = "invalid-print-template.zip"
+
+    val result            = createNewTemplate(commName, fileName)
+    val templateSummaries = scan(templateSummaryTable)
+    val templateVersions  = scan(templateVersionTable)
+
+    templateVersions.find(_.commName == commName) shouldBe None
+    templateSummaries.find(_.commName == commName) shouldBe None
+    val resultBody = result.body().string()
+    resultBody should include("<li>Missing expected address placeholder address.town</li>")
+    resultBody should include("<li>Script included in print/body.html is not allowed</li>")
+  }
+
+  it should "return the previewed pdf from the composer" taggedAs DockerComposeTag in {
+
+    val templateManifest = givenExistingTemplate()
+    val testPdfBytes     = givenPrintPreview(templateManifest)
+
+    val result = makeRequest(
+      new Request.Builder()
+        .url(s"http://localhost:9000/preview/${templateManifest.id}/${templateManifest.version}/print")
+        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
+        .build()
+    )
+
+    result.isSuccessful shouldBe true
+    result.header("Content-Type") shouldBe "application/pdf"
+    ByteString(result.body().bytes()) shouldBe testPdfBytes
+  }
+
+  it should "return 404 when the template does not exist" taggedAs DockerComposeTag in {
+
+    val templateManifest = givenNonExistingTemplate()
+    givenPrintPreview(templateManifest)
+
+    val result = makeRequest(
+      new Request.Builder()
+        .url(s"http://localhost:9000/preview/${templateManifest.id}/${templateManifest.version}/print")
+        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
+        .build()
+    )
+
+    result.code() shouldBe 404
+  }
+
+  it should "return 404 when the composer return 404" taggedAs DockerComposeTag in {
+
+    val templateManifest = givenExistingTemplate()
+    givenPrintPreviewForNonExistingPrintChannel(templateManifest)
+
+    val result = makeRequest(
+      new Request.Builder()
+        .url(s"http://localhost:9000/preview/${templateManifest.id}/${templateManifest.version}/print")
+        .post(new FormBody.Builder().add("templateData", """{"foo":"bar"}""").build())
+        .build()
+    )
+
+    result.code() shouldBe 404
+  }
 
   private def givenExistingTemplate(): TemplateManifest = {
     val templateManifest = TemplateManifest(Hash("test-comm"), "12.0")

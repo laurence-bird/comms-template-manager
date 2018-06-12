@@ -1,4 +1,4 @@
-import aws.dynamo.Dynamo
+import aws.dynamo.{Dynamo, TemplateSummaryTable}
 import aws.s3.AmazonS3ClientWrapper
 import aws.{AwsContextProvider, Interpreter}
 import com.amazonaws.regions.Regions
@@ -15,9 +15,9 @@ import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import preview.ComposerClient
 import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
+
 import scala.concurrent.ExecutionContext
 import router.Routes
-import aws.dynamo.DynamoFormats._
 import scala.concurrent.duration._
 
 class AppComponents(context: Context)
@@ -36,8 +36,8 @@ class AppComponents(context: Context)
 
   val dynamo = new Dynamo(
     dynamoClient,
-    Table[TemplateVersion](mandatoryConfig("aws.dynamo.tables.templateVersionTable")),
-    Table[TemplateSummary](mandatoryConfig("aws.dynamo.tables.templateSummaryTable"))
+    mandatoryConfig("aws.dynamo.tables.templateVersionTable"),
+    mandatoryConfig("aws.dynamo.tables.templateSummaryTable")
   )
 
   val awsContext = aws.Context(
