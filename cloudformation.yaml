@@ -25,7 +25,7 @@ Resources:
     Properties:
       AssumeRolePolicyDocument:
         Statement:
-          - 
+          -
             Effect: Allow
             Principal:
               Service:
@@ -34,7 +34,7 @@ Resources:
               - sts:AssumeRole
       Path: /
       Policies:
-        - 
+        -
           PolicyName: read-write-dynamo-table
           PolicyDocument:
             Statement:
@@ -102,7 +102,7 @@ Resources:
 
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Properties: 
+    Properties:
       GroupDescription: 'Open port 443 to OVO IP range'
 
       # All the CIDR blocks for the various OVO offices and VPNs
@@ -328,3 +328,10 @@ Resources:
         EvaluationPeriods: 1
         Statistic: Sum
         Threshold: 1
+
+Outputs:
+    TemplateSummaryTableArn:
+      Value: !GetAtt 'TemplateSummaryTIDTable.Arn'
+      Export:
+        Name: "TemplateSummaryTableArn"
+
