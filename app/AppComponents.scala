@@ -4,10 +4,9 @@ import aws.{AwsContextProvider, Interpreter}
 import com.amazonaws.regions.Regions
 import com.gu.scanamo.Table
 import com.ovoenergy.comms.templates.s3.{AmazonS3ClientWrapper => TemplatesLibS3ClientWrapper}
-import components.Retry.RetryConfig
-import components.{ConfigUtil, GoogleAuthComponents, Retry}
+import components.{ConfigUtil, GoogleAuthComponents}
 import controllers._
-import models.{TemplateSummary, TemplateVersion}
+import models.TemplateVersion
 import pagerduty.PagerDutyAlerter
 import play.api.ApplicationLoader.Context
 import play.api.{BuiltInComponentsFromContext, Logger}
@@ -15,11 +14,11 @@ import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import preview.ComposerClient
-import aws.dynamo.DynamoFormats._
-
+import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import router.Routes
+import aws.dynamo.DynamoFormats._
+import scala.concurrent.duration._
 
 class AppComponents(context: Context)
     extends BuiltInComponentsFromContext(context)

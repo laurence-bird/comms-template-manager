@@ -1,17 +1,23 @@
 package aws.dynamo
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsync
 import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
-import com.ovoenergy.comms.model.{Brand, Channel, CommType, TemplateManifest}
-import models.{TemplateSummary, TemplateVersion}
+import com.ovoenergy.comms.model.{Channel, CommType, TemplateManifest}
+import com.ovoenergy.comms.templates.{TemplateMetadataContext, TemplateMetadataDynamoFormats, TemplateMetadataRepo}
+import com.ovoenergy.comms.templates.model.Brand
+import com.ovoenergy.comms.templates.model.template.metadata.{TemplateId, TemplateSummary}
+import models.{TemplateSummaryOps, TemplateVersion}
 import play.api.Logger
 
-class Dynamo(db: AmazonDynamoDB,
+class Dynamo(db: AmazonDynamoDBAsync,
              templateVersionTable: Table[TemplateVersion],
-             templateSummaryTable: Table[TemplateSummary]) {
+             templateSummaryTable: Table[TemplateSummary])
+    extends TemplateMetadataDynamoFormats {
+
+  val templateMetadataContext = TemplateMetadataContext(db, templateSummaryTable.name)
 
   def listVersions(templateId: String): Seq[TemplateVersion] = {
     val query = templateVersionTable.query('templateId -> templateId)
@@ -42,7 +48,7 @@ class Dynamo(db: AmazonDynamoDB,
       Logger.info(s"Written template version to persistence $templateVersion")
 
       val templateSummary = TemplateSummary(
-        templateManifest.id,
+        TemplateId(templateManifest.id),
         commName,
         commType,
         brand,
@@ -65,9 +71,16 @@ class Dynamo(db: AmazonDynamoDB,
     }
   }
 
-  def getTemplateSummary(templateId: String): Option[TemplateSummary] =
-    listTemplateSummaries
-      .find(templateSummary => templateSummary.templateId == templateId)
+  def getTemplateSummary(templateId: String): Option[TemplateSummary] = {
+    TemplateMetadataRepo
+      .getTemplateSummary(templateMetadataContext, TemplateId(templateId))
+      .flatMap { result =>
+        result.toEither.left.map { err =>
+          Logger.error(s"Dynamo query failed with error: ${err.toList.mkString(", ")}")
+          err
+        }.toOption
+      }
+  }
 
   // FIXME this does not work in the real life as the version is not indexed.
   def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {
@@ -75,7 +88,7 @@ class Dynamo(db: AmazonDynamoDB,
     Scanamo.exec(db)(query).flatMap(result => logIfError(result).toOption)
   }
 
-  private def logIfError[A](res: Either[DynamoReadError, A]) = {
+  private def logIfError[A](res: Either[DynamoReadError, A]): Either[DynamoReadError, A] = {
     res.left.map { err =>
       Logger.warn(s"Dynamo query failed with error: ${describe(err)}")
       err
@@ -84,7 +97,7 @@ class Dynamo(db: AmazonDynamoDB,
 
   private def isNewestVersion(templateManifest: TemplateManifest): Boolean = {
     getTemplateSummary(templateManifest.id)
-      .map(summary => TemplateSummary.versionCompare(templateManifest.version.trim, summary.latestVersion.trim))
+      .map(summary => TemplateSummaryOps.versionCompare(templateManifest.version.trim, summary.latestVersion.trim))
       .forall {
         case Right(comparison) => if (comparison > 0) true else false
         case Left(error) =>

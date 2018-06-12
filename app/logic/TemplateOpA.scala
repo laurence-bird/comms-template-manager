@@ -1,12 +1,11 @@
 package logic
 
-import cats.Id
-import cats.data.NonEmptyList
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.TemplatesContext
-import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
+import com.ovoenergy.comms.templates.model.Brand
+import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
 import logic.TemplateOp.TemplateFiles
-import models.{TemplateSummary, TemplateVersion}
+import models.TemplateVersion
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
 

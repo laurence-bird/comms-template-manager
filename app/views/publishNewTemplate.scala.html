@@ -1,4 +1,4 @@
-@import com.ovoenergy.comms.model.Brand
+@import com.ovoenergy.comms.templates.model.Brand
 @(resultClass: String, results: List[String], commName: Option[String], commType: Option[String], brands: Seq[Brand])(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
     <link rel="stylesheet" href="@routes.Assets.at("stylesheets/publish.css")">

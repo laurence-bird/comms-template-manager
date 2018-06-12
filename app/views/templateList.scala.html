@@ -1,3 +1,4 @@
+@import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
 @(templates: Seq[TemplateSummary], commPerformanceUrl: String, commSearchUrl: String)(implicit user: com.gu.googleauth.UserIdentity)
 @import views.ViewHelper._
 @main{
@@ -19,12 +20,12 @@
         <tbody>
         @for(template <- templates) {
         <tr>
-            <td class="text-center"><a href="@routes.MainController.listVersions(template.templateId)">@template.commName</a></td>
+            <td class="text-center"><a href="@routes.MainController.listVersions(template.templateId.value)">@template.commName</a></td>
             <td class="text-center">@template.commType</td>
             <td class="text-center">@template.latestVersion</td>
             <td class="text-center">@template.brand</td>
             <td class="text-center"><a href="@commSearchLink(template.commName, commSearchUrl)" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></a></td>
-            <td class="text-center"><a href="@routes.MainController.publishExistingTemplateGet(template.templateId)" class="btn btn-primary">
+            <td class="text-center"><a href="@routes.MainController.publishExistingTemplateGet(template.templateId.value)" class="btn btn-primary">
                 Publish new version
             </a></td>
         </tr>

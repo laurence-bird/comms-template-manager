@@ -8,12 +8,14 @@ import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType._
 import com.gu.scanamo.{Scanamo, Table}
 import com.ovoenergy.comms.model.CommType._
 import aws.dynamo.DynamoFormats._
-import com.ovoenergy.comms.model.Brand.Ovo
 import com.ovoenergy.comms.model._
+import com.ovoenergy.comms.templates.TemplateMetadataDynamoFormats
+import com.ovoenergy.comms.templates.model.Brand.Ovo
+import com.ovoenergy.comms.templates.model.template.metadata.{TemplateId, TemplateSummary}
 import com.ovoenergy.comms.templates.util.Hash
-import models.{TemplateSummary, TemplateVersion}
+import models.{TemplateSummaryOps, TemplateVersion}
 
-class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
+class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll with TemplateMetadataDynamoFormats {
 
   val client                = LocalDynamoDB.client()
   val templateVersionsTable = "template-version"
@@ -33,10 +35,10 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   )
 
   val templateSummaries = Seq(
-    TemplateSummary(Hash("comm1"), "comm1", Service, Ovo, "1.0"),
-    TemplateSummary(Hash("comm2"), "comm2", Service, Ovo, "2.0"),
-    TemplateSummary(Hash("legacyComm1"), "legacyComm1", Service, Ovo, "1.0"),
-    TemplateSummary(Hash("legacyComm2"), "legacyComm2", Service, Ovo, "2.0")
+    TemplateSummary(TemplateId(Hash("comm1")), "comm1", Service, Ovo, "1.0"),
+    TemplateSummary(TemplateId(Hash("comm2")), "comm2", Service, Ovo, "2.0"),
+    TemplateSummary(TemplateId(Hash("legacyComm1")), "legacyComm1", Service, Ovo, "1.0"),
+    TemplateSummary(TemplateId(Hash("legacyComm2")), "legacyComm2", Service, Ovo, "2.0")
   )
 
   override def beforeAll(): Unit = {
@@ -106,7 +108,7 @@ class DynamoSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     dynamo.writeNewVersion(TemplateManifest(Hash("comm2"), "2.5"), "comm2", Service, Ovo, publishedBy, Nil) shouldBe Right(
       ())
     val summaries = dynamo.listTemplateSummaries
-    summaries should contain(TemplateSummary(Hash("comm2"), "comm2", Service, Ovo, "2.5"))
+    summaries should contain(TemplateSummary(TemplateId(Hash("comm2")), "comm2", Service, Ovo, "2.5"))
 
     val versions = dynamo.listVersions(Hash("comm2"))
     versions.length shouldBe 3

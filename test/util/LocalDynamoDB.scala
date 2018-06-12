@@ -10,7 +10,7 @@ import collection.JavaConverters._
 
 object LocalDynamoDB {
   def client(endPoint: String = s"http://localhost:8000") = {
-    val c = new AmazonDynamoDBClient(new AWSStaticCredentialsProvider(new BasicAWSCredentials("key", "secret")))
+    val c = new AmazonDynamoDBAsyncClient(new AWSStaticCredentialsProvider(new BasicAWSCredentials("key", "secret")))
     c.setEndpoint(endPoint)
     c
   }

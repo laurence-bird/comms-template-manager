@@ -17,11 +17,11 @@ import com.amazonaws.services.s3.AmazonS3Client
 import com.gu.googleauth.UserIdentity
 import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.cache.CachingStrategy
+import com.ovoenergy.comms.templates.model.Brand
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.{PartialsS3Retriever, TemplatesS3Retriever}
 import com.ovoenergy.comms.templates.s3.AmazonS3ClientWrapper
-import com.ovoenergy.comms.templates.util.Hash
 import controllers.Auth.AuthRequest
 import http.PreviewForm
 import logic.{TemplateOp, TemplateOpA}
@@ -33,12 +33,11 @@ import play.api.libs.Files.TemporaryFile
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc._
 import templates.{Content, UploadedFile}
-import play.api.http.{FileMimeTypes, HttpChunk, HttpEntity}
+import play.api.http.FileMimeTypes
 
 import scala.collection.JavaConversions._
 import io.circe._
 import io.circe.syntax._
-//import models.Brand.Unbranded
 import play.api.Logger
 import play.api.libs.concurrent.Futures
 import preview._
@@ -192,7 +191,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   def publishNewTemplateGet = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None, Brand.values))
+    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None, Brand.allBrands))
   }
 
   def publishExistingTemplateGet(templateId: String) = Authenticated { implicit request =>
@@ -238,12 +237,12 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
             Logger.error(
               s"Failed to publish comm ${commName}, version ${templateManifest.version} with errors: ${errors.toList
                 .mkString(", ")}")
-            Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName), Some(commType), Brand.values))
+            Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName), Some(commType), Brand.allBrands))
         }
 
       }
       result.getOrElse {
-        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None, Brand.values))
+        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None, Brand.allBrands))
       }
   }
 
@@ -307,6 +306,5 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           IOUtils.closeQuietly(inputStream)
         }
       })
-
   }
 }

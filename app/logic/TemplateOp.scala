@@ -1,16 +1,12 @@
 package logic
 
-import aws.Interpreter.ErrorsOr
-import cats.Id
-import cats.data.NonEmptyList
 import cats.free.Free
 import cats.free.Free._
 import com.ovoenergy.comms.model._
-import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
-import com.ovoenergy.comms.templates.util.Hash
-import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
-import models.{TemplateSummary, TemplateVersion, ZippedRawTemplate}
-import play.api.Logger
+import com.ovoenergy.comms.templates.model.Brand
+import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
+import com.ovoenergy.comms.templates.TemplatesContext
+import models.{TemplateVersion, ZippedRawTemplate}
 import templates.AssetProcessing.ProcessedFiles
 import templates.{UploadedFile, UploadedTemplateFile}
 

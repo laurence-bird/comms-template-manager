@@ -5,8 +5,8 @@ import java.time.Instant
 import aws.Interpreter.ErrorsOr
 import cats.data.NonEmptyList
 import com.ovoenergy.comms.model._
+import com.ovoenergy.comms.templates.model.Brand
 
-import scala.util.Try
 import scala.util.control.NonFatal
 
 case class TemplateVersion(templateId: String,
@@ -37,13 +37,13 @@ object TemplateVersion {
 
 case class ZippedRawTemplate(templateFiles: Array[Byte])
 
-case class TemplateSummary(templateId: String,
-                           commName: String,
-                           commType: CommType,
-                           brand: Brand,
-                           latestVersion: String)
+//case class TemplateSummary(templateId: String,
+//                           commName: String,
+//                           commType: CommType,
+//                           brand: Brand,
+//                           latestVersion: String)
 
-object TemplateSummary {
+object TemplateSummaryOps {
 
   def nextVersion(version: String): ErrorsOr[String] = {
     try {
