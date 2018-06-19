@@ -144,7 +144,7 @@ object Interpreter {
 
           case GetNextTemplateSummary(templateId) =>
             val latestVersion: ErrorsOr[TemplateSummary] =
-              awsContext.dynamo.getTemplateSummary(templateId).toRight(NonEmptyList.of("No template found"))
+              awsContext.dynamo.getTemplateSummary(templateId)
             for {
               latestTemplate <- latestVersion.right
               nextVersion    <- TemplateSummaryOps.nextVersion(latestTemplate.latestVersion).right

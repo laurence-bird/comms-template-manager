@@ -98,14 +98,14 @@ class DynamoSpec
     dynamo
       .writeNewVersion(TemplateManifest(Hash("comm2"), "1.5"), "comm2", Service, Ovo, publishedBy, Nil)
       .left
-      .get shouldBe s"There is a newer version (Some(2.0)) of comm (${Hash("comm2")}) already, than being published (1.5)"
+      .get shouldBe s"There is a newer version (2.0) of comm (${Hash("comm2")}) already, than being published (1.5)"
   }
 
   it should "error when writing a new version that already exists" in {
     dynamo
       .writeNewVersion(TemplateManifest(Hash("comm2"), "2.0"), "comm2", Service, Ovo, publishedBy, Nil)
       .left
-      .get shouldBe s"There is a newer version (Some(2.0)) of comm (${Hash("comm2")}) already, than being published (2.0)"
+      .get shouldBe s"There is a newer version (2.0) of comm (${Hash("comm2")}) already, than being published (2.0)"
   }
 
   it should "write new version" in {

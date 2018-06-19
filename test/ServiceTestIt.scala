@@ -333,7 +333,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateVersions.find(_.commName == commName) shouldBe None
     templateSummaries.find(_.commName == commName) shouldBe None
 
-    result.body().string() should include("<ul><li>No template found</li></ul>")
+    result.body().string() should include("<ul><li>TemplateSummary for templateId 1234 has not been found</li></ul>")
   }
 
   it should "reject publication of an invalid new version of a template" taggedAs DockerComposeTag in {

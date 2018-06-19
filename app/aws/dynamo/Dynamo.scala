@@ -1,16 +1,31 @@
 package aws.dynamo
 
+import java.util.concurrent.TimeUnit
+
+import cats.data.NonEmptyList
+import cats.data.Validated.Invalid
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsync
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
 import com.gu.scanamo._
 import com.gu.scanamo.error.DynamoReadError
 import com.gu.scanamo.error.DynamoReadError._
 import com.gu.scanamo.syntax._
 import com.ovoenergy.comms.model.{Channel, CommType, TemplateManifest}
-import com.ovoenergy.comms.templates.{TemplateMetadataContext, TemplateMetadataDynamoFormats, TemplateMetadataRepo}
+import com.ovoenergy.comms.templates.{
+  ErrorsOr,
+  TemplateMetadataContext,
+  TemplateMetadataDynamoFormats,
+  TemplateMetadataRepo
+}
 import com.ovoenergy.comms.templates.model.Brand
 import com.ovoenergy.comms.templates.model.template.metadata.{TemplateId, TemplateSummary}
+import components.Retry
+import components.Retry.{Failed, RetryConfig, Succeeded}
 import models.{TemplateSummaryOps, TemplateVersion}
 import play.api.Logger
+
+import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
 
 case class TemplateSummaryTable(templateId: String,
                                 commName: String,
@@ -88,8 +103,14 @@ class Dynamo(db: AmazonDynamoDBAsync, templateVersionTableName: String, template
 
       Right(())
     } else {
-      Left(s"There is a newer version (${getTemplateSummary(templateManifest.id)
-        .map(_.latestVersion)}) of comm (${templateManifest.id}) already, than being published (${templateManifest.version})")
+      getTemplateSummary(templateManifest.id)
+        .map(_.latestVersion)
+        .fold(
+          error => Left(error.toString()),
+          version =>
+            Left(
+              s"There is a newer version ($version) of comm (${templateManifest.id}) already, than being published (${templateManifest.version})")
+        )
     }
   }
 
@@ -102,16 +123,27 @@ class Dynamo(db: AmazonDynamoDBAsync, templateVersionTableName: String, template
       }
   }
 
-  def getTemplateSummary(templateId: String): Option[TemplateSummary] = {
-    TemplateMetadataRepo
-      .getTemplateSummary(templateMetadataContext, TemplateId(templateId))
-      .flatMap { result =>
-        result.toEither.left.map { err =>
-          Logger.error(s"Dynamo query failed with error: ${err.toList.mkString(", ")}")
-          err
-        }.toOption
+  val retryConfig: RetryConfig = RetryConfig(5, Retry.constantDelayFunc(FiniteDuration(1, TimeUnit.SECONDS)))
+
+  val retry = Retry.retry[NonEmptyList[String], TemplateSummary](
+    retryConfig,
+    (error: NonEmptyList[String]) => Logger.warn(error.head),
+    _ => true
+  ) _
+
+  def getTemplateSummary(templateId: String) =
+    retry {
+      Try {
+        TemplateMetadataRepo.getTemplateSummary(templateMetadataContext, TemplateId(templateId)) match {
+          case None                               => Left(NonEmptyList.of(s"TemplateSummary for templateId $templateId has not been found"))
+          case Some(s: ErrorsOr[TemplateSummary]) => s.toEither
+        }
+      } match {
+        case Success(s) => s
+        case Failure(f) =>
+          Left(NonEmptyList.of("Templates database is temporarily unavailable, please try again in 5 minutes."))
       }
-  }
+    }.flattenRetry
 
   // FIXME this does not work in the real life as the version is not indexed.
   def getTemplateVersion(templateId: String, version: String): Option[TemplateVersion] = {
