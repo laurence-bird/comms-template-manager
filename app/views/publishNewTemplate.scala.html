@@ -1,4 +1,5 @@
-@(resultClass: String, results: List[String], commName: Option[String], commType: Option[String])(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@import com.ovoenergy.comms.templates.model.Brand
+@(resultClass: String, results: List[String], commName: Option[String], commType: Option[String], brands: Seq[Brand])(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
     <link rel="stylesheet" href="@routes.Assets.at("stylesheets/publish.css")">
 
@@ -43,6 +44,21 @@ It is a good idea to give it a meaningful name."></a>&nbsp;Enter the name of you
                             <option value="Service" @{if(commType.contains("Service")) {"selected"}}>Service</option>
                             <option value="Regulatory" @{if(commType.contains("Regulatory")) {"selected"}}>Regulatory</option>
                             <option value="Marketing" @{if(commType.contains("Marketing")) {"selected"}}>Marketing</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="brand" class="col-lg-8 control-label templates-label"><a class="glyphicon glyphicon-info-sign"
+                    data-toggle="tooltip"
+                    data-placement="bottom"
+                    data-original-title="The brand under the communication being issued"></a>&nbsp;Select the brand of the template:</label>
+                    <div class="col-lg-8">
+                        <select id="brand" name="brand" class="form-control" required>
+                            <option disabled selected>Select the brand of your comm</option>
+                            @for(brand <- brands){
+                                <option value=@{brand.value}>@{brand.displayValue}</option>
+                            }
                         </select>
                     </div>
                 </div>

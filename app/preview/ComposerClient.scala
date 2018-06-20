@@ -24,13 +24,13 @@ class ComposerClient(wsClient: WSClient, composerApiEndpoint: String) extends Ci
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def getRenderedPrintPdf(commName: String,
+  def getRenderedPrintPdf(templateId: String,
                           commVersion: String,
                           commType: CommType,
                           templateData: Map[String, TemplateData])(
       implicit ec: ExecutionContext): Future[Either[ComposerError, ByteString]] = {
 
-    val requestUrl = s"$composerApiEndpoint/render/$commName/$commVersion/$commType/print"
+    val requestUrl = s"$composerApiEndpoint/render/$templateId/$commVersion/print"
 
     log.debug(s"""Requesting the preview to composer composerRequestUrl="$requestUrl"""")
 

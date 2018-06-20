@@ -3,6 +3,7 @@ package controllers
 import java.io.ByteArrayInputStream
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
+import java.util.UUID
 import java.util.zip.{ZipEntry, ZipFile}
 
 import akka.NotUsed
@@ -14,13 +15,14 @@ import cats.~>
 import cats.implicits._
 import com.amazonaws.services.s3.AmazonS3Client
 import com.gu.googleauth.UserIdentity
-import com.ovoenergy.comms.model.{CommManifest, CommType, Service, TemplateManifest}
+import com.ovoenergy.comms.model._
 import com.ovoenergy.comms.templates.cache.CachingStrategy
+import com.ovoenergy.comms.templates.model.Brand
+import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
 import com.ovoenergy.comms.templates.{TemplatesContext, TemplatesRepo}
 import com.ovoenergy.comms.templates.parsing.handlebars.HandlebarsParsing
 import com.ovoenergy.comms.templates.retriever.{PartialsS3Retriever, TemplatesS3Retriever}
 import com.ovoenergy.comms.templates.s3.AmazonS3ClientWrapper
-import com.ovoenergy.comms.templates.util.Hash
 import controllers.Auth.AuthRequest
 import http.PreviewForm
 import logic.{TemplateOp, TemplateOpA}
@@ -32,12 +34,11 @@ import play.api.libs.Files.TemporaryFile
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc._
 import templates.{Content, UploadedFile}
-import play.api.http.{FileMimeTypes, HttpChunk, HttpEntity}
+import play.api.http.FileMimeTypes
 
 import scala.collection.JavaConversions._
 import io.circe._
 import io.circe.syntax._
-//import models.Brand.Unbranded
 import play.api.Logger
 import play.api.libs.concurrent.Futures
 import preview._
@@ -83,29 +84,35 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     cachingStrategy = CachingStrategy.noCache
   )
 
-  def getPreviewPrint(commName: String, commVersion: String): Action[PreviewForm] =
+  private def getCommName(templateId: String) =
+    awsContext.dynamo
+      .getTemplateSummary(templateId)
+      .map(_.commName)
+      .getOrElse("Unknown")
+
+  def getPreviewPrint(templateId: String, commVersion: String): Action[PreviewForm] =
     Authenticated(parse.form(PreviewForm.previewPrintForm)).async { req =>
       implicit val ec: ExecutionContext = controllerComponents.executionContext
       val previewRequest                = req.body
 
-      val templateVersion = awsContext.dynamo.listVersions(Hash(commName)).find(_.version == commVersion)
+      val templateVersion = awsContext.dynamo.listVersions(templateId).find(_.version == commVersion)
 
       def stream(bytes: ByteString, chunkSize: Int): Source[ByteString, NotUsed] = {
         Source(bytes).grouped(chunkSize).flatMapConcat(bs => Source.single(ByteString(bs: _*)))
       }
 
       templateVersion
-        .fold(Future.successful(NotFound(s"Template $commName:$commVersion not found"))) { template =>
+        .fold(Future.successful(NotFound(s"Template $templateId:$commVersion not found"))) { template =>
           composerClient
-            .getRenderedPrintPdf(commName, commVersion, template.commType, previewRequest.templateData)
+            .getRenderedPrintPdf(templateId, commVersion, template.commType, previewRequest.templateData)
             .map {
               case Left(TemplateNotFound(message)) => {
                 Logger.error(
-                  s"Failed to render print preview for comm $commName v$commVersion as template could not be found: $message")
+                  s"Failed to render print preview for template $templateId v$commVersion as template could not be found: $message")
                 NotFound(message)
               }
               case Left(UnknownError(message)) => {
-                Logger.error(s"Unknown error rendering print preview for comm $commName v$commVersion: $message")
+                Logger.error(s"Unknown error rendering print preview for template $templateId v$commVersion: $message")
                 ServiceUnavailable(message)
               }
               case Right(bytes) =>
@@ -114,26 +121,20 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
         }
         .recover {
           case NonFatal(e) => {
-            Logger.error(s"Error thrown rendering print preview for comm $commName v$commVersion", e)
+            Logger.error(s"Error thrown rendering print preview for template $templateId v$commVersion", e)
             ServiceUnavailable(e.getMessage)
           }
         }
     }
 
-  def getRequiredData(commName: String, version: String) = Authenticated { request =>
+  def getRequiredData(templateId: String, version: String) = Authenticated { request =>
     implicit val user: UserIdentity = request.user
 
-    val getCommManifest: Either[NonEmptyList[String], CommManifest] = {
-      awsContext.dynamo.getTemplateSummary(Hash(commName)).toRight(NonEmptyList.of("No template found")) match {
-        case Right(template) => Right(CommManifest(template.commType, template.commName, template.latestVersion))
-        case Left(error)     => Left(error)
-      }
-    }
+    val templateManifest = TemplateManifest(templateId, version)
 
     val requiredFields: Either[NonEmptyList[String], Json] =
       for {
-        commManifest <- getCommManifest
-        template     <- TemplatesRepo.getTemplate(templateContext, commManifest).toEither
+        template     <- TemplatesRepo.getTemplate(templateContext, templateManifest).toEither
         requiredData <- template.requiredData.toEither
         templateData <- TemplateDataGenerator
           .generateTemplateData(requiredData)
@@ -147,21 +148,21 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
         Logger.error(s"Failed to retrieve required data for template: ${errors.toList.mkString(", ")}")
         NotFound(s"Failed to retrieve required data for template: $errors")
       case Right(fields) =>
-        Ok(views.html.templateRequiredData(commName, version, fields.spaces4))
+        Ok(views.html.templateRequiredData(templateId, version, fields.spaces4))
 
     }
   }
 
   import cats.instances.either._
 
-  def getTemplateVersion(commName: String, version: String) = Authenticated {
-    TemplateOp.retrieveTemplate(TemplateManifest(Hash(commName), version)).foldMap(interpreter) match {
+  def getTemplateVersion(templateId: String, version: String) = Authenticated {
+    TemplateOp.retrieveTemplate(TemplateManifest(templateId, version)).foldMap(interpreter) match {
       case Left(err) => NotFound(s"Failed to retrieve template: $err")
       case Right(res: ZippedRawTemplate) =>
         val dataContent: Source[ByteString, _] =
           StreamConverters.fromInputStream(() => new ByteArrayInputStream(res.templateFiles))
         Ok.chunked(dataContent)
-          .withHeaders(("Content-Disposition", s"attachment; filename=$commName-$version.zip"))
+          .withHeaders(("Content-Disposition", s"attachment; filename=$templateId-$version.zip"))
           .as("application/zip")
     }
   }
@@ -177,25 +178,26 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     }
   }
 
-  def listVersions(commName: String) = Authenticated { request =>
+  def listVersions(templateId: String) = Authenticated { request =>
     implicit val user = request.user
-    TemplateOp.retrieveAllTemplateVersions(Hash(commName), commName).foldMap(interpreter) match {
+    val commName      = getCommName(templateId)
+    TemplateOp.retrieveAllTemplateVersions(templateId, commName).foldMap(interpreter) match {
       case Left(errs) => {
         Logger.error(s"Failed to list versions of comm $commName with errors: ${errs.toList.mkString(", ")}")
         NotFound(errs.head)
       }
-      case Right(versions) => Ok(views.html.templateVersions(versions, commName))
+      case Right(versions) => Ok(views.html.templateVersions(versions, commName, templateId))
     }
   }
 
   def publishNewTemplateGet = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None))
+    Ok(views.html.publishNewTemplate("inprogress", List[String](), None, None, Brand.allBrands))
   }
 
-  def publishExistingTemplateGet(commName: String) = Authenticated { implicit request =>
+  def publishExistingTemplateGet(templateId: String) = Authenticated { implicit request =>
     implicit val user = request.user
-    Ok(views.html.publishExistingTemplate("inprogress", List[String](), commName))
+    Ok(views.html.publishExistingTemplate("inprogress", List[String](), templateId, getCommName(templateId)))
   }
 
   def getDataPart[A](part: String, f: String => Option[A])(
@@ -212,45 +214,44 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
       val result = for {
         commName     <- getDataPart("commName", Some(_))
         commType     <- getDataPart("commType", CommType.fromString)
+        brand        <- getDataPart("brand", Brand.fromStringCaseInsensitive)
         templateFile <- multipartFormRequest.body.file("templateFile")
       } yield {
 
-        val templateManifest = TemplateManifest(Hash(commName), "1.0")
+        val templateManifest = TemplateManifest(UUID.randomUUID().toString, "1.0")
 
-        Logger.info(s"Publishing new comm template, ${commName.head}")
+        Logger.info(s"Publishing new comm template, ${commName}")
         val uploadedFiles = extractUploadedFiles(templateFile)
 
         TemplateOp
           .validateAndUploadNewTemplate(templateManifest,
                                         commName,
                                         commType,
+                                        brand,
                                         uploadedFiles,
                                         user.username,
                                         templateContext)
           .foldMap(interpreter) match {
           case Right(_) =>
-            Ok(
-              views.html.publishNewTemplate(
-                "ok",
-                List(s"Template published: ${templateManifest.id}, $commType, $commName, ${templateManifest.version}"),
-                Some(commName),
-                Some(commType)))
+            Redirect(routes.MainController.listVersions(templateManifest.id))
           case Left(errors) =>
             Logger.error(
               s"Failed to publish comm ${commName}, version ${templateManifest.version} with errors: ${errors.toList
                 .mkString(", ")}")
-            Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName), Some(commType)))
+            Ok(views.html.publishNewTemplate("error", errors.toList, Some(commName), Some(commType), Brand.allBrands))
         }
 
       }
       result.getOrElse {
-        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None))
+        Ok(views.html.publishNewTemplate("error", List("Missing required fields"), None, None, Brand.allBrands))
       }
   }
 
-  def publishExistingTemplatePost(commName: String) = Authenticated(parse.multipartFormData) {
+  def publishExistingTemplatePost(templateId: String) = Authenticated(parse.multipartFormData) {
     implicit multipartFormRequest =>
       implicit val user = multipartFormRequest.user
+
+      val commName = getCommName(templateId)
 
       multipartFormRequest.body
         .file("templateFile")
@@ -258,18 +259,29 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           val uploadedFiles = extractUploadedFiles(templateFile)
 
           TemplateOp
-            .validateAndUploadExistingTemplate(commName, uploadedFiles, user.username, templateContext)
+            .validateAndUploadExistingTemplate(templateId, commName, uploadedFiles, user.username, templateContext)
             .foldMap(interpreter) match {
-            case Right(newVersion) =>
-              Ok(views.html.publishExistingTemplate("ok", List(s"Template published: $newVersion"), commName))
+            case Right(newVersion: TemplateSummary) =>
+              Ok(
+                views.html
+                  .publishExistingTemplate(
+                    "ok",
+                    List(
+                      s"Template published: commName: ${newVersion.commName}, commType: ${newVersion.commType}, version: ${newVersion.latestVersion}, templateId: ${newVersion.templateId.value}"),
+                    templateId,
+                    commName
+                  )
+              )
             case Left(errors) =>
               Logger.error(
                 s"Failed to publish new version of comm ${commName} with errors: ${errors.toList.mkString(", ")}")
-              Ok(views.html.publishExistingTemplate("error", errors.toList, commName))
+              Ok(views.html.publishExistingTemplate("error", errors.toList, templateId, commName))
           }
         }
         .getOrElse {
-          Ok(views.html.publishExistingTemplate("error", List("Unknown issue accessing zip file"), commName))
+          Ok(
+            views.html
+              .publishExistingTemplate("error", List("Unknown issue accessing zip file"), templateId, commName))
         }
   }
 
@@ -302,6 +314,5 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
           IOUtils.closeQuietly(inputStream)
         }
       })
-
   }
 }

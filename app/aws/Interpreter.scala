@@ -1,7 +1,5 @@
 package aws
 
-import java.nio.file.Files
-
 import aws.s3.{S3FileDetails, S3Operations}
 import cats.data.NonEmptyList
 import cats.{Id, ~>}
@@ -9,14 +7,13 @@ import com.ovoenergy.comms.model._
 import templates.{UploadedTemplateFile => UploadedTemplate}
 import com.ovoenergy.comms.templates.model.template.processed.CommTemplate
 import logic._
-import models.{TemplateSummary, TemplateVersion}
+import models.TemplateSummaryOps
 import pagerduty.PagerDutyAlerter
 import templates.{AssetProcessing, Injector}
 import templates.validation.{PrintTemplateValidation, TemplateValidator}
-import com.ovoenergy.comms.templates
 import com.ovoenergy.comms.templates.TemplatesRepo
+import com.ovoenergy.comms.templates.model.template.metadata.TemplateSummary
 import com.ovoenergy.comms.templates.s3.S3Prefix
-import models.Brand.Unbranded
 import play.api.Logger
 
 import scala.util.Right
@@ -94,6 +91,7 @@ object Interpreter {
           }
 
           case UploadProcessedTemplateFileToS3(templateManifest, uploadedFile, publishedBy) =>
+            println(">>> UPLOADING TEMPLATES TO S3")
             val key =
               s"${S3Prefix.fromTemplateManifest(templateManifest)}/${uploadedFile.path}"
             val s3File =
@@ -133,8 +131,8 @@ object Interpreter {
               Right(versions)
           }
 
-          case UploadTemplateToDynamo(templateManifest, commName, commType, publishedBy, channels) =>
-            awsContext.dynamo.writeNewVersion(templateManifest, commName, commType, publishedBy, channels) match {
+          case UploadTemplateToDynamo(templateManifest, commName, commType, brand, publishedBy, channels) =>
+            awsContext.dynamo.writeNewVersion(templateManifest, commName, commType, brand, publishedBy, channels) match {
               case Right(()) => Right(())
               case Left(error) => {
                 PagerDutyAlerter(
@@ -146,10 +144,10 @@ object Interpreter {
 
           case GetNextTemplateSummary(templateId) =>
             val latestVersion: ErrorsOr[TemplateSummary] =
-              awsContext.dynamo.getTemplateSummary(templateId).toRight(NonEmptyList.of("No template found"))
+              awsContext.dynamo.getTemplateSummary(templateId)
             for {
               latestTemplate <- latestVersion.right
-              nextVersion    <- TemplateSummary.nextVersion(latestTemplate.latestVersion).right
+              nextVersion    <- TemplateSummaryOps.nextVersion(latestTemplate.latestVersion).right
             } yield latestTemplate.copy(latestVersion = nextVersion)
 
           case GetChannels(commManifest, templateContext) =>

@@ -3,8 +3,8 @@ import sbt._
 object Dependencies {
 
   object OvoEnergy {
-    val commsKafkaMessages = "com.ovoenergy" %% "comms-kafka-messages" % "1.66"
-    val commsTemplates     = "com.ovoenergy" %% "comms-templates"      % "0.22"
+    val commsKafkaMessages = "com.ovoenergy" %% "comms-kafka-messages" % "1.68"
+    val commsTemplates     = "com.ovoenergy" %% "comms-templates"      % "0.23"
   }
 
   object Circe {

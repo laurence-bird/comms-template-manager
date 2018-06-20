@@ -1,14 +1,15 @@
-@(resultClass: String, results: List[String], commName: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
+@(resultClass: String, results: List[String], templateId: String, commName: String)(implicit user: com.gu.googleauth.UserIdentity, messages: Messages)
 @main{
     <link rel="stylesheet" href="@routes.Assets.at("stylesheets/publish.css")">
 
     <div class="page-header">
         <h1>Publish new version of '@commName'</h1>
+        <p>Template ID: <strong>@templateId</strong></p>
         <h4>For details on how to construct a template see <a href="https://ovotech.github.io/comms-platform" target="_blank">here</a></h4>
     </div>
 
 
-    @helper.form(action = routes.MainController.publishExistingTemplatePost(commName), 'enctype -> "multipart/form-data") {
+    @helper.form(action = routes.MainController.publishExistingTemplatePost(templateId), 'enctype -> "multipart/form-data") {
 
 
         <form class="form-horizontal">
@@ -30,7 +31,7 @@ Watch out on OSX to not include _MACOSX and .DS_Store files"
 
                     <div class="form-group">
                         <div class="col-lg-8">
-                            <button type="submit" id="publish" class="btn btn-primary">Publish Template</button>
+                            <button type="submit" id="publish" class="btn btn-primary">Publish new version</button>
                         </div>
                     </div>
 
