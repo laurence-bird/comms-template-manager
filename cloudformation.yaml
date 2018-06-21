@@ -334,4 +334,8 @@ Outputs:
       Value: !GetAtt 'TemplateSummaryTIDTable.Arn'
       Export:
         Name: "TemplateSummaryTableArn"
+    TemplateSummaryTableName:
+      Value: !Ref 'TemplateSummaryTIDTable'
+      Export:
+        Name: "TemplateSummaryTableName"
 
