@@ -69,6 +69,16 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
     Ok("OK")
   }
 
+  def googleAuth() = Action {
+    Ok(views.html.googleAuth())
+  }
+
+  def tokensignin() = Action { request =>
+    println(s"request head: ${request.headers.toMap}")
+    println(s"request body: ${request.body.asText}")
+    Ok("hello world")
+  }
+
   val index = Authenticated { request =>
     implicit val user = request.user
     Ok(views.html.index())
@@ -169,6 +179,7 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
 
   def listTemplates = Authenticated { request =>
     implicit val user = request.user
+    println(s"Headers: \n${request.headers.toSimpleMap}")
     TemplateOp.listTemplateSummaries().foldMap(interpreter) match {
       case Left(err) => {
         Logger.error(s"Failed to list templates with errors: ${err.toList.mkString(", ")}")

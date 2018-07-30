@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <meta name="google-signin-client_id" content="834112150444-rqt9a69l3n8acn4nio9emcglm5o7sbrj.apps.googleusercontent.com" />
+        <script src="https://apis.google.com/js/platform.js" async defer></script>
+    </head>
+    <body>
+        <div class="g-signin2" data-onsuccess="sendToken"></div>
+
+        <script>
+
+            function sendToken(googleUser) {
+
+              /*
+              Handle Google JWT on backend:
+              https://developers.google.com/identity/sign-in/web/backend-auth
+               */
+
+              var xhr = new XMLHttpRequest();
+              var id_token = googleUser.getAuthResponse().id_token;
+              xhr.open('POST', '/tokensignin');
+              xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+              xhr.setRequestHeader('idtoken', id_token);
+              xhr.onload = function() {
+                  console.log('Signed in as: ' + xhr.responseText);
+              };
+              xhr.send();
+            }
+        </script>
+    </body>
+</html>

@@ -8,7 +8,8 @@ GET     /index                      controllers.MainController.index
 GET     /public/*file               controllers.Assets.at(path="/public", file)
 
 GET     /healthcheck                controllers.MainController.healthcheck
-
+GET     /googleAuth                 controllers.MainController.googleAuth
+POST    /tokensignin                controllers.MainController.tokensignin
 GET     /login                      controllers.AuthController.login
 GET     /oauth2callback             controllers.AuthController.oauth2Callback
 GET     /auth-error                             controllers.AuthController.authError
