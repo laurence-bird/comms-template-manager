@@ -65,7 +65,6 @@ class AppComponents(context: Context)
 
   val commPerformanceUrl = mandatoryConfig("auditLog.commPerformanceUrl")
   val commSearchUrl      = mandatoryConfig("auditLog.commSearchUrl")
-  val libraroMetricsUrl  = mandatoryConfig("librato.metricsUrl")
 
   val composerClient = new ComposerClient(wsClient, mandatoryConfig("composer.http.endpoint"))
 
@@ -75,7 +74,6 @@ class AppComponents(context: Context)
     interpreter,
     commPerformanceUrl,
     commSearchUrl,
-    libraroMetricsUrl,
     awsContext,
     s3Client,
     composerClient

@@ -4,8 +4,7 @@ jobs:
     working_directory: ~/comms-template-manager
 
     # With the docker executor we cannot connect to the docker container from the test
-    machine:
-      image: circleci/classic:edge
+    machine: true
 
     environment:
       - CHROME_DRIVER_PATH: "/usr/local/bin/chromedriver"
@@ -22,8 +21,9 @@ jobs:
           command: sudo apt-get update && sudo apt-get install -y libpython2.7-dev python-pip
 
       - run:
-          name: Install credstash
-          command: sudo pip install credstash
+          name: Install awscli and credstash
+          command: sudo pip install awscli credstash==1.14.0
+
 
       - run:
           name: Logn to AWS as circleci seems to ignore the setting

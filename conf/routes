@@ -25,5 +25,3 @@ POST   /preview/:templateId/:version/print        controllers.MainController.get
 
 GET    /publish/template/:templateId              controllers.MainController.publishExistingTemplateGet(templateId)
 POST   /publish/template/:templateId              controllers.MainController.publishExistingTemplatePost(templateId)
-
-GET    /metrics                                   controllers.MainController.operationalMetrics(commName: Option[String], channel: Option[String])

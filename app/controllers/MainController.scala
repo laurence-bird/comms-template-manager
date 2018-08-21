@@ -55,7 +55,6 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
                      interpreter: ~>[TemplateOpA, ErrorsOr],
                      commPerformanceUrl: String,
                      commSearchUrl: String,
-                     libratoMetricsUrl: String,
                      awsContext: aws.Context,
                      amazonS3Client: AmazonS3Client,
                      composerClient: ComposerClient)
@@ -283,18 +282,6 @@ class MainController(Authenticated: ActionBuilder[AuthRequest, AnyContent],
             views.html
               .publishExistingTemplate("error", List("Unknown issue accessing zip file"), templateId, commName))
         }
-  }
-
-  def operationalMetrics(commName: Option[String], channel: Option[String]) = Authenticated { implicit request =>
-    implicit val user = request.user
-
-    val commNameString = commName.getOrElse("").toLowerCase
-    val channelString  = channel.getOrElse("").toLowerCase
-    val endOfPeriod    = OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).toEpochSecond
-    val duration       = endOfPeriod - OffsetDateTime.now().minusMonths(1).truncatedTo(ChronoUnit.DAYS).toEpochSecond
-    val url =
-      s"$libratoMetricsUrl?duration=$duration&end_time=$endOfPeriod&source=%2A$commNameString.$channelString%2A"
-    Ok(views.html.operationalMetrics(commName, channel, url))
   }
 
   private def extractUploadedFiles(templateFile: FilePart[TemporaryFile])(
