@@ -156,6 +156,10 @@ Resources:
           FromPort: '443'
           ToPort: '443'
           CidrIp: 84.246.176.192/27 # BCP site
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 37.157.52.74/32 # Corgi
 
       SecurityGroupEgress:
         - IpProtocol: tcp
