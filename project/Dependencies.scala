@@ -18,7 +18,7 @@ object Dependencies {
 
   object Guardian {
     val scanamo        = "com.gu" %% "scanamo"         % "1.0.0-M3"
-    val playGoogleauth = "com.gu" %% "play-googleauth" % "0.7.1"
+    val playGoogleauth = "com.gu" %% "play-googleauth" % "0.7.2"
   }
 
   object SkSamuel {
