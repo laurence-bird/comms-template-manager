@@ -3,8 +3,11 @@ package components
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.gu.googleauth._
 import controllers.GroupsAuthConfig
+import io.jsonwebtoken.SignatureAlgorithm
+import org.joda.time.Duration
 import play.api.Logger
 
 import scala.collection.JavaConverters._
@@ -15,18 +18,21 @@ trait GoogleAuthComponents { self: ConfigUtil =>
     clientId = mandatoryConfig("google.clientId"),
     clientSecret = mandatoryConfig("google.clientSecret"),
     redirectUrl = mandatoryConfig("google.redirectUrl"),
-    domain = "ovoenergy.com"
+    domain = None,
+    antiForgeryChecker = AntiForgeryChecker("antiForgeryToken", SignatureAlgorithm.HS256),
+    maxAuthAge = Some(Duration.standardDays(1)),
+    enforceValidity = true,
+    prompt = Some("select_account") // see https://developers.google.com/identity/protocols/OpenIDConnect#authenticationuriparameters
   )
 
   def groupsAuthConfig: Option[GroupsAuthConfig] = {
     if (configuration.getOptional[Boolean]("google.groupsAuthorisation.enabled").getOrElse(false)) {
-      val acceptedGroups = configuration
+      val acceptedGroups = configuration.underlying
         .getStringList("google.groupsAuthorisation.acceptedGroups")
-        .map(_.asScala.toSet)
-        .getOrElse(Set.empty)
+        .asScala
+        .toSet
 
       val serviceAccount = {
-        import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 
         val credentials: GoogleCredential = {
           val json = mandatoryConfig("google.groupsAuthorisation.serviceAccountCreds")
@@ -49,5 +55,4 @@ trait GoogleAuthComponents { self: ConfigUtil =>
       None
     }
   }
-
 }
