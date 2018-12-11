@@ -34,25 +34,7 @@ Resources:
               - sts:AssumeRole
       Path: /
       Policies:
-        -
-          PolicyName: read-write-dynamo-table
-          PolicyDocument:
-            Statement:
-            - Effect: Allow
-              Action:
-                - 'dynamodb:Put*'
-                - 'dynamodb:Update*'
-                - 'dynamodb:Query'
-                - 'dynamodb:Scan'
-                - 'dynamodb:Get*'
-                - 'dynamodb:List*'
-                - 'dynamodb:BatchGetItem'
-                - 'dynamodb:DescribeTable'
-              Resource:
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TemplateSummaryTable}*"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TemplateVersionTable}*"
-        -
-          PolicyName: read-write-dynamo-TID-table
+        - PolicyName: read-write-dynamo-table
           PolicyDocument:
             Statement:
             - Effect: Allow
@@ -68,8 +50,7 @@ Resources:
               Resource:
                 - !GetAtt 'TemplateSummaryTIDTable.Arn'
                 - !GetAtt 'TemplateVersionTIDTable.Arn'
-        -
-          PolicyName: read-write-s3-buckets
+        - PolicyName: read-write-s3-buckets
           PolicyDocument:
             Statement:
             - Effect: Allow
@@ -84,8 +65,7 @@ Resources:
                 - 'arn:aws:s3:::ovo-comms-templates-raw/*'
                 - 'arn:aws:s3:::ovo-comms-template-assets'
                 - 'arn:aws:s3:::ovo-comms-template-assets/*'
-        -
-          PolicyName: read-credstash
+        - PolicyName: read-credstash
           PolicyDocument:
             Statement:
             - Effect: Allow
@@ -237,52 +217,21 @@ Resources:
       ListenerArn: !Ref 'ALBListener'
       Priority: 1
 
-  TemplateSummaryTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      AttributeDefinitions:
-      - AttributeName: commName
-        AttributeType: S
-      KeySchema:
-      - AttributeName: commName
-        KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-
-  TemplateVersionTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      AttributeDefinitions:
-      - AttributeName: commName
-        AttributeType: S
-      - AttributeName: publishedAt
-        AttributeType: N
-      KeySchema:
-      - AttributeName: commName
-        KeyType: HASH
-      - AttributeName: publishedAt
-        KeyType: RANGE
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-
   TemplateSummaryTIDTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
       - AttributeName: templateId
         AttributeType: S
       KeySchema:
       - AttributeName: templateId
         KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
 
   TemplateVersionTIDTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
       - AttributeName: templateId
         AttributeType: S
@@ -293,9 +242,6 @@ Resources:
         KeyType: HASH
       - AttributeName: publishedAt
         KeyType: RANGE
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
 
   TemplateManagerErrorResponseAlarm:
       Type: "AWS::CloudWatch::Alarm"
