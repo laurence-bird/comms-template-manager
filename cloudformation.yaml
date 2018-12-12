@@ -285,3 +285,13 @@ Outputs:
       Export:
         Name: "TemplateSummaryTableArn"
 
+    TemplateSummaryTableArnV2:
+      Value: !GetAtt 'TemplateSummaryTIDTable.Arn'
+      Export:
+        Name: "TemplateSummary-TableArn"
+
+    TemplateSummaryTableName:
+      Value: !Ref TemplateSummaryTIDTable
+      Export:
+        Name: "TemplateSummary-TableName"
+
