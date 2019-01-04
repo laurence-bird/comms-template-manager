@@ -18,8 +18,11 @@ project/plugins/project/
 .worksheet
 /.idea/
 
+# Metals
+.metals/
+.bloop/
+
 # Local DynamoDB (for testing)
 dynamodb-local/
-# Created by .ignore support plugin (hsz.mobi)
 
 .init_env.sh
