@@ -13,8 +13,14 @@ object PrintTemplateValidation {
 
   private val fileExtensionRegex            = """\.[0-9a-z]+$""".r
   private val validPrintAssetFileExtensions = List(".jpeg", ".jpg", ".tiff", ".tif")
-  private val expectedAddressFields         = List("address.line1", "address.town", "address.postcode")
-  private val addressBoxId                  = "letterAddress"
+
+  private val expectedAddressFields = List(
+    "recipient.postalAddress.line1",
+    "recipient.postalAddress.town",
+    "recipient.postalAddress.postcode"
+  )
+
+  private val addressBoxId = "letterAddress"
   private val cssColorSpaceRegex =
     """colou{0,1}r:\s(\w*)|(#[0-9a-f]{3}|#(?:[0-9a-f]{2}){2,4}|(rgb|cmyk)a?\((-?\d+%?[,\s]+){2,3}\s*[\d\.]+%?\))""".r // Looks for colour values
 

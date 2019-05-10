@@ -15,10 +15,10 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
       """<html>
         |  <body>
         |     <div id="letterAddress">
-        |       {{address.line1}}
-        |       {{address.line2}}
-        |       {{address.postcode}}
-        |       {{address.country}}
+        |       {{recipient.postalAddress.line1}}
+        |       {{recipient.postalAddress.line2}}
+        |       {{recipient.postalAddress.postcode}}
+        |       {{recipient.postalAddress.country}}
         |     </div>
         |  </body>
         |</html>
@@ -27,7 +27,7 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
     val printTemplateFile = List(UploadedTemplateFile("body.html", Content(exampleHtml), Print, HtmlBody, None))
     val result            = PrintTemplateValidation.validatePrintFiles(printTemplateFile)
 
-    result shouldBe Invalid(NonEmptyList.of("Missing expected address placeholder address.town"))
+    result shouldBe Invalid(NonEmptyList.of("Missing expected address placeholder recipient.postalAddress.town"))
   }
 
   it should "Error if the address box is missing" in {
@@ -47,12 +47,12 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
     val exampleHtml =
       """<html>
         |     <div id="letterAddress">
-        |       {{address.line1}}
-        |       {{address.line2}}
-        |       {{address.town}}
-        |       {{address.county}}
-        |       {{address.postcode}}
-        |       {{address.country}}
+        |       {{recipient.postalAddress.line1}}
+        |       {{recipient.postalAddress.line2}}
+        |       {{recipient.postalAddress.town}}
+        |       {{recipient.postalAddress.county}}
+        |       {{recipient.postalAddress.postcode}}
+        |       {{recipient.postalAddress.country}}
         |     </div>
         |     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
         |</html>
@@ -81,12 +81,12 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |
         |     </head>
         |     <div id="letterAddress">
-        |       {{address.line1}}
-        |       {{address.line2}}
-        |       {{address.town}}
-        |       {{address.county}}
-        |       {{address.postcode}}
-        |       {{address.country}}
+        |       {{recipient.postalAddress.line1}}
+        |       {{recipient.postalAddress.line2}}
+        |       {{recipient.postalAddress.town}}
+        |       {{recipient.postalAddress.county}}
+        |       {{recipient.postalAddress.postcode}}
+        |       {{recipient.postalAddress.country}}
         |     </div>
         |</html>
       """.stripMargin
@@ -111,12 +111,12 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |
         |     </head>
         |     <div id="letterAddress">
-        |       {{address.line1}}
-        |       {{address.line2}}
-        |       {{address.town}}
-        |       {{address.county}}
-        |       {{address.postcode}}
-        |       {{address.country}}
+        |       {{recipient.postalAddress.line1}}
+        |       {{recipient.postalAddress.line2}}
+        |       {{recipient.postalAddress.town}}
+        |       {{recipient.postalAddress.county}}
+        |       {{recipient.postalAddress.postcode}}
+        |       {{recipient.postalAddress.country}}
         |     </div>
         |</html>
       """.stripMargin
@@ -185,12 +185,12 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |
         |     </head>
         |     <div id="letterAddress">
-        |       {{address.line1}}
-        |       {{address.line2}}
-        |       {{address.town}}
-        |       {{address.county}}
-        |       {{address.postcode}}
-        |       {{address.country}}
+        |       {{recipient.postalAddress.line1}}
+        |       {{recipient.postalAddress.line2}}
+        |       {{recipient.postalAddress.town}}
+        |       {{recipient.postalAddress.county}}
+        |       {{recipient.postalAddress.postcode}}
+        |       {{recipient.postalAddress.country}}
         |     </div>
         |</html>
       """.stripMargin
@@ -264,12 +264,12 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |
         |     </head>
         |     <div id="letterAddress">
-        |       {{address.line1}}
-        |       {{address.line2}}
-        |       {{address.town}}
-        |       {{address.county}}
-        |       {{address.postcode}}
-        |       {{address.country}}
+        |       {{recipient.postalAddress.line1}}
+        |       {{recipient.postalAddress.line2}}
+        |       {{recipient.postalAddress.town}}
+        |       {{recipient.postalAddress.county}}
+        |       {{recipient.postalAddress.postcode}}
+        |       {{recipient.postalAddress.country}}
         |     </div>
         |</html>
       """.stripMargin
@@ -297,12 +297,12 @@ class PrintTemplateValidationSpec extends FlatSpec with Matchers {
         |
         |     </head>
         |     <div id="letterAddress">
-        |       {{address.line1}}
-        |       {{address.line2}}
-        |       {{address.town}}
-        |       {{address.county}}
-        |       {{address.postcode}}
-        |       {{address.country}}
+        |       {{recipient.postalAddress.line1}}
+        |       {{recipient.postalAddress.line2}}
+        |       {{recipient.postalAddress.town}}
+        |       {{recipient.postalAddress.county}}
+        |       {{recipient.postalAddress.postcode}}
+        |       {{recipient.postalAddress.country}}
         |     </div>
         |</html>
       """.stripMargin
