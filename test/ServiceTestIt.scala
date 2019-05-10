@@ -393,7 +393,7 @@ class ServiceTestIt extends FlatSpec with Matchers with MockServerFixture with B
     templateVersions.find(_.commName == commName) shouldBe None
     templateSummaries.find(_.commName == commName) shouldBe None
     val resultBody = result.body().string()
-    resultBody should include("<li>Missing expected address placeholder address.town</li>")
+    resultBody should include("<li>Missing expected address placeholder recipient.postalAddress.town</li>")
     resultBody should include("<li>Script included in print/body.html is not allowed</li>")
   }
 
